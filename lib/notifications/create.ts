@@ -1,0 +1,208 @@
+/**
+ * Notification Creation Helper
+ *
+ * Creates notifications for agents when important events occur
+ */
+
+import { createClient } from '@supabase/supabase-js'
+
+export type NotificationType =
+  | 'LISTING_CLAIMED'
+  | 'PAYMENT_RECEIVED'
+  | 'DISPUTE_FILED'
+  | 'DELIVERY_RECEIVED'
+  | 'DISPUTE_RESOLVED'
+  | 'WITHDRAWAL_COMPLETED'
+  | 'SYSTEM'
+
+interface CreateNotificationParams {
+  agentId: string
+  type: NotificationType
+  title: string
+  message: string
+  metadata?: Record<string, unknown>
+  relatedTransactionId?: string
+  relatedListingId?: string
+}
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
+/**
+ * Create a notification for an agent
+ */
+export async function createNotification(params: CreateNotificationParams): Promise<void> {
+  const {
+    agentId,
+    type,
+    title,
+    message,
+    metadata = {},
+    relatedTransactionId,
+    relatedListingId,
+  } = params
+
+  try {
+    const { error } = await supabase.from('notifications').insert({
+      agent_id: agentId,
+      type,
+      title,
+      message,
+      metadata,
+      related_transaction_id: relatedTransactionId,
+      related_listing_id: relatedListingId,
+      read: false,
+      created_at: new Date().toISOString(),
+    })
+
+    if (error) {
+      console.error('Failed to create notification:', error)
+    }
+  } catch (err) {
+    console.error('Notification creation error:', err)
+  }
+}
+
+/**
+ * Notify seller when their listing is claimed
+ */
+export async function notifyListingClaimed(
+  sellerAgentId: string,
+  buyerName: string,
+  listingTitle: string,
+  amount: string,
+  transactionId: string,
+  listingId: string
+): Promise<void> {
+  await createNotification({
+    agentId: sellerAgentId,
+    type: 'LISTING_CLAIMED',
+    title: 'Listing Claimed!',
+    message: `${buyerName} has claimed "${listingTitle}" for $${(parseFloat(amount) / 1e6).toFixed(2)}. Funds are in escrow.`,
+    metadata: { buyer_name: buyerName, listing_title: listingTitle, amount },
+    relatedTransactionId: transactionId,
+    relatedListingId: listingId,
+  })
+}
+
+/**
+ * Notify seller when payment is released
+ */
+export async function notifyPaymentReceived(
+  sellerAgentId: string,
+  buyerName: string,
+  listingTitle: string,
+  amount: string,
+  transactionId: string
+): Promise<void> {
+  await createNotification({
+    agentId: sellerAgentId,
+    type: 'PAYMENT_RECEIVED',
+    title: 'Payment Received!',
+    message: `${buyerName} released payment of $${(parseFloat(amount) / 1e6).toFixed(2)} for "${listingTitle}".`,
+    metadata: { buyer_name: buyerName, listing_title: listingTitle, amount },
+    relatedTransactionId: transactionId,
+  })
+}
+
+/**
+ * Notify buyer when delivery is submitted
+ */
+export async function notifyDeliveryReceived(
+  buyerAgentId: string,
+  sellerName: string,
+  listingTitle: string,
+  transactionId: string
+): Promise<void> {
+  await createNotification({
+    agentId: buyerAgentId,
+    type: 'DELIVERY_RECEIVED',
+    title: 'Delivery Submitted',
+    message: `${sellerName} has delivered "${listingTitle}". Review and release payment or file a dispute.`,
+    metadata: { seller_name: sellerName, listing_title: listingTitle },
+    relatedTransactionId: transactionId,
+  })
+}
+
+/**
+ * Notify both parties when dispute is filed
+ */
+export async function notifyDisputeFiled(
+  buyerAgentId: string,
+  sellerAgentId: string,
+  filerName: string,
+  listingTitle: string,
+  reason: string,
+  transactionId: string
+): Promise<void> {
+  // Notify seller
+  await createNotification({
+    agentId: sellerAgentId,
+    type: 'DISPUTE_FILED',
+    title: 'Dispute Filed',
+    message: `${filerName} has filed a dispute for "${listingTitle}". Reason: ${reason.slice(0, 100)}`,
+    metadata: { filer_name: filerName, listing_title: listingTitle, reason },
+    relatedTransactionId: transactionId,
+  })
+
+  // Notify buyer (if they didn't file it)
+  await createNotification({
+    agentId: buyerAgentId,
+    type: 'DISPUTE_FILED',
+    title: 'Dispute Filed',
+    message: `A dispute has been filed for "${listingTitle}". Admin will review within 48 hours.`,
+    metadata: { listing_title: listingTitle, reason },
+    relatedTransactionId: transactionId,
+  })
+}
+
+/**
+ * Notify both parties when dispute is resolved
+ */
+export async function notifyDisputeResolved(
+  buyerAgentId: string,
+  sellerAgentId: string,
+  listingTitle: string,
+  resolution: string,
+  transactionId: string
+): Promise<void> {
+  const message = `Dispute for "${listingTitle}" has been resolved: ${resolution}`
+
+  await createNotification({
+    agentId: buyerAgentId,
+    type: 'DISPUTE_RESOLVED',
+    title: 'Dispute Resolved',
+    message,
+    metadata: { listing_title: listingTitle, resolution },
+    relatedTransactionId: transactionId,
+  })
+
+  await createNotification({
+    agentId: sellerAgentId,
+    type: 'DISPUTE_RESOLVED',
+    title: 'Dispute Resolved',
+    message,
+    metadata: { listing_title: listingTitle, resolution },
+    relatedTransactionId: transactionId,
+  })
+}
+
+/**
+ * Notify agent when withdrawal completes
+ */
+export async function notifyWithdrawalCompleted(
+  agentId: string,
+  amount: string,
+  toWallet: string,
+  txHash: string
+): Promise<void> {
+  await createNotification({
+    agentId,
+    type: 'WITHDRAWAL_COMPLETED',
+    title: 'Withdrawal Complete',
+    message: `$${(parseFloat(amount) / 1e6).toFixed(2)} USDC has been sent to ${toWallet.slice(0, 6)}...${toWallet.slice(-4)}`,
+    metadata: { amount, to_wallet: toWallet, tx_hash: txHash },
+  })
+}

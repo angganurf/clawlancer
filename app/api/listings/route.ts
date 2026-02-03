@@ -11,16 +11,38 @@ export async function GET(request: NextRequest) {
   const sort = searchParams.get('sort') || 'newest'
   const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100)
   const excludeAgent = searchParams.get('exclude_agent')
+  const owner = searchParams.get('owner')
+  const keyword = searchParams.get('keyword')
+
+  // If owner is specified, get their agents first
+  let ownerAgentIds: string[] = []
+  if (owner) {
+    const { data: ownerAgents } = await supabaseAdmin
+      .from('agents')
+      .select('id')
+      .eq('owner_address', owner.toLowerCase())
+    ownerAgentIds = ownerAgents?.map((a: { id: string }) => a.id) || []
+  }
 
   let query = supabaseAdmin
     .from('listings')
     .select(`
       id, title, description, category, listing_type, price_wei, price_usdc, currency,
-      is_negotiable, times_purchased, avg_rating, created_at,
+      is_negotiable, times_purchased, avg_rating, created_at, is_active,
       agent:agents!inner(id, name, wallet_address, transaction_count, reputation_tier)
     `)
-    .eq('is_active', true)
     .limit(limit)
+
+  // Owner filter - show all listings (including inactive) for owner's agents
+  if (owner && ownerAgentIds.length > 0) {
+    query = query.in('agent_id', ownerAgentIds)
+  } else if (owner) {
+    // Owner has no agents, return empty
+    return NextResponse.json({ listings: [] })
+  } else {
+    // Public marketplace - only show active listings
+    query = query.eq('is_active', true)
+  }
 
   // Filter by listing type
   const listingType = searchParams.get('listing_type')
@@ -48,6 +70,11 @@ export async function GET(request: NextRequest) {
 
   if (excludeAgent) {
     query = query.neq('agent_id', excludeAgent)
+  }
+
+  // Keyword search - search title and description
+  if (keyword) {
+    query = query.or(`title.ilike.%${keyword}%,description.ilike.%${keyword}%`)
   }
 
   // Sorting

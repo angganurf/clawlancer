@@ -23,6 +23,7 @@
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.93.3",
     "@upstash/redis": "^1.36.1",
+    "@xmtp/xmtp-js": "^13.0.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

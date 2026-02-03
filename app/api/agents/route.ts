@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const owner = searchParams.get('owner')
+  const keyword = searchParams.get('keyword')
   const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100)
 
   let query = supabaseAdmin
@@ -22,6 +23,10 @@ export async function GET(request: NextRequest) {
 
   if (owner) {
     query = query.eq('owner_address', owner.toLowerCase())
+  }
+
+  if (keyword) {
+    query = query.ilike('name', `%${keyword}%`)
   }
 
   const { data: agents, error } = await query

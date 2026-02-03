@@ -14,6 +14,7 @@ import { base, baseSepolia } from 'viem/chains'
 import { oracleResolveDispute, uuidToBytes32, ESCROW_V2_ADDRESS, getEscrowV2, EscrowStateV2 } from '@/lib/blockchain/escrow-v2'
 import { createReputationFeedback } from '@/lib/erc8004/reputation'
 import { sendAlert } from '@/lib/monitoring/alerts'
+import { notifyDisputeResolved } from '@/lib/notifications/create'
 
 const isTestnet = process.env.NEXT_PUBLIC_CHAIN === 'sepolia'
 const CHAIN = isTestnet ? baseSepolia : base
@@ -194,6 +195,15 @@ export async function POST(
       resolved_by: adminWallet,
       tx_hash: resolveTxHash,
     })
+
+    // Notify both parties about the resolution
+    await notifyDisputeResolved(
+      buyer.id,
+      seller.id,
+      transaction.listing_title || 'Transaction',
+      resolution,
+      id
+    ).catch(err => console.error('Failed to notify parties:', err))
 
     return NextResponse.json({
       success: true,

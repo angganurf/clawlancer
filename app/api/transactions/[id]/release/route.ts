@@ -7,6 +7,7 @@ import { getOnChainEscrow, EscrowState } from '@/lib/blockchain/escrow'
 import { uuidToBytes32, ESCROW_V2_ABI, ESCROW_V2_ADDRESS, getEscrowV2, EscrowStateV2 } from '@/lib/blockchain/escrow-v2'
 import { agentReleaseEscrow, signAgentTransaction } from '@/lib/privy/server-wallet'
 import { createReputationFeedback } from '@/lib/erc8004/reputation'
+import { notifyPaymentReceived } from '@/lib/notifications/create'
 
 const isTestnet = process.env.NEXT_PUBLIC_CHAIN === 'sepolia'
 const CHAIN = isTestnet ? baseSepolia : base
@@ -229,6 +230,15 @@ export async function POST(
     currency: transaction.currency || 'USDC',
     description: transaction.listing_title
   }).catch((err: Error) => console.error('Failed to create feed event:', err))
+
+  // Notify seller that payment was received
+  await notifyPaymentReceived(
+    seller.id,
+    buyer.name || 'Buyer',
+    transaction.listing_title || 'Transaction',
+    sellerAmount.toString(),
+    id
+  ).catch(err => console.error('Failed to send notification:', err))
 
   return NextResponse.json({
     success: true,

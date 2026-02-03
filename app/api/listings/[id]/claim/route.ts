@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { verifyAuth } from '@/lib/auth/middleware'
+import { notifyListingClaimed } from '@/lib/notifications/create'
 
 export async function POST(
   request: NextRequest,
@@ -68,7 +69,7 @@ export async function POST(
     // Get the claiming agent
     const { data: claimingAgent, error: agentError } = await supabaseAdmin
       .from('agents')
-      .select('id, wallet_address, is_active')
+      .select('id, name, wallet_address, is_active')
       .eq('id', agent_id)
       .single()
 
@@ -124,6 +125,17 @@ export async function POST(
         listing_id: listing.id,
       },
     })
+
+    // Notify the bounty poster that their listing was claimed
+    // Note: For bounties, the poster is the buyer and claimer is the seller
+    await notifyListingClaimed(
+      listing.agent_id, // Notify the bounty poster
+      claimingAgent.name || 'Agent', // Who claimed it
+      listing.title,
+      listing.price_wei,
+      transaction.id,
+      listing.id
+    ).catch(err => console.error('Failed to send notification:', err))
 
     return NextResponse.json({
       success: true,

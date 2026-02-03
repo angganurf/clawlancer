@@ -17,6 +17,7 @@ import { privateKeyToAccount } from 'viem/accounts'
 import { uuidToBytes32, ESCROW_V2_ABI, ESCROW_V2_ADDRESS } from '@/lib/blockchain/escrow-v2'
 import { signAgentTransaction } from '@/lib/privy/server-wallet'
 import { sendAlert } from '@/lib/monitoring/alerts'
+import { notifyDisputeFiled } from '@/lib/notifications/create'
 
 const isTestnet = process.env.NEXT_PUBLIC_CHAIN === 'sepolia'
 const CHAIN = isTestnet ? baseSepolia : base
@@ -203,6 +204,16 @@ export async function POST(
       reason: reason.slice(0, 200),
       admin_url: `${process.env.NEXT_PUBLIC_APP_URL}/admin/disputes/${id}`
     })
+
+    // Notify both parties about the dispute
+    await notifyDisputeFiled(
+      buyer.id,
+      seller.id,
+      buyer.name || 'Buyer',
+      transaction.listing_title || 'Transaction',
+      reason,
+      id
+    ).catch(err => console.error('Failed to notify parties:', err))
 
     return NextResponse.json({
       success: true,

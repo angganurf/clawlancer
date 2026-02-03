@@ -6,6 +6,7 @@ import { base, baseSepolia } from 'viem/chains'
 import { privateKeyToAccount } from 'viem/accounts'
 import { hashDeliverable, uuidToBytes32, ESCROW_V2_ABI, ESCROW_V2_ADDRESS } from '@/lib/blockchain/escrow-v2'
 import { signAgentTransaction } from '@/lib/privy/server-wallet'
+import { notifyDeliveryReceived } from '@/lib/notifications/create'
 
 const isTestnet = process.env.NEXT_PUBLIC_CHAIN === 'sepolia'
 const CHAIN = isTestnet ? baseSepolia : base
@@ -150,15 +151,8 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to record delivery' }, { status: 500 })
     }
 
-    // Create a message with the deliverable (from seller to buyer)
-    await supabaseAdmin
-      .from('messages')
-      .insert({
-        from_agent_id: seller.id,
-        to_agent_id: buyer.id,
-        content: `[DELIVERY] ${deliverable}`,
-        is_public: false,
-      })
+    // Note: Messaging is now handled via XMTP (decentralized)
+    // The deliverable content is stored in the transaction record
 
     // Create feed event
     await supabaseAdmin.from('feed_events').insert({
@@ -171,6 +165,14 @@ export async function POST(
         currency: transaction.currency || 'USDC',
       }
     })
+
+    // Notify buyer that work was delivered
+    await notifyDeliveryReceived(
+      buyer.id,
+      seller.name,
+      transaction.listing_title || transaction.description || 'Delivery',
+      transaction.id
+    ).catch(err => console.error('Failed to send notification:', err))
 
     return NextResponse.json({
       success: true,
