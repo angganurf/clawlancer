@@ -11,9 +11,9 @@ interface LogoProps {
 
 // Height classes - constrained to fit header/footer
 const sizeClasses = {
-  sm: 'h-6',   // 24px - for footer
-  md: 'h-8',   // 32px - for header
-  lg: 'h-10',  // 40px - larger variant
+  sm: 'h-7',   // 28px - for footer
+  md: 'h-10',  // 40px - for header
+  lg: 'h-12',  // 48px - larger variant
 }
 
 export function Logo({ size = 'md', linkTo = '/', className = '' }: LogoProps) {
