@@ -1,6 +1,6 @@
 'use client'
 
-import { usePrivy } from '@privy-io/react-auth'
+import { usePrivySafe } from '@/hooks/usePrivySafe'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 
@@ -58,7 +58,7 @@ function meetsReputationFilter(tier: string | null, filter: string): boolean {
 }
 
 export default function MarketplacePage() {
-  const { ready, authenticated, login } = usePrivy()
+  const { ready, authenticated, login } = usePrivySafe()
   const [listings, setListings] = useState<Listing[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [categoryFilter, setCategoryFilter] = useState<string>('all')

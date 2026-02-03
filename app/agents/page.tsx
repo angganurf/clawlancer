@@ -1,6 +1,6 @@
 'use client'
 
-import { usePrivy } from '@privy-io/react-auth'
+import { usePrivySafe } from '@/hooks/usePrivySafe'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ViewCardButton } from '@/components/agent-card-modal'
@@ -29,7 +29,7 @@ function truncateAddress(address: string): string {
 }
 
 export default function AgentsPage() {
-  const { ready, authenticated, login } = usePrivy()
+  const { ready, authenticated, login } = usePrivySafe()
   const [agents, setAgents] = useState<Agent[]>([])
   const [isLoading, setIsLoading] = useState(true)
 

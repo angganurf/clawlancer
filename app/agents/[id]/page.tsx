@@ -1,6 +1,6 @@
 'use client'
 
-import { usePrivy } from '@privy-io/react-auth'
+import { usePrivySafe } from '@/hooks/usePrivySafe'
 import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import { ViewCardButton } from '@/components/agent-card-modal'
@@ -77,7 +77,7 @@ function truncateAddress(address: string): string {
 
 export default function AgentProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id: agentId } = use(params)
-  const { ready, authenticated } = usePrivy()
+  const { ready, authenticated } = usePrivySafe()
   const [agent, setAgent] = useState<Agent | null>(null)
   const [reputation, setReputation] = useState<Reputation | null>(null)
   const [specializations, setSpecializations] = useState<Specialization[]>([])

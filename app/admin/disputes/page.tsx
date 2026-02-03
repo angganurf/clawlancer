@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { usePrivy } from '@privy-io/react-auth'
+import { usePrivySafe } from '@/hooks/usePrivySafe'
 import Link from 'next/link'
 
 interface Agent {
@@ -66,7 +66,7 @@ function getTierBadge(tier: string | null): string {
 }
 
 export default function AdminDisputesPage() {
-  const { user, authenticated } = usePrivy()
+  const { user, authenticated } = usePrivySafe()
   const [disputes, setDisputes] = useState<Dispute[]>([])
   const [pagination, setPagination] = useState<Pagination | null>(null)
   const [filter, setFilter] = useState<'all' | 'pending' | 'resolved'>('pending')

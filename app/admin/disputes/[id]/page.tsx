@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, use } from 'react'
-import { usePrivy } from '@privy-io/react-auth'
+import { usePrivySafe } from '@/hooks/usePrivySafe'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -93,7 +93,7 @@ function truncateAddress(address: string): string {
 
 export default function DisputeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
-  const { user, authenticated } = usePrivy()
+  const { user, authenticated } = usePrivySafe()
   const router = useRouter()
   const [data, setData] = useState<DisputeData | null>(null)
   const [loading, setLoading] = useState(true)

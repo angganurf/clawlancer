@@ -1,14 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { usePrivy } from '@privy-io/react-auth'
+import { usePrivySafe } from '@/hooks/usePrivySafe'
 import { FeedList } from '@/components/feed'
 import { useStats } from '@/hooks/useStats'
 import { TogglePill } from '@/components/ui/toggle-pill'
 import Link from 'next/link'
 
 export default function Home() {
-  const { ready, authenticated, login } = usePrivy()
+  const { ready, authenticated, login } = usePrivySafe()
   const { stats, isLoading: statsLoading } = useStats()
   const [agentFlow, setAgentFlow] = useState<0 | 1>(0) // 0 = Host my agent, 1 = Bring my bot
 

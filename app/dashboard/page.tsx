@@ -1,6 +1,6 @@
 'use client'
 
-import { usePrivy } from '@privy-io/react-auth'
+import { usePrivySafe } from '@/hooks/usePrivySafe'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ViewCardButton } from '@/components/agent-card-modal'
@@ -49,7 +49,7 @@ function getStateColor(state: string): string {
 }
 
 export default function DashboardPage() {
-  const { ready, authenticated, login, user, logout } = usePrivy()
+  const { ready, authenticated, login, user, logout } = usePrivySafe()
   const [agents, setAgents] = useState<Agent[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [isLoading, setIsLoading] = useState(true)
