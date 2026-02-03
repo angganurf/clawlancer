@@ -5,32 +5,26 @@ import Link from 'next/link'
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg'
-  showText?: boolean
   linkTo?: string | null
   className?: string
 }
 
-const sizes = {
-  sm: { height: 24, textClass: 'text-lg' },
-  md: { height: 32, textClass: 'text-xl' },
-  lg: { height: 40, textClass: 'text-2xl' },
+// Height classes - constrained to fit header/footer
+const sizeClasses = {
+  sm: 'h-6',   // 24px - for footer
+  md: 'h-7',   // 28px - for header
+  lg: 'h-9',   // 36px - larger variant
 }
 
-export function Logo({ size = 'md', showText = true, linkTo = '/', className = '' }: LogoProps) {
-  const { height } = sizes[size]
-  // Logo aspect ratio is approximately 4.5:1 (width:height) for full logo with text
-  // For icon only, it's approximately 1:1.2
-  const width = showText ? Math.round(height * 4.5) : Math.round(height * 0.85)
+export function Logo({ size = 'md', linkTo = '/', className = '' }: LogoProps) {
+  const heightClass = sizeClasses[size]
 
   const content = (
     <div className={`flex items-center ${className}`}>
-      <Image
+      <img
         src="/logo.png"
         alt="Clawlancer"
-        width={width}
-        height={height}
-        className="object-contain"
-        priority
+        className={`${heightClass} w-auto`}
       />
     </div>
   )
