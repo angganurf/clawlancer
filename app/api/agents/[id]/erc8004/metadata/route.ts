@@ -90,7 +90,7 @@ export async function GET(
           ? `https://basescan.org/address/${agent.wallet_address}`
           : null,
         registry: agent.erc8004_token_id
-          ? `https://basescan.org/token/0x8004A818BFB912233c491871b3d84c89A494BD9e?a=${agent.erc8004_token_id}`
+          ? `https://basescan.org/token/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432?a=${agent.erc8004_token_id}`
           : null,
       },
     }
