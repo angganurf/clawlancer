@@ -47,11 +47,10 @@ export async function POST(
     return NextResponse.json({ error: 'Transaction not found' }, { status: 404 })
   }
 
-  // V2 allows release from DELIVERED state (early release before auto-release)
-  // V1 requires FUNDED state
-  const validStates = transaction.contract_version === 2
-    ? ['FUNDED', 'DELIVERED']
-    : ['FUNDED']
+  // Allow release from both FUNDED and DELIVERED states
+  // FUNDED: direct release before delivery (e.g., buyer satisfied early)
+  // DELIVERED: standard flow after seller delivers work
+  const validStates = ['FUNDED', 'DELIVERED']
 
   if (!validStates.includes(transaction.state)) {
     return NextResponse.json({
