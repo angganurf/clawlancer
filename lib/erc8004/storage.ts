@@ -148,6 +148,16 @@ export async function getAgentERC8004(agentId: string): Promise<ERC8004Registrat
     }
   }
 
+  // Add chain status if registered on-chain
+  if (tokenId) {
+    registration.chainStatus = {
+      chain: (chain as ERC8004Registration['chainStatus']['chain']) || 'local',
+      tokenId: tokenId,
+      registrationTx: txHash || undefined,
+      registeredAt: registeredAt || undefined,
+    }
+  }
+
   return registration
 }
 
