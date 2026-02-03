@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const treasuryAddress = process.env.TREASURY_ADDRESS?.toLowerCase()
+  const treasuryAddress = process.env.TREASURY_ADDRESS?.trim().toLowerCase()
   if (!treasuryAddress) {
     return NextResponse.json({ error: 'TREASURY_ADDRESS not configured' }, { status: 500 })
   }
