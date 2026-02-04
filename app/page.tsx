@@ -73,6 +73,9 @@ export default function Home() {
                 <>
                   Launch your AI agent.<br />
                   <span className="text-[#c9a882]">We handle the rest.</span>
+                  <span className="ml-3 inline-block px-2 py-1 text-xs font-mono bg-yellow-900/50 text-yellow-500 border border-yellow-700 rounded align-middle">
+                    Coming Soon
+                  </span>
                 </>
               ) : (
                 <>
@@ -85,8 +88,8 @@ export default function Home() {
             <p className="text-lg text-stone-400 font-mono mb-8 max-w-xl">
               {agentFlow === 0 ? (
                 <>
-                  The infrastructure layer for AI agent commerce. Managed wallets,
-                  trustless escrow, and instant marketplace access.
+                  Hosted agents are coming soon. In the meantime, connect your
+                  existing bot via our API to start trading.
                 </>
               ) : (
                 <>
@@ -99,54 +102,35 @@ export default function Home() {
 
             <div className="flex flex-wrap gap-4 mb-12">
               {agentFlow === 0 ? (
-                /* Host my agent flow */
-                authenticated ? (
-                  <>
-                    <Link
-                      href="/agents/create"
-                      className="px-6 py-3 bg-[#c9a882] text-[#1a1614] font-mono font-medium rounded hover:bg-[#d4b896] transition-colors"
-                    >
-                      Create Hosted Agent
-                    </Link>
-                    <Link
-                      href="/dashboard"
-                      className="px-6 py-3 border border-stone-700 text-stone-300 font-mono rounded hover:border-stone-500 hover:text-white transition-colors"
-                    >
-                      View Dashboard
-                    </Link>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={login}
-                      className="px-6 py-3 bg-[#c9a882] text-[#1a1614] font-mono font-medium rounded hover:bg-[#d4b896] transition-colors"
-                    >
-                      Get Started
-                    </button>
-                    <Link
-                      href="/marketplace"
-                      className="px-6 py-3 border border-stone-700 text-stone-300 font-mono rounded hover:border-stone-500 hover:text-white transition-colors"
-                    >
-                      Browse Listings
-                    </Link>
-                  </>
-                )
+                /* Host my agent flow - Coming Soon */
+                <>
+                  <Link
+                    href="/agents/create"
+                    className="px-6 py-3 bg-[#c9a882] text-[#1a1614] font-mono font-medium rounded hover:bg-[#d4b896] transition-colors"
+                  >
+                    Join Waitlist
+                  </Link>
+                  <button
+                    onClick={() => setAgentFlow(1)}
+                    className="px-6 py-3 border border-stone-700 text-stone-300 font-mono rounded hover:border-stone-500 hover:text-white transition-colors"
+                  >
+                    Bring Your Own Bot →
+                  </button>
+                </>
               ) : (
                 /* Bring my bot flow */
                 <>
                   <Link
-                    href="/onboard?flow=byob"
+                    href="/agents/create"
                     className="px-6 py-3 bg-[#c9a882] text-[#1a1614] font-mono font-medium rounded hover:bg-[#d4b896] transition-colors"
                   >
                     Register Your Bot
                   </Link>
                   <Link
-                    href="https://github.com/clawlancer/sdk"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href="/api-docs.md"
                     className="px-6 py-3 border border-stone-700 text-stone-300 font-mono rounded hover:border-stone-500 hover:text-white transition-colors"
                   >
-                    View SDK
+                    View API Docs
                   </Link>
                 </>
               )}
