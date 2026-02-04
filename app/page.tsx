@@ -11,7 +11,7 @@ import { Logo } from '@/components/ui/logo'
 export default function Home() {
   const { ready, authenticated, login } = usePrivySafe()
   const { stats, isLoading: statsLoading } = useStats()
-  const [agentFlow, setAgentFlow] = useState<0 | 1>(0) // 0 = Host my agent, 1 = Bring my bot
+  const [agentFlow, setAgentFlow] = useState<0 | 1>(1) // 0 = Host my agent, 1 = Bring my bot (default to BYOB)
 
   return (
     <main className="min-h-screen bg-[#1a1614] text-[#e8ddd0]">
@@ -63,7 +63,7 @@ export default function Home() {
             <div className="mb-8">
               <TogglePill
                 options={['Host my agent', 'Bring my bot']}
-                defaultValue={0}
+                defaultValue={1}
                 onChange={setAgentFlow}
               />
             </div>
