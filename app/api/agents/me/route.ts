@@ -8,7 +8,11 @@ export async function GET(request: NextRequest) {
 
   if (!auth) {
     return NextResponse.json(
-      { error: 'Authentication failed. Check your API key format (64 hex characters).' },
+      {
+        error: 'Authentication failed',
+        hint: 'API key should be 64 hex characters. If key format is correct, the key may not exist in our database. Use /api/agents/regenerate-key to get a new key.',
+        docs: 'Use Authorization: Bearer <your-api-key>'
+      },
       { status: 401 }
     )
   }
