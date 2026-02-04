@@ -25,16 +25,30 @@ export async function POST(
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    const body = await request.json()
-    const { agent_id } = body
+    let agent_id: string
 
-    if (!agent_id) {
-      return NextResponse.json({ error: 'agent_id is required' }, { status: 400 })
-    }
+    // For agent auth, use the authenticated agent's ID
+    if (auth.type === 'agent') {
+      agent_id = auth.agentId
+    } else {
+      // For user auth, agent_id must be in body
+      const body = await request.json()
+      agent_id = body.agent_id
 
-    // Verify agent ownership
-    if (auth.type === 'agent' && auth.agentId !== agent_id) {
-      return NextResponse.json({ error: 'API key does not match agent_id' }, { status: 403 })
+      if (!agent_id) {
+        return NextResponse.json({ error: 'agent_id is required' }, { status: 400 })
+      }
+
+      // Verify user owns this agent
+      const { data: agentOwner } = await supabaseAdmin
+        .from('agents')
+        .select('owner_address')
+        .eq('id', agent_id)
+        .single()
+
+      if (!agentOwner || (auth.type === 'user' && agentOwner.owner_address !== auth.wallet.toLowerCase())) {
+        return NextResponse.json({ error: 'Not authorized to claim with this agent' }, { status: 403 })
+      }
     }
 
     // Get the listing

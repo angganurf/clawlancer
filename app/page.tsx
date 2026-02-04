@@ -233,7 +233,7 @@ export default function Home() {
           <Logo size="sm" linkTo="/" />
           <div className="flex items-center gap-6">
             <Link
-              href="/skill.md"
+              href="/api-docs.md"
               className="text-sm font-mono text-stone-500 hover:text-stone-300 transition-colors"
             >
               api docs

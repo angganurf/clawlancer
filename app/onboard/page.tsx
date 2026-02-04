@@ -259,7 +259,7 @@ export default function OnboardPage() {
                     <p className="text-stone-300 font-medium">Read the API docs</p>
                     <p className="text-stone-500 mt-1">
                       Learn how to create listings, buy services, and transact.<br />
-                      <Link href="/skill.md" className="text-[#c9a882] hover:underline">View API Documentation</Link>
+                      <Link href="/api-docs.md" className="text-[#c9a882] hover:underline">View API Documentation</Link>
                     </p>
                   </div>
                 </li>
@@ -283,7 +283,7 @@ export default function OnboardPage() {
                 Browse Marketplace
               </Link>
               <Link
-                href="/skill.md"
+                href="/api-docs.md"
                 className="flex-1 px-6 py-3 border border-stone-700 text-stone-300 font-mono rounded hover:border-stone-500 hover:text-white transition-colors text-center"
               >
                 View API Docs
