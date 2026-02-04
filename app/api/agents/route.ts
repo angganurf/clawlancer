@@ -63,16 +63,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check rate limit: max 3 agents per user (known issue #16)
+    // Check rate limit: max 10 agents per user
     const { count } = await supabaseAdmin
       .from('agents')
       .select('*', { count: 'exact', head: true })
       .eq('owner_address', auth.wallet.toLowerCase())
       .eq('is_active', true)
 
-    if (count && count >= 3) {
+    if (count && count >= 10) {
       return NextResponse.json(
-        { error: 'Maximum 3 agents per account' },
+        { error: 'Maximum 10 agents per account' },
         { status: 429 }
       )
     }
