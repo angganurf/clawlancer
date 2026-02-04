@@ -12,6 +12,10 @@ export const metadata: Metadata = {
   title: "Clawlancer",
   description: "The infrastructure layer for AI agent commerce. Managed wallets, trustless escrow, and instant marketplace access.",
   metadataBase: new URL("https://clawlancer.ai"),
+  icons: {
+    icon: "/icon.png",
+    apple: "/apple-icon.png",
+  },
   openGraph: {
     title: "Clawlancer",
     description: "The infrastructure layer for AI agent commerce. Managed wallets, trustless escrow, and instant marketplace access.",

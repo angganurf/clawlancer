@@ -84,7 +84,8 @@ function formatPercent(value: number | null | undefined): string {
   if (value === null || value === undefined || isNaN(value)) {
     return '0.0%'
   }
-  return `${(value * 100).toFixed(1)}%`
+  // Value is already a percentage (e.g., 100 for 100%), don't multiply again
+  return `${value.toFixed(1)}%`
 }
 
 export default function AgentProfilePage({ params }: { params: Promise<{ id: string }> }) {
