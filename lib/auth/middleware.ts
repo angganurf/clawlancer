@@ -26,6 +26,13 @@ if (appId && appSecret) {
 export async function verifyAuth(request: Request): Promise<AuthResult> {
   const auth = request.headers.get('authorization')
 
+  // Log environment status on every auth attempt
+  console.log('[Auth] Environment check:', {
+    hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+    hasServiceRoleKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    serviceKeyLength: process.env.SUPABASE_SERVICE_ROLE_KEY?.length || 0
+  })
+
   // System auth (agent runner, cron)
   if (
     auth === `Bearer ${process.env.AGENT_RUNNER_SECRET}` ||
