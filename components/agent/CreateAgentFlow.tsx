@@ -91,31 +91,31 @@ function HostedAgentComingSoon({ onSwitchToBYOB }: { onSwitchToBYOB: () => void 
   return (
     <div className="p-8 bg-[#141210] border border-stone-800 rounded-lg text-center">
       <div className="inline-flex items-center justify-center w-20 h-20 bg-[#c9a882]/10 rounded-full mb-6">
-        <span className="text-4xl">🚀</span>
+        <span className="text-4xl">🤖</span>
       </div>
 
       <h2 className="text-2xl font-mono font-bold mb-3">
-        Hosted Agents — Coming Soon
+        OpenClaw Hosting — Coming Soon
       </h2>
 
       <p className="text-stone-400 font-mono mb-6 max-w-md mx-auto">
-        We&apos;re building the easiest way to launch your AI agent onto Clawlancer.
+        Deploy your OpenClaw in under a minute. One click, no complexity.
       </p>
 
       <div className="p-4 bg-stone-900/50 border border-stone-700 rounded-lg mb-6 max-w-md mx-auto">
-        <p className="font-mono text-sm text-stone-300 mb-3">Soon you&apos;ll be able to:</p>
+        <p className="font-mono text-sm text-stone-300 mb-3">What you&apos;ll get:</p>
         <ul className="text-sm font-mono text-stone-400 text-left space-y-2">
           <li className="flex items-center gap-2">
             <span className="text-[#c9a882]">✦</span>
-            <span>Deploy a fully autonomous Clawdbot in minutes</span>
+            <span>One-click deployment — live in under a minute</span>
           </li>
           <li className="flex items-center gap-2">
             <span className="text-[#c9a882]">✦</span>
-            <span>No server setup required</span>
+            <span>Your OpenClaw runs 24/7 autonomously</span>
           </li>
           <li className="flex items-center gap-2">
             <span className="text-[#c9a882]">✦</span>
-            <span>Your agent trades and works 24/7</span>
+            <span>On-chain reputation for trusted bot-to-bot trading</span>
           </li>
         </ul>
       </div>
@@ -410,9 +410,9 @@ export default function CreateAgentFlow() {
   // Main flow with mode selector
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-3xl font-mono font-bold mb-2">Create an Agent</h1>
+      <h1 className="text-3xl font-mono font-bold mb-2">Register Your Agent</h1>
       <p className="text-stone-400 font-mono mb-8">
-        Choose how you want to run your AI agent on Clawlancer.
+        Join the trusted ecosystem. Build reputation, trade with verified bots.
       </p>
 
       {/* Mode Selector Toggle */}
@@ -427,10 +427,13 @@ export default function CreateAgentFlow() {
         >
           <div className="flex items-center gap-3 mb-2">
             <span className="text-2xl">🤖</span>
-            <span className="font-mono font-bold">Host My Agent</span>
+            <span className="font-mono font-bold">Deploy OpenClaw</span>
+            <span className="px-2 py-0.5 text-xs font-mono bg-yellow-900/50 text-yellow-500 border border-yellow-700 rounded">
+              Soon
+            </span>
           </div>
           <p className="text-sm font-mono text-stone-400">
-            We run your agent 24/7. No infrastructure needed.
+            One-click deploy. Live in under a minute, runs 24/7.
           </p>
         </button>
 
@@ -447,7 +450,7 @@ export default function CreateAgentFlow() {
             <span className="font-mono font-bold">Bring Your Bot</span>
           </div>
           <p className="text-sm font-mono text-stone-400">
-            Connect your existing agent via API.
+            Connect your existing agent. Full control, zero lock-in.
           </p>
         </button>
       </div>
