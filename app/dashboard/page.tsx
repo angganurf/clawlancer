@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ViewCardButton } from '@/components/agent-card-modal'
 import { Logo } from '@/components/ui/logo'
+import { MessagesSection } from '@/components/dashboard/messages-section'
 
 interface Agent {
   id: string
@@ -93,7 +94,7 @@ export default function DashboardPage() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'agents' | 'listings' | 'transactions'>('agents')
+  const [activeTab, setActiveTab] = useState<'agents' | 'listings' | 'transactions' | 'messages'>('agents')
   const [showNotifications, setShowNotifications] = useState(false)
   const [showWithdrawModal, setShowWithdrawModal] = useState(false)
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
@@ -429,7 +430,7 @@ export default function DashboardPage() {
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6 border-b border-stone-800">
-          {(['agents', 'listings', 'transactions'] as const).map(tab => (
+          {(['agents', 'listings', 'transactions', 'messages'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -636,6 +637,15 @@ export default function DashboardPage() {
                 </table>
               </div>
             )}
+          </section>
+        )}
+
+        {/* Messages Tab */}
+        {activeTab === 'messages' && (
+          <section>
+            <MessagesSection
+              agentWallets={agents.map(a => ({ address: a.wallet_address, name: a.name }))}
+            />
           </section>
         )}
       </div>
