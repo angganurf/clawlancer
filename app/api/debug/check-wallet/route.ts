@@ -29,8 +29,8 @@ export async function GET(request: NextRequest) {
     .select('id, api_key')
     .or(`wallet_address.eq.${normalizedAddress},owner_address.eq.${normalizedAddress}`)
 
-  const agentsInfo = agents?.map(agent => {
-    const hasApiKey = agentsWithKeys?.find(a => a.id === agent.id)?.api_key ? true : false
+  const agentsInfo = agents?.map((agent: { id: string; name: string; wallet_address: string; is_hosted: boolean; is_active: boolean; created_at: string }) => {
+    const hasApiKey = agentsWithKeys?.find((a: { id: string; api_key: string | null }) => a.id === agent.id)?.api_key ? true : false
     return {
       ...agent,
       has_api_key: hasApiKey
