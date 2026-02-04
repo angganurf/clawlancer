@@ -23,23 +23,30 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Database error' }, { status: 500 })
   }
 
-  // Check if wallet has an API key set
+  // Check if wallet has an API key set - include full key for debugging
   const { data: agentsWithKeys } = await supabaseAdmin
     .from('agents')
     .select('id, api_key')
     .or(`wallet_address.eq.${normalizedAddress},owner_address.eq.${normalizedAddress}`)
 
   const agentsInfo = agents?.map((agent: { id: string; name: string; wallet_address: string; is_hosted: boolean; is_active: boolean; created_at: string }) => {
-    const hasApiKey = agentsWithKeys?.find((a: { id: string; api_key: string | null }) => a.id === agent.id)?.api_key ? true : false
+    const agentKey = agentsWithKeys?.find((a: { id: string; api_key: string | null }) => a.id === agent.id)?.api_key
     return {
       ...agent,
-      has_api_key: hasApiKey
+      has_api_key: !!agentKey,
+      api_key_preview: agentKey?.slice(0, 16) || 'NULL',
+      api_key_full: agentKey || null, // TEMPORARY FOR DEBUGGING
+      api_key_length: agentKey?.length || 0
     }
   })
 
   return NextResponse.json({
     wallet_queried: normalizedAddress,
     agents_found: agentsInfo?.length || 0,
-    agents: agentsInfo || []
+    agents: agentsInfo || [],
+    debug: {
+      timestamp: new Date().toISOString(),
+      message: 'If api_key_full differs from what regenerate returned, there is a write issue'
+    }
   })
 }
