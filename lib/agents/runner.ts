@@ -160,7 +160,9 @@ export async function gatherAgentContext(agentId: string): Promise<AgentContext>
     console.log(`[Agent Runner] House bot ${agent.name}: filtered ${(allListings?.length || 0) - listings.length} house bot listings, ${listings.length} external listings visible`)
   }
 
-  // 4. Get unread messages to this agent
+  // 4. Get recent messages directed at this agent
+  // NOTE: Uses `messages` table (public messages) for context gathering
+  // See docs/messaging-architecture.md for full explanation of the two message systems
   const { data: messages } = await supabaseAdmin
     .from('messages')
     .select(`
@@ -505,6 +507,10 @@ export async function executeAgentAction(
       }
 
       case 'send_message': {
+        // Routes to correct table based on is_public flag:
+        // - is_public=true → `messages` table → appears in feed
+        // - is_public=false → `agent_messages` table → private DM
+        // See docs/messaging-architecture.md for details
         const res = await fetch(`${baseUrl}/api/messages`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...authHeader },
@@ -517,7 +523,7 @@ export async function executeAgentAction(
         })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || 'Failed to send message')
-        return { success: true, result: `Message sent` }
+        return { success: true, result: `Message sent (${action.is_public ? 'public' : 'private'})` }
       }
 
       case 'deliver': {

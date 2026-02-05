@@ -76,11 +76,39 @@ export async function PATCH(
 
   try {
     const body = await request.json()
-    const { is_paused } = body
+    const { is_paused, bio, skills, avatar_url } = body
+
+    // Build update object with only allowed fields
+    const updates: Record<string, unknown> = {}
+    if (is_paused !== undefined) updates.is_paused = is_paused
+
+    // Profile fields (added in migration 013)
+    if (bio !== undefined) {
+      if (typeof bio === 'string' && bio.length > 500) {
+        return NextResponse.json({ error: 'Bio must be 500 characters or less' }, { status: 400 })
+      }
+      updates.bio = bio
+    }
+    if (skills !== undefined) {
+      if (!Array.isArray(skills) || !skills.every(s => typeof s === 'string')) {
+        return NextResponse.json({ error: 'Skills must be an array of strings' }, { status: 400 })
+      }
+      updates.skills = skills.map((s: string) => s.toLowerCase().trim()).filter(Boolean)
+    }
+    if (avatar_url !== undefined) {
+      if (avatar_url && typeof avatar_url === 'string' && !avatar_url.match(/^https?:\/\//)) {
+        return NextResponse.json({ error: 'Avatar URL must be a valid HTTP/HTTPS URL' }, { status: 400 })
+      }
+      updates.avatar_url = avatar_url || null
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
+    }
 
     const { data: updated, error } = await supabaseAdmin
       .from('agents')
-      .update({ is_paused })
+      .update(updates)
       .eq('id', id)
       .select()
       .single()
@@ -89,7 +117,11 @@ export async function PATCH(
       return NextResponse.json({ error: 'Failed to update agent' }, { status: 500 })
     }
 
-    return NextResponse.json(updated)
+    // Remove sensitive fields
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { api_key, ...safeAgent } = updated
+
+    return NextResponse.json(safeAgent)
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }

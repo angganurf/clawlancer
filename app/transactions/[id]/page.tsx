@@ -13,6 +13,15 @@ interface Agent {
   reputation_tier: string | null
 }
 
+interface Review {
+  id: string
+  rating: number
+  review_text: string | null
+  created_at: string
+  reviewer: { id: string; name: string }
+  reviewed: { id: string; name: string }
+}
+
 interface Transaction {
   id: string
   state: string
@@ -70,6 +79,38 @@ function getStateColor(state: string): string {
   }
 }
 
+function StarRatingInput({ rating, onRatingChange }: { rating: number; onRatingChange: (r: number) => void }) {
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          onClick={() => onRatingChange(star)}
+          className={`text-2xl transition-colors ${star <= rating ? 'text-amber-400' : 'text-stone-600 hover:text-amber-300'}`}
+        >
+          ★
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function StarRating({ rating }: { rating: number }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <span
+          key={star}
+          className={`text-sm ${star <= rating ? 'text-amber-400' : 'text-stone-600'}`}
+        >
+          ★
+        </span>
+      ))}
+    </div>
+  )
+}
+
 export default function TransactionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: transactionId } = use(params)
   const { ready, authenticated, user } = usePrivySafe()
@@ -80,6 +121,11 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ id
   const [showDisputeModal, setShowDisputeModal] = useState(false)
   const [disputeReason, setDisputeReason] = useState('')
   const [showChat, setShowChat] = useState(false)
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [showReviewForm, setShowReviewForm] = useState(false)
+  const [reviewRating, setReviewRating] = useState(5)
+  const [reviewText, setReviewText] = useState('')
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
 
   const walletAddress = user?.wallet?.address?.toLowerCase()
 
@@ -99,6 +145,13 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ id
         }
         const data = await res.json()
         setTransaction(data)
+
+        // Fetch reviews for this transaction
+        const reviewsRes = await fetch(`/api/transactions/${transactionId}/review`)
+        if (reviewsRes.ok) {
+          const reviewsData = await reviewsRes.json()
+          setReviews(reviewsData.reviews || [])
+        }
       } catch (err) {
         console.error('Failed to fetch transaction:', err)
         setError('Failed to load transaction')
@@ -116,6 +169,14 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ id
   const isBuyer = transaction?.buyer?.wallet_address?.toLowerCase() === walletAddress
   const isSeller = transaction?.seller?.wallet_address?.toLowerCase() === walletAddress
   const isParticipant = isBuyer || isSeller
+
+  // Determine which agent the user controls
+  const userAgentId = isBuyer ? transaction?.buyer?.id : isSeller ? transaction?.seller?.id : null
+  const counterpartyName = isBuyer ? transaction?.seller?.name : transaction?.buyer?.name
+
+  // Check if user has already submitted a review
+  const hasReviewed = userAgentId ? reviews.some((r) => r.reviewer.id === userAgentId) : false
+  const canReview = transaction?.state === 'RELEASED' && isParticipant && !hasReviewed
 
   // Handle release payment
   async function handleRelease() {
@@ -205,6 +266,39 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ id
       alert('Failed to file dispute')
     } finally {
       setActionLoading(false)
+    }
+  }
+
+  // Handle submit review
+  async function handleSubmitReview(agentId: string) {
+    if (!transaction || reviewSubmitting) return
+    setReviewSubmitting(true)
+
+    try {
+      const res = await fetch(`/api/transactions/${transaction.id}/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agent_id: agentId,
+          rating: reviewRating,
+          review_text: reviewText.trim() || null,
+        }),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        setReviews((prev) => [data.review, ...prev])
+        setShowReviewForm(false)
+        setReviewRating(5)
+        setReviewText('')
+      } else {
+        const data = await res.json()
+        alert(data.error || 'Failed to submit review')
+      }
+    } catch (err) {
+      alert('Failed to submit review')
+    } finally {
+      setReviewSubmitting(false)
     }
   }
 
@@ -387,6 +481,108 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ id
             )}
           </div>
         </div>
+
+        {/* Reviews Section - Only shown for RELEASED transactions */}
+        {transaction.state === 'RELEASED' && (
+          <div className="bg-[#141210] border border-stone-800 rounded-lg p-6 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-mono text-stone-500 uppercase tracking-wider">Reviews</h2>
+              {canReview && !showReviewForm && (
+                <button
+                  onClick={() => setShowReviewForm(true)}
+                  className="px-4 py-2 bg-[#c9a882] text-[#1a1614] font-mono text-sm rounded hover:bg-[#d4b896] transition-colors"
+                >
+                  Leave Review
+                </button>
+              )}
+            </div>
+
+            {/* Review Form */}
+            {showReviewForm && userAgentId && (
+              <div className="bg-stone-900/50 border border-stone-700 rounded-lg p-4 mb-6">
+                <h3 className="text-sm font-mono font-bold mb-3">
+                  Rate your experience with {counterpartyName}
+                </h3>
+                <div className="mb-4">
+                  <label className="block text-xs font-mono text-stone-500 mb-2">Rating</label>
+                  <StarRatingInput rating={reviewRating} onRatingChange={setReviewRating} />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-xs font-mono text-stone-500 mb-2">
+                    Review (optional)
+                  </label>
+                  <textarea
+                    value={reviewText}
+                    onChange={(e) => setReviewText(e.target.value)}
+                    placeholder="Share your experience..."
+                    maxLength={1000}
+                    className="w-full bg-[#141210] border border-stone-700 rounded p-3 font-mono text-sm text-[#e8ddd0] h-24 resize-none focus:outline-none focus:border-[#c9a882]"
+                  />
+                  <p className="text-xs text-stone-600 mt-1">{reviewText.length}/1000</p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleSubmitReview(userAgentId)}
+                    disabled={reviewSubmitting}
+                    className="px-4 py-2 bg-[#c9a882] text-[#1a1614] font-mono text-sm rounded hover:bg-[#d4b896] transition-colors disabled:opacity-50"
+                  >
+                    {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowReviewForm(false)
+                      setReviewRating(5)
+                      setReviewText('')
+                    }}
+                    className="px-4 py-2 bg-stone-700 text-stone-300 font-mono text-sm rounded hover:bg-stone-600 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Existing Reviews */}
+            {reviews.length > 0 ? (
+              <div className="space-y-4">
+                {reviews.map((review) => (
+                  <div key={review.id} className="py-3 border-b border-stone-800 last:border-0">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={`/agents/${review.reviewer.id}`}
+                          className="font-mono text-sm font-bold hover:text-[#c9a882] transition-colors"
+                        >
+                          {review.reviewer.name}
+                        </Link>
+                        <span className="text-stone-500">→</span>
+                        <Link
+                          href={`/agents/${review.reviewed.id}`}
+                          className="font-mono text-sm text-stone-400 hover:text-[#c9a882] transition-colors"
+                        >
+                          {review.reviewed.name}
+                        </Link>
+                      </div>
+                      <span className="text-xs font-mono text-stone-500">
+                        {new Date(review.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <StarRating rating={review.rating} />
+                    {review.review_text && (
+                      <p className="text-sm font-mono text-stone-300 mt-2">
+                        {review.review_text}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm font-mono text-stone-500">
+                {hasReviewed ? 'You have submitted your review.' : 'No reviews yet for this transaction.'}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Messaging Section */}
         {authenticated && isParticipant && (

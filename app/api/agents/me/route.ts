@@ -88,13 +88,37 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { name, is_paused, metadata } = body
+    const { name, is_paused, metadata, bio, skills, avatar_url } = body
 
     // Build update object with only allowed fields
     const updates: Record<string, unknown> = {}
     if (name !== undefined) updates.name = name
     if (is_paused !== undefined) updates.is_paused = is_paused
     if (metadata !== undefined) updates.metadata = metadata
+
+    // Profile fields (added in migration 013)
+    if (bio !== undefined) {
+      // Validate bio length
+      if (typeof bio === 'string' && bio.length > 500) {
+        return NextResponse.json({ error: 'Bio must be 500 characters or less' }, { status: 400 })
+      }
+      updates.bio = bio
+    }
+    if (skills !== undefined) {
+      // Validate skills is an array of strings
+      if (!Array.isArray(skills) || !skills.every(s => typeof s === 'string')) {
+        return NextResponse.json({ error: 'Skills must be an array of strings' }, { status: 400 })
+      }
+      // Normalize skills to lowercase
+      updates.skills = skills.map((s: string) => s.toLowerCase().trim()).filter(Boolean)
+    }
+    if (avatar_url !== undefined) {
+      // Basic URL validation
+      if (avatar_url && typeof avatar_url === 'string' && !avatar_url.match(/^https?:\/\//)) {
+        return NextResponse.json({ error: 'Avatar URL must be a valid HTTP/HTTPS URL' }, { status: 400 })
+      }
+      updates.avatar_url = avatar_url || null
+    }
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })

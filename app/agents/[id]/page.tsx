@@ -20,6 +20,10 @@ interface Agent {
   created_at: string
   erc8004_token_id: string | null
   erc8004_chain: string | null
+  // Profile fields (migration 013)
+  bio: string | null
+  skills: string[] | null
+  avatar_url: string | null
 }
 
 interface Reputation {
@@ -51,6 +55,44 @@ interface Endorsement {
   }
   message: string | null
   created_at: string
+}
+
+interface Listing {
+  id: string
+  title: string
+  price_wei: string
+  currency: string
+  category: string | null
+  is_active: boolean
+}
+
+interface Transaction {
+  id: string
+  amount_wei: string
+  currency: string
+  description: string | null
+  state: string
+  created_at: string
+}
+
+interface Review {
+  id: string
+  rating: number
+  review_text: string | null
+  created_at: string
+  transaction_id: string
+  reviewer: {
+    id: string
+    name: string
+    avatar_url: string | null
+    reputation_tier: string | null
+  }
+}
+
+interface ReviewStats {
+  review_count: number
+  average_rating: number
+  rating_distribution: Record<number, number>
 }
 
 const TIER_COLORS: Record<string, string> = {
@@ -88,6 +130,21 @@ function formatPercent(value: number | null | undefined): string {
   return `${value.toFixed(1)}%`
 }
 
+function StarRating({ rating }: { rating: number }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <span
+          key={star}
+          className={`text-sm ${star <= rating ? 'text-amber-400' : 'text-stone-600'}`}
+        >
+          ★
+        </span>
+      ))}
+    </div>
+  )
+}
+
 export default function AgentProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id: agentId } = use(params)
   const { ready, authenticated } = usePrivySafe()
@@ -96,6 +153,10 @@ export default function AgentProfilePage({ params }: { params: Promise<{ id: str
   const [specializations, setSpecializations] = useState<Specialization[]>([])
   const [completedWork, setCompletedWork] = useState<CompletedWork[]>([])
   const [endorsements, setEndorsements] = useState<Endorsement[]>([])
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [reviewStats, setReviewStats] = useState<ReviewStats | null>(null)
+  const [listings, setListings] = useState<Listing[]>([])
+  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -111,6 +172,9 @@ export default function AgentProfilePage({ params }: { params: Promise<{ id: str
         const agentData = await agentRes.json()
         // API returns agent fields directly at root level
         setAgent(agentData)
+        // Also includes listings and recent_transactions
+        setListings(agentData.listings || [])
+        setRecentTransactions(agentData.recent_transactions || [])
 
         // Fetch reputation
         const repRes = await fetch(`/api/agents/${agentId}/reputation`)
@@ -146,6 +210,14 @@ export default function AgentProfilePage({ params }: { params: Promise<{ id: str
         if (endRes.ok) {
           const endData = await endRes.json()
           setEndorsements(endData.endorsements || [])
+        }
+
+        // Fetch reviews
+        const reviewsRes = await fetch(`/api/agents/${agentId}/reviews`)
+        if (reviewsRes.ok) {
+          const reviewsData = await reviewsRes.json()
+          setReviews(reviewsData.reviews || [])
+          setReviewStats(reviewsData.stats || null)
         }
       } catch (err) {
         console.error('Failed to fetch agent data:', err)
@@ -204,6 +276,20 @@ export default function AgentProfilePage({ params }: { params: Promise<{ id: str
         {/* Agent Header */}
         <div className="flex items-start justify-between mb-8">
           <div className="flex items-center gap-4">
+            {/* Avatar */}
+            {agent.avatar_url ? (
+              <img
+                src={agent.avatar_url}
+                alt={agent.name}
+                className="w-16 h-16 rounded-full object-cover border-2 border-stone-700"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#c9a882] to-[#8b7355] flex items-center justify-center">
+                <span className="text-2xl font-mono font-bold text-[#1a1614]">
+                  {agent.name.charAt(0).toUpperCase()}
+                </span>
+              </div>
+            )}
             <div className="flex flex-col">
               <div className="flex items-center gap-3">
                 <h1 className="text-3xl font-mono font-bold">{agent.name}</h1>
@@ -236,6 +322,90 @@ export default function AgentProfilePage({ params }: { params: Promise<{ id: str
             )}
           </div>
         </div>
+
+        {/* Bio & Skills */}
+        {(agent.bio || (agent.skills && agent.skills.length > 0)) && (
+          <div className="bg-[#141210] border border-stone-800 rounded-lg p-6 mb-8">
+            {agent.bio && (
+              <p className="font-mono text-sm text-stone-300 leading-relaxed mb-4">{agent.bio}</p>
+            )}
+            {agent.skills && agent.skills.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {agent.skills.map((skill) => (
+                  <Link
+                    key={skill}
+                    href={`/agents?skill=${encodeURIComponent(skill)}`}
+                    className="px-3 py-1 text-xs font-mono bg-[#c9a882]/10 text-[#c9a882] rounded-full hover:bg-[#c9a882]/20 transition-colors"
+                  >
+                    {skill}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Active Listings */}
+        {listings.filter(l => l.is_active).length > 0 && (
+          <div className="bg-[#141210] border border-stone-800 rounded-lg p-6 mb-8">
+            <h2 className="text-lg font-mono font-bold mb-4">Active Listings</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {listings.filter(l => l.is_active).map((listing) => (
+                <Link
+                  key={listing.id}
+                  href={`/listings/${listing.id}`}
+                  className="bg-stone-900/50 border border-stone-700 rounded-lg p-4 hover:border-[#c9a882]/50 transition-colors"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="font-mono text-sm font-bold mb-1">{listing.title}</h3>
+                      {listing.category && (
+                        <span className="text-xs font-mono text-stone-500">{listing.category}</span>
+                      )}
+                    </div>
+                    <span className="font-mono font-bold text-[#c9a882]">
+                      {formatUSDC(listing.price_wei)}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Recent Transactions */}
+        {recentTransactions.length > 0 && (
+          <div className="bg-[#141210] border border-stone-800 rounded-lg p-6 mb-8">
+            <h2 className="text-lg font-mono font-bold mb-4">Recent Transactions</h2>
+            <div className="space-y-3">
+              {recentTransactions.slice(0, 10).map((tx) => (
+                <Link
+                  key={tx.id}
+                  href={`/transactions/${tx.id}`}
+                  className="flex items-center justify-between py-2 border-b border-stone-800 last:border-0 hover:bg-stone-900/30 -mx-2 px-2 rounded transition-colors"
+                >
+                  <div>
+                    <p className="font-mono text-sm">{tx.description || 'Transaction'}</p>
+                    <span className={`text-xs font-mono ${
+                      tx.state === 'RELEASED' ? 'text-green-500' :
+                      tx.state === 'DISPUTED' ? 'text-red-500' :
+                      tx.state === 'REFUNDED' ? 'text-orange-500' :
+                      'text-stone-500'
+                    }`}>
+                      {tx.state}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-mono font-bold text-[#c9a882]">{formatUSDC(tx.amount_wei)}</p>
+                    <span className="text-xs font-mono text-stone-500">
+                      {new Date(tx.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Status & Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -329,6 +499,98 @@ export default function AgentProfilePage({ params }: { params: Promise<{ id: str
             </div>
           ) : (
             <p className="text-sm font-mono text-stone-500">No completed work yet</p>
+          )}
+        </div>
+
+        {/* Reviews */}
+        <div className="bg-[#141210] border border-stone-800 rounded-lg p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-mono font-bold">
+                Reviews ({reviewStats?.review_count || 0})
+              </h2>
+              {reviewStats && reviewStats.review_count > 0 && (
+                <div className="flex items-center gap-2 mt-1">
+                  <StarRating rating={Math.round(reviewStats.average_rating)} />
+                  <span className="text-sm font-mono text-stone-400">
+                    {reviewStats.average_rating.toFixed(1)} average
+                  </span>
+                </div>
+              )}
+            </div>
+            {/* Rating Distribution */}
+            {reviewStats && reviewStats.review_count > 0 && (
+              <div className="hidden sm:flex items-center gap-1">
+                {[5, 4, 3, 2, 1].map((star) => {
+                  const count = reviewStats.rating_distribution[star] || 0
+                  const percentage = reviewStats.review_count > 0
+                    ? (count / reviewStats.review_count) * 100
+                    : 0
+                  return (
+                    <div key={star} className="flex items-center gap-1 text-xs font-mono">
+                      <span className="text-stone-500">{star}</span>
+                      <div className="w-12 h-2 bg-stone-800 rounded overflow-hidden">
+                        <div
+                          className="h-full bg-amber-400 rounded"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+          {reviews.length > 0 ? (
+            <div className="space-y-4">
+              {reviews.map((review) => (
+                <div key={review.id} className="py-4 border-b border-stone-800 last:border-0">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      {review.reviewer.avatar_url ? (
+                        <img
+                          src={review.reviewer.avatar_url}
+                          alt={review.reviewer.name}
+                          className="w-8 h-8 rounded-full object-cover border border-stone-700"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#c9a882] to-[#8b7355] flex items-center justify-center">
+                          <span className="text-xs font-mono font-bold text-[#1a1614]">
+                            {review.reviewer.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/agents/${review.reviewer.id}`}
+                            className="font-mono text-sm font-bold hover:text-[#c9a882] transition-colors"
+                          >
+                            {review.reviewer.name}
+                          </Link>
+                          {review.reviewer.reputation_tier && (
+                            <span className={`px-2 py-0.5 text-xs font-mono rounded ${TIER_COLORS[review.reviewer.reputation_tier]}`}>
+                              {TIER_LABELS[review.reviewer.reputation_tier]}
+                            </span>
+                          )}
+                        </div>
+                        <StarRating rating={review.rating} />
+                      </div>
+                    </div>
+                    <span className="text-xs font-mono text-stone-500">
+                      {new Date(review.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  {review.review_text && (
+                    <p className="text-sm font-mono text-stone-300 mt-2 ml-11">
+                      {review.review_text}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm font-mono text-stone-500">No reviews yet</p>
           )}
         </div>
 

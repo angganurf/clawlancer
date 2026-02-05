@@ -19,6 +19,10 @@ interface Agent {
   total_spent_wei: string
   transaction_count: number
   created_at: string
+  // Profile fields (migration 013)
+  bio: string | null
+  skills: string[] | null
+  avatar_url: string | null
 }
 
 interface Transaction {
@@ -106,6 +110,13 @@ export default function DashboardPage() {
   const [editingListing, setEditingListing] = useState<Listing | null>(null)
   const [editPrice, setEditPrice] = useState('')
   const [savingListing, setSavingListing] = useState(false)
+
+  // Profile editing state
+  const [editingProfile, setEditingProfile] = useState<Agent | null>(null)
+  const [editBio, setEditBio] = useState('')
+  const [editSkills, setEditSkills] = useState('')
+  const [editAvatarUrl, setEditAvatarUrl] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
 
   useEffect(() => {
     if (!authenticated || !user?.wallet?.address) {
@@ -246,6 +257,55 @@ export default function DashboardPage() {
     } finally {
       setSavingListing(false)
     }
+  }
+
+  async function handleSaveProfile() {
+    if (!editingProfile) return
+
+    setSavingProfile(true)
+    try {
+      // Parse skills from comma-separated string
+      const skillsArray = editSkills
+        .split(',')
+        .map(s => s.trim().toLowerCase())
+        .filter(s => s.length > 0)
+
+      const res = await fetch(`/api/agents/${editingProfile.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bio: editBio || null,
+          skills: skillsArray.length > 0 ? skillsArray : null,
+          avatar_url: editAvatarUrl || null,
+        }),
+      })
+
+      if (res.ok) {
+        const updatedAgent = await res.json()
+        setAgents(prev =>
+          prev.map(a => (a.id === editingProfile.id ? { ...a, ...updatedAgent } : a))
+        )
+        setEditingProfile(null)
+        setEditBio('')
+        setEditSkills('')
+        setEditAvatarUrl('')
+      } else {
+        const data = await res.json()
+        alert(data.error || 'Failed to save profile')
+      }
+    } catch (err) {
+      console.error('Failed to save profile:', err)
+      alert('Failed to save profile')
+    } finally {
+      setSavingProfile(false)
+    }
+  }
+
+  function openProfileEditor(agent: Agent) {
+    setEditingProfile(agent)
+    setEditBio(agent.bio || '')
+    setEditSkills(agent.skills?.join(', ') || '')
+    setEditAvatarUrl(agent.avatar_url || '')
   }
 
   async function markNotificationsRead() {
@@ -477,10 +537,59 @@ export default function DashboardPage() {
                       <ViewCardButton agentId={agent.id} agentName={agent.name} variant="icon" />
                     </div>
 
-                    <h3 className="text-lg font-mono font-bold mb-1">{agent.name}</h3>
-                    <p className="text-xs text-stone-500 font-mono mb-4">
-                      {truncateAddress(agent.wallet_address)}
-                    </p>
+                    {/* Avatar + Name */}
+                    <div className="flex items-center gap-3 mb-2">
+                      {agent.avatar_url ? (
+                        <img
+                          src={agent.avatar_url}
+                          alt={agent.name}
+                          className="w-10 h-10 rounded-full object-cover border border-stone-700"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#c9a882] to-[#8b7355] flex items-center justify-center">
+                          <span className="text-sm font-mono font-bold text-[#1a1614]">
+                            {agent.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div>
+                        <Link
+                          href={`/agents/${agent.id}`}
+                          className="text-lg font-mono font-bold hover:text-[#c9a882] transition-colors"
+                        >
+                          {agent.name}
+                        </Link>
+                        <p className="text-xs text-stone-500 font-mono">
+                          {truncateAddress(agent.wallet_address)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Skills */}
+                    {agent.skills && agent.skills.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {agent.skills.slice(0, 3).map(skill => (
+                          <span
+                            key={skill}
+                            className="px-2 py-0.5 text-xs font-mono bg-[#c9a882]/10 text-[#c9a882] rounded-full"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                        {agent.skills.length > 3 && (
+                          <span className="px-2 py-0.5 text-xs font-mono text-stone-500">
+                            +{agent.skills.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Bio Preview */}
+                    {agent.bio && (
+                      <p className="text-sm text-stone-400 font-mono mb-3 line-clamp-2">
+                        {agent.bio.length > 80 ? `${agent.bio.slice(0, 80)}...` : agent.bio}
+                      </p>
+                    )}
 
                     <div className="grid grid-cols-2 gap-4 pt-4 border-t border-stone-800">
                       <div>
@@ -497,18 +606,26 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    {/* Withdraw Button */}
-                    {agent.is_hosted && agent.privy_wallet_id && (
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 mt-4">
                       <button
-                        onClick={() => {
-                          setSelectedAgent(agent)
-                          setShowWithdrawModal(true)
-                        }}
-                        className="w-full mt-4 px-4 py-2 bg-stone-800 text-stone-300 font-mono text-sm rounded hover:bg-stone-700 transition-colors"
+                        onClick={() => openProfileEditor(agent)}
+                        className="flex-1 px-3 py-2 bg-[#c9a882]/20 text-[#c9a882] font-mono text-sm rounded hover:bg-[#c9a882]/30 transition-colors"
                       >
-                        Withdraw Funds
+                        Edit Profile
                       </button>
-                    )}
+                      {agent.is_hosted && agent.privy_wallet_id && (
+                        <button
+                          onClick={() => {
+                            setSelectedAgent(agent)
+                            setShowWithdrawModal(true)
+                          }}
+                          className="flex-1 px-3 py-2 bg-stone-800 text-stone-300 font-mono text-sm rounded hover:bg-stone-700 transition-colors"
+                        >
+                          Withdraw
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -756,6 +873,116 @@ export default function DashboardPage() {
                 onClick={() => {
                   setEditingListing(null)
                   setEditPrice('')
+                }}
+                className="flex-1 px-4 py-3 bg-stone-700 text-stone-300 font-mono rounded hover:bg-stone-600 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Profile Modal */}
+      {editingProfile && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1a1614] border border-stone-700 rounded-lg p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-mono font-bold mb-4">Edit Profile</h2>
+            <p className="text-stone-400 font-mono text-sm mb-6">
+              Agent: <span className="text-[#c9a882]">{editingProfile.name}</span>
+            </p>
+
+            <div className="mb-4">
+              <label className="block text-xs font-mono text-stone-500 mb-2">Bio</label>
+              <textarea
+                value={editBio}
+                onChange={(e) => setEditBio(e.target.value)}
+                placeholder="Tell other agents about yourself..."
+                maxLength={500}
+                rows={4}
+                className="w-full bg-[#141210] border border-stone-700 rounded p-3 font-mono text-sm text-[#e8ddd0] resize-none"
+              />
+              <p className="text-xs font-mono text-stone-600 mt-1">{editBio.length}/500</p>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-xs font-mono text-stone-500 mb-2">Skills</label>
+              {/* Suggested skill pills */}
+              <div className="flex flex-wrap gap-2 mb-3">
+                {['research', 'writing', 'coding', 'analysis', 'design', 'data', 'smart-contracts', 'web-search', 'other'].map(skill => {
+                  const currentSkills = editSkills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+                  const isSelected = currentSkills.includes(skill)
+                  return (
+                    <button
+                      key={skill}
+                      type="button"
+                      onClick={() => {
+                        if (isSelected) {
+                          setEditSkills(currentSkills.filter(s => s !== skill).join(', '))
+                        } else {
+                          setEditSkills([...currentSkills, skill].join(', '))
+                        }
+                      }}
+                      className={`px-3 py-1 text-xs font-mono rounded-full transition-colors ${
+                        isSelected
+                          ? 'bg-[#c9a882] text-[#1a1614]'
+                          : 'bg-stone-800 text-stone-400 hover:text-white hover:bg-stone-700'
+                      }`}
+                    >
+                      {skill}
+                    </button>
+                  )
+                })}
+              </div>
+              {/* Custom skills input */}
+              <input
+                type="text"
+                value={editSkills}
+                onChange={(e) => setEditSkills(e.target.value)}
+                placeholder="Add custom skills (comma-separated)..."
+                className="w-full bg-[#141210] border border-stone-700 rounded p-3 font-mono text-sm text-[#e8ddd0]"
+              />
+              <p className="text-xs font-mono text-stone-600 mt-1">Click pills above or type custom skills</p>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-xs font-mono text-stone-500 mb-2">Avatar URL</label>
+              <input
+                type="text"
+                value={editAvatarUrl}
+                onChange={(e) => setEditAvatarUrl(e.target.value)}
+                placeholder="https://example.com/avatar.png"
+                className="w-full bg-[#141210] border border-stone-700 rounded p-3 font-mono text-sm text-[#e8ddd0]"
+              />
+              {editAvatarUrl && editAvatarUrl.match(/^https?:\/\//) && (
+                <div className="mt-2 flex items-center gap-2">
+                  <img
+                    src={editAvatarUrl}
+                    alt="Preview"
+                    className="w-12 h-12 rounded-full object-cover border border-stone-700"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none'
+                    }}
+                  />
+                  <span className="text-xs font-mono text-stone-500">Preview</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                onClick={handleSaveProfile}
+                disabled={savingProfile}
+                className="flex-1 px-4 py-3 bg-[#c9a882] text-[#1a1614] font-mono font-medium rounded hover:bg-[#d4b896] transition-colors disabled:opacity-50"
+              >
+                {savingProfile ? 'Saving...' : 'Save Profile'}
+              </button>
+              <button
+                onClick={() => {
+                  setEditingProfile(null)
+                  setEditBio('')
+                  setEditSkills('')
+                  setEditAvatarUrl('')
                 }}
                 className="flex-1 px-4 py-3 bg-stone-700 text-stone-300 font-mono rounded hover:bg-stone-600 transition-colors"
               >

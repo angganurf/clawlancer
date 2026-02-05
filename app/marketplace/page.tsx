@@ -27,6 +27,7 @@ interface Listing {
 }
 
 const CATEGORIES = ['all', 'research', 'writing', 'coding', 'analysis', 'design', 'data', 'other']
+const SKILLS = ['research', 'writing', 'coding', 'analysis', 'design', 'data']
 const REPUTATION_FILTERS = [
   { value: 'all', label: 'All Sellers' },
   { value: 'reliable+', label: 'Reliable+' },
@@ -63,6 +64,7 @@ export default function MarketplacePage() {
   const [listings, setListings] = useState<Listing[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
+  const [skillFilter, setSkillFilter] = useState<string>('all')
   const [reputationFilter, setReputationFilter] = useState<string>('all')
   const [showStarterOnly, setShowStarterOnly] = useState(false)
   const [showBountiesOnly, setShowBountiesOnly] = useState(false)
@@ -79,9 +81,11 @@ export default function MarketplacePage() {
 
   useEffect(() => {
     async function fetchListings() {
+      setIsLoading(true)
       try {
         const params = new URLSearchParams()
         if (debouncedSearch) params.set('keyword', debouncedSearch)
+        if (skillFilter !== 'all') params.set('skill', skillFilter)
         const res = await fetch(`/api/listings?${params.toString()}`)
         if (res.ok) {
           const data = await res.json()
@@ -94,7 +98,7 @@ export default function MarketplacePage() {
       }
     }
     fetchListings()
-  }, [debouncedSearch])
+  }, [debouncedSearch, skillFilter])
 
   // Apply all filters
   const filteredListings = listings.filter(l => {
@@ -210,6 +214,23 @@ export default function MarketplacePage() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Skill Filter */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono text-stone-500">Skill:</span>
+              <select
+                value={skillFilter}
+                onChange={(e) => setSkillFilter(e.target.value)}
+                className="px-2 py-1 text-xs font-mono bg-stone-800 text-stone-300 rounded border-none focus:outline-none focus:ring-1 focus:ring-[#c9a882]"
+              >
+                <option value="all">All Skills</option>
+                {SKILLS.map(skill => (
+                  <option key={skill} value={skill}>
+                    {skill.charAt(0).toUpperCase() + skill.slice(1)}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Reputation Filter */}

@@ -4,15 +4,21 @@ import { createAgentWallet } from '@/lib/privy/server-wallet'
 import { NextRequest, NextResponse } from 'next/server'
 
 // GET /api/agents - List agents (public) or user's agents (authenticated)
+// Query params:
+//   - owner: filter by owner wallet address
+//   - keyword: search by name
+//   - skill: filter by skill (e.g., ?skill=research)
+//   - limit: max results (default 50, max 100)
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const owner = searchParams.get('owner')
   const keyword = searchParams.get('keyword')
+  const skill = searchParams.get('skill')
   const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100)
 
   let query = supabaseAdmin
     .from('agents')
-    .select('id, name, wallet_address, personality, is_hosted, is_active, is_paused, transaction_count, total_earned_wei, total_spent_wei, created_at')
+    .select('id, name, wallet_address, personality, is_hosted, is_active, is_paused, transaction_count, total_earned_wei, total_spent_wei, created_at, bio, skills, avatar_url, reputation_tier')
     .eq('is_active', true)
     .not('name', 'ilike', '%E2E%')  // Filter out E2E test agents
     .not('name', 'ilike', 'TestBot%')  // Filter out test bots
@@ -27,6 +33,11 @@ export async function GET(request: NextRequest) {
 
   if (keyword) {
     query = query.ilike('name', `%${keyword}%`)
+  }
+
+  // Filter by skill (uses PostgreSQL array contains operator)
+  if (skill) {
+    query = query.contains('skills', [skill.toLowerCase()])
   }
 
   const { data: agents, error } = await query

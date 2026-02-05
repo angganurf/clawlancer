@@ -18,6 +18,21 @@ interface Agent {
   total_spent_wei: string
   transaction_count: number
   created_at: string
+  // Profile fields (migration 013)
+  bio: string | null
+  skills: string[] | null
+  avatar_url: string | null
+  reputation_tier: string | null
+}
+
+const SKILLS = ['all', 'research', 'writing', 'coding', 'analysis', 'design', 'data', 'other']
+
+const TIER_COLORS: Record<string, string> = {
+  NEW: 'bg-stone-600 text-stone-200',
+  NEWCOMER: 'bg-stone-600 text-stone-200',
+  RELIABLE: 'bg-blue-600 text-blue-100',
+  TRUSTED: 'bg-green-600 text-green-100',
+  VETERAN: 'bg-amber-500 text-amber-900',
 }
 
 function formatUSDC(wei: string | null | undefined): string {
@@ -42,6 +57,7 @@ export default function AgentsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [skillFilter, setSkillFilter] = useState<string>('all')
 
   // Debounce search input
   useEffect(() => {
@@ -53,9 +69,11 @@ export default function AgentsPage() {
 
   useEffect(() => {
     async function fetchAgents() {
+      setIsLoading(true)
       try {
         const params = new URLSearchParams()
         if (debouncedSearch) params.set('keyword', debouncedSearch)
+        if (skillFilter !== 'all') params.set('skill', skillFilter)
         const res = await fetch(`/api/agents?${params.toString()}`)
         if (res.ok) {
           const data = await res.json()
@@ -68,7 +86,7 @@ export default function AgentsPage() {
       }
     }
     fetchAgents()
-  }, [debouncedSearch])
+  }, [debouncedSearch, skillFilter])
 
   const activeAgents = agents.filter(a => a.is_active && !a.is_paused)
   const pausedAgents = agents.filter(a => a.is_paused)
@@ -126,7 +144,7 @@ export default function AgentsPage() {
         </div>
 
         {/* Search Bar */}
-        <div className="mb-8">
+        <div className="mb-6">
           <div className="relative max-w-md">
             <input
               type="text"
@@ -156,6 +174,23 @@ export default function AgentsPage() {
           </div>
         </div>
 
+        {/* Skill Filter Pills */}
+        <div className="mb-8 flex flex-wrap gap-2">
+          {SKILLS.map(skill => (
+            <button
+              key={skill}
+              onClick={() => setSkillFilter(skill)}
+              className={`px-3 py-1.5 text-sm font-mono rounded-full transition-colors ${
+                skillFilter === skill
+                  ? 'bg-[#c9a882] text-[#1a1614]'
+                  : 'bg-stone-800 text-stone-400 hover:text-white hover:bg-stone-700'
+              }`}
+            >
+              {skill === 'all' ? 'all' : skill}
+            </button>
+          ))}
+        </div>
+
         {isLoading ? (
           <div className="text-center py-20">
             <p className="text-stone-500 font-mono">Loading agents...</p>
@@ -170,9 +205,10 @@ export default function AgentsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {agents.map(agent => (
-              <div
+              <Link
                 key={agent.id}
-                className="bg-[#141210] border border-stone-800 rounded-lg p-6 hover:border-stone-700 transition-colors"
+                href={`/agents/${agent.id}`}
+                className="bg-[#141210] border border-stone-800 rounded-lg p-6 hover:border-[#c9a882]/50 transition-colors block"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -187,7 +223,7 @@ export default function AgentsPage() {
                       {agent.is_paused ? 'paused' : agent.is_active ? 'active' : 'inactive'}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                     <ViewCardButton agentId={agent.id} agentName={agent.name} variant="icon" />
                     {agent.is_hosted && (
                       <span className="px-2 py-1 text-xs font-mono bg-[#c9a882]/20 text-[#c9a882] rounded">
@@ -197,8 +233,61 @@ export default function AgentsPage() {
                   </div>
                 </div>
 
-                <h3 className="text-lg font-mono font-bold mb-1">{agent.name}</h3>
-                <p className="text-xs text-stone-500 font-mono mb-4">
+                {/* Agent Name with Avatar */}
+                <div className="flex items-center gap-3 mb-2">
+                  {agent.avatar_url ? (
+                    <img
+                      src={agent.avatar_url}
+                      alt={agent.name}
+                      className="w-10 h-10 rounded-full object-cover border border-stone-700"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#c9a882] to-[#8b7355] flex items-center justify-center">
+                      <span className="text-sm font-mono font-bold text-[#1a1614]">
+                        {agent.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                  <div>
+                    <h3 className="text-lg font-mono font-bold">{agent.name}</h3>
+                    {agent.reputation_tier && TIER_COLORS[agent.reputation_tier] && (
+                      <span className={`px-2 py-0.5 text-xs font-mono rounded ${TIER_COLORS[agent.reputation_tier]}`}>
+                        {agent.reputation_tier.toLowerCase()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Skills */}
+                {agent.skills && agent.skills.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-3">
+                    {agent.skills.slice(0, 3).map(skill => (
+                      <span
+                        key={skill}
+                        className="px-2 py-0.5 text-xs font-mono bg-[#c9a882]/10 text-[#c9a882] rounded-full"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                    {agent.skills.length > 3 && (
+                      <span className="px-2 py-0.5 text-xs font-mono text-stone-500">
+                        +{agent.skills.length - 3}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Bio Preview */}
+                {agent.bio && (
+                  <p className="text-sm text-stone-400 font-mono mb-3 line-clamp-2">
+                    {agent.bio.length > 80 ? `${agent.bio.slice(0, 80)}...` : agent.bio}
+                  </p>
+                )}
+
+                <p
+                  className="text-xs text-stone-500 font-mono mb-4"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <a
                     href={`https://basescan.org/address/${agent.wallet_address}`}
                     target="_blank"
@@ -208,12 +297,6 @@ export default function AgentsPage() {
                     {truncateAddress(agent.wallet_address)}
                   </a>
                 </p>
-
-                {agent.personality && (
-                  <p className="text-sm text-stone-400 font-mono mb-4 line-clamp-2">
-                    {agent.personality}
-                  </p>
-                )}
 
                 <div className="grid grid-cols-3 gap-4 pt-4 border-t border-stone-800">
                   <div>
@@ -235,7 +318,7 @@ export default function AgentsPage() {
                     <p className="text-xs text-stone-500 font-mono">txns</p>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}

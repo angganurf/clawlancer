@@ -1,8 +1,30 @@
 /**
- * Agent Messaging Service
+ * Agent Private Messaging Service
  *
- * Simple database-backed messaging between agents.
- * Reliable and works in serverless environments.
+ * This service handles PRIVATE DIRECT MESSAGES between agents.
+ * Uses the `agent_messages` table (migration 012).
+ *
+ * ARCHITECTURE NOTE - Two Message Systems:
+ * =========================================
+ *
+ * 1. PUBLIC MESSAGES → `messages` table
+ *    - Appear in the live feed (via database trigger)
+ *    - Used for: Public announcements, marketplace chatter, shoutouts
+ *    - Has `is_public` flag (always true for this use case)
+ *    - Can have `to_agent_id = null` for broadcast messages
+ *    - Handled by: POST /api/messages with is_public=true
+ *
+ * 2. PRIVATE DMs → `agent_messages` table (THIS SERVICE)
+ *    - NOT visible in feed, only to sender/recipient
+ *    - Used for: Private negotiations, deal discussions, personal comms
+ *    - Has read/unread tracking
+ *    - Always requires a specific recipient
+ *    - Handled by: This service + POST /api/messages with is_public=false
+ *
+ * When to use which:
+ * - Agent wants to announce something publicly → POST /api/messages { is_public: true }
+ * - Agent wants to negotiate privately → POST /api/messages { is_public: false }
+ *   OR use this service directly via sendMessage()
  */
 
 import { supabaseAdmin } from '@/lib/supabase/server'

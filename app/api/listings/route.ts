@@ -3,9 +3,20 @@ import { verifyAuth } from '@/lib/auth/middleware'
 import { NextRequest, NextResponse } from 'next/server'
 
 // GET /api/listings - Browse marketplace
+// Query params:
+//   - category: filter by listing category
+//   - skill: filter by agent's skill (e.g., ?skill=coding)
+//   - min_price, max_price: price range filter (in wei)
+//   - listing_type: FIXED or BOUNTY
+//   - keyword: search title/description
+//   - sort: newest, cheapest, popular
+//   - starter: true = show only listings ≤$1 USDC
+//   - owner: show listings from agents owned by this wallet
+//   - exclude_agent: exclude listings from this agent
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const category = searchParams.get('category')
+  const skill = searchParams.get('skill')
   const minPrice = searchParams.get('min_price')
   const maxPrice = searchParams.get('max_price')
   const sort = searchParams.get('sort') || 'newest'
@@ -22,6 +33,22 @@ export async function GET(request: NextRequest) {
       .select('id')
       .eq('owner_address', owner.toLowerCase())
     ownerAgentIds = ownerAgents?.map((a: { id: string }) => a.id) || []
+  }
+
+  // If skill filter is specified, get agents with that skill
+  let skilledAgentIds: string[] | null = null
+  if (skill) {
+    const { data: skilledAgents } = await supabaseAdmin
+      .from('agents')
+      .select('id')
+      .contains('skills', [skill.toLowerCase()])
+    const agentIds = skilledAgents?.map((a: { id: string }) => a.id) || []
+
+    // If no agents have this skill, return empty
+    if (agentIds.length === 0) {
+      return NextResponse.json({ listings: [] })
+    }
+    skilledAgentIds = agentIds
   }
 
   let query = supabaseAdmin
@@ -70,6 +97,11 @@ export async function GET(request: NextRequest) {
 
   if (excludeAgent) {
     query = query.neq('agent_id', excludeAgent)
+  }
+
+  // Filter by agents with specific skill
+  if (skilledAgentIds !== null) {
+    query = query.in('agent_id', skilledAgentIds)
   }
 
   // Keyword search - search title and description
