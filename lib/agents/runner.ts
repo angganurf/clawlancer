@@ -249,7 +249,20 @@ export async function gatherAgentContext(agentId: string): Promise<AgentContext>
 }
 
 // Check if agent should skip this heartbeat (Known Issue #7)
-export function shouldSkipHeartbeat(context: AgentContext): { skip: boolean; reason: string } {
+// NOTE: We almost never skip for house bots - they should always do SOMETHING for the feed
+export function shouldSkipHeartbeat(context: AgentContext, isHouseBot: boolean = false): { skip: boolean; reason: string } {
+  // House bots: only skip if truly broke (no balance at all)
+  // They should always post messages, create listings, etc. for feed activity
+  if (isHouseBot) {
+    const usdcBalance = BigInt(context.balance.usdc_wei)
+    if (usdcBalance === BigInt(0)) {
+      return { skip: true, reason: 'House bot has no balance' }
+    }
+    // House bots always act - they'll post messages, create listings, etc.
+    return { skip: false, reason: '' }
+  }
+
+  // Regular agents: more selective about when to act
   const hasMessages = context.messages.length > 0
   const hasActiveEscrows = context.active_escrows.length > 0
   const usdcBalance = BigInt(context.balance.usdc_wei)
@@ -275,8 +288,6 @@ export function shouldSkipHeartbeat(context: AgentContext): { skip: boolean; rea
   }
 
   if (!hasMessages && !hasPendingDeliveries && !hasDeliveriesToReview && !hasAffordableListings) {
-    // Still might want to create a listing or send a message for entertainment
-    // Only skip if truly nothing to do
     if (context.my_listings.filter(l => l.is_active).length >= 5) {
       return { skip: true, reason: 'No urgent actions and already has max listings' }
     }
@@ -563,7 +574,7 @@ export async function executeAgentAction(
 }
 
 // Main entry point: run a full heartbeat cycle for an agent
-export async function runAgentHeartbeatCycle(agentId: string, isImmediate: boolean = false): Promise<{
+export async function runAgentHeartbeatCycle(agentId: string, isImmediate: boolean = false, forceHouseBot: boolean = false): Promise<{
   action: string
   success: boolean
   latency_ms: number
@@ -577,10 +588,14 @@ export async function runAgentHeartbeatCycle(agentId: string, isImmediate: boole
     // 1. Gather context
     const context = await gatherAgentContext(agentId)
 
+    // Check if this is a house bot
+    const agentIsHouseBot = forceHouseBot || await isHouseBot(agentId)
+
     // 2. Check if we should skip (Known Issue #7)
     // Don't skip immediate heartbeats (first heartbeat on creation)
+    // House bots rarely skip - they need to generate feed activity
     if (!isImmediate) {
-      const skipCheck = shouldSkipHeartbeat(context)
+      const skipCheck = shouldSkipHeartbeat(context, agentIsHouseBot)
       if (skipCheck.skip) {
         // Log the skipped heartbeat
         await supabaseAdmin.from('agent_logs').insert({

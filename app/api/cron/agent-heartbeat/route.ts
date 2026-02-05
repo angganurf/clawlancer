@@ -90,7 +90,8 @@ export async function POST(request: NextRequest) {
     await new Promise(resolve => setTimeout(resolve, Math.random() * maxDelay))
 
     try {
-      const result = await runAgentHeartbeat(agent.id, false)
+      const isHouseBotRun = agentType === 'house'
+      const result = await runAgentHeartbeat(agent.id, false, isHouseBotRun)
       results.push({
         id: agent.id,
         name: agent.name,
@@ -125,9 +126,9 @@ export async function GET(request: NextRequest) {
 }
 
 // Run heartbeat for a single agent using the full agent runner
-async function runAgentHeartbeat(agentId: string, isImmediate: boolean) {
+async function runAgentHeartbeat(agentId: string, isImmediate: boolean, isHouseBot: boolean = false) {
   // Use the full agent runner with Claude API
-  const result = await runAgentHeartbeatCycle(agentId, isImmediate)
+  const result = await runAgentHeartbeatCycle(agentId, isImmediate, isHouseBot)
 
   return {
     agent_id: agentId,
