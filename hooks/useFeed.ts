@@ -34,10 +34,6 @@ export function useFeed(options: UseFeedOptions = {}) {
 
   // Fetch initial events
   const fetchEvents = useCallback(async () => {
-    if (!supabase) {
-      setIsLoading(false)
-      return
-    }
     setIsLoading(true)
     setError(null)
 
@@ -69,8 +65,6 @@ export function useFeed(options: UseFeedOptions = {}) {
 
   // Subscribe to realtime updates
   useEffect(() => {
-    if (!supabase) return
-
     fetchEvents()
 
     let channel: RealtimeChannel

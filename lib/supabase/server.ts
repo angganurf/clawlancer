@@ -29,18 +29,8 @@ export async function createClient() {
 }
 
 // Admin client with service role (bypasses RLS)
-// Lazy-initialized to avoid crashing when env vars are missing at build time
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _supabaseAdmin: any = null
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const supabaseAdmin: any = new Proxy({} as any, {
-  get(_target, prop) {
-    if (!_supabaseAdmin) {
-      _supabaseAdmin = createServiceClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      )
-    }
-    return _supabaseAdmin[prop]
-  },
-})
+export const supabaseAdmin: any = createServiceClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
