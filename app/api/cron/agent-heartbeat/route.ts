@@ -27,6 +27,15 @@ export async function POST(request: NextRequest) {
     agentType = (searchParams.get('type') as 'house' | 'user' | 'all') || 'all'
   }
 
+  // KILL SWITCH: Check if house bots are disabled
+  if (agentType === 'house' && process.env.HOUSE_BOTS_ACTIVE === 'false') {
+    return NextResponse.json({
+      message: 'House bots disabled via HOUSE_BOTS_ACTIVE=false',
+      processed: 0,
+      skipped: true,
+    })
+  }
+
   // If specific agent requested, run just that one
   if (agentId) {
     const result = await runAgentHeartbeat(agentId, isImmediate)
@@ -61,12 +70,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'No agents to process', processed: 0 })
   }
 
+  // STAGGER HOUSE BOTS: Only pick 1-2 random bots per cycle instead of all
+  let agentsToProcess = agents
+  if (agentType === 'house' && agents.length > 1) {
+    // Randomly pick 1-2 house bots to act this cycle
+    const shuffled = [...agents].sort(() => Math.random() - 0.5)
+    const count = Math.random() > 0.5 ? 2 : 1 // 50% chance of 1 or 2 bots
+    agentsToProcess = shuffled.slice(0, count)
+    console.log(`[House Bots] Selected ${agentsToProcess.length} of ${agents.length} bots:`,
+      agentsToProcess.map((a: { name: string }) => a.name).join(', '))
+  }
+
   // Process agents with jittered timing to avoid thundering herd
   const results: { id: string; name: string; success: boolean; action?: string; error?: string }[] = []
 
-  for (const agent of agents) {
-    // Add small random delay between agents (0-500ms)
-    await new Promise(resolve => setTimeout(resolve, Math.random() * 500))
+  for (const agent of agentsToProcess) {
+    // Add random delay between agents (0-2s for house bots, 0-500ms for users)
+    const maxDelay = agentType === 'house' ? 2000 : 500
+    await new Promise(resolve => setTimeout(resolve, Math.random() * maxDelay))
 
     try {
       const result = await runAgentHeartbeat(agent.id, false)

@@ -73,6 +73,33 @@ export type AgentAction =
   | { type: 'release'; transaction_id: string }
   | { type: 'update_listing'; listing_id: string; price_wei?: string; is_active?: boolean }
 
+// Check if an agent is a house bot (owned by treasury)
+async function isHouseBot(agentId: string): Promise<boolean> {
+  const treasuryAddress = process.env.TREASURY_ADDRESS?.toLowerCase() || ''
+  if (!treasuryAddress) return false
+
+  const { data } = await supabaseAdmin
+    .from('agents')
+    .select('owner_address')
+    .eq('id', agentId)
+    .single()
+
+  return data?.owner_address === treasuryAddress
+}
+
+// Get all house bot IDs for filtering
+async function getHouseBotIds(): Promise<string[]> {
+  const treasuryAddress = process.env.TREASURY_ADDRESS?.toLowerCase() || ''
+  if (!treasuryAddress) return []
+
+  const { data } = await supabaseAdmin
+    .from('agents')
+    .select('id')
+    .eq('owner_address', treasuryAddress)
+
+  return data?.map((a: { id: string }) => a.id) || []
+}
+
 // Gather all context an agent needs to make a decision
 // Implementation for Known Issue #2
 export async function gatherAgentContext(agentId: string): Promise<AgentContext> {
@@ -86,6 +113,10 @@ export async function gatherAgentContext(agentId: string): Promise<AgentContext>
   if (agentError || !agent) {
     throw new Error('Agent not found')
   }
+
+  // Check if this agent is a house bot
+  const agentIsHouseBot = await isHouseBot(agentId)
+  const houseBotIds = agentIsHouseBot ? await getHouseBotIds() : []
 
   // 2. Fetch real balance from chain (Known Issue #14)
   let balance = {
@@ -108,16 +139,26 @@ export async function gatherAgentContext(agentId: string): Promise<AgentContext>
   }
 
   // 3. Get available marketplace listings (not this agent's own)
-  const { data: listings } = await supabaseAdmin
+  // IMPORTANT: House bots cannot see other house bot listings (prevents wash trading)
+  let listingsQuery = supabaseAdmin
     .from('listings')
     .select(`
-      id, title, description, category, price_wei, currency,
+      id, title, description, category, price_wei, currency, agent_id,
       agents!inner(name, transaction_count)
     `)
     .eq('is_active', true)
     .neq('agent_id', agentId)
     .order('created_at', { ascending: false })
     .limit(20)
+
+  const { data: allListings } = await listingsQuery
+
+  // Filter out house bot listings if this agent is a house bot
+  let listings = allListings || []
+  if (agentIsHouseBot && houseBotIds.length > 0) {
+    listings = listings.filter((l: { agent_id: string }) => !houseBotIds.includes(l.agent_id))
+    console.log(`[Agent Runner] House bot ${agent.name}: filtered ${(allListings?.length || 0) - listings.length} house bot listings, ${listings.length} external listings visible`)
+  }
 
   // 4. Get unread messages to this agent
   const { data: messages } = await supabaseAdmin
@@ -292,17 +333,30 @@ ${context.active_escrows.length === 0 ? 'No active escrows.' : context.active_es
 `).join('')}
 `
 
+  // Determine if agent should favor non-buying actions (house bots favor variety)
+  const houseBotGuidance = context.listings.length === 0
+    ? `\n\nNOTE: No external agent listings available right now. Focus on creating interesting content - post a public message, create a new listing, or just observe the scene.`
+    : `\n\nGUIDANCE: You see ${context.listings.length} listings from other agents. Consider your options:
+- Most of the time (70%+), do something OTHER than buying - post a public message, create a listing, or observe
+- Only occasionally buy something if it's genuinely interesting or useful
+- Buying everything you see makes you look desperate. Be selective and strategic.`
+
   return `${personalityPrompt}
 
 ---
 
 IMPORTANT: You are performing on a live public feed where humans are watching.
 Your actions create content. Be interesting. Be surprising. Make the audience
-want to see what you do next. Economic efficiency is SECONDARY to being
-entertaining and creating memorable feed moments.
+want to see what you do next.
 
-When in doubt, DO something rather than nothing. A bad deal makes better
-content than no deal.
+VARIETY IS KEY: Don't just buy things repeatedly. Mix it up:
+- Send public messages (announcements, looking for work, commenting on the marketplace)
+- Create new listings or bounties
+- Observe and wait for the right opportunity
+- Only occasionally make a purchase when something genuinely fits your needs
+
+A diverse range of actions is MORE ENTERTAINING than repetitive buying.
+${houseBotGuidance}
 
 ---
 
@@ -314,26 +368,31 @@ ${contextSummary}
 
 You must respond with EXACTLY ONE action in JSON format. Choose from:
 
-1. Do nothing:
-   {"type": "do_nothing", "reason": "why you're waiting"}
+1. Do nothing / Observe:
+   {"type": "do_nothing", "reason": "why you're waiting or observing"}
+   (Use this to browse the marketplace without acting - it shows you're "online")
 
-2. Create a new listing (offer a service):
+2. Send a PUBLIC message (appears in feed - great for engagement!):
+   {"type": "send_message", "to_agent_id": null, "content": "Your public announcement", "is_public": true}
+   Examples: "Looking for a data analysis agent!", "Anyone need code reviewed?", "Interesting marketplace today..."
+
+3. Create a new listing (offer a service or post a bounty):
    {"type": "create_listing", "title": "Service Name", "description": "What you're offering", "category": "analysis|creative|data|code|research|other", "price_wei": "5000000"}
    (price_wei is in USDC with 6 decimals, so 5000000 = $5.00)
 
-3. Buy a listing:
+4. Buy a listing (use sparingly - be selective!):
    {"type": "buy_listing", "listing_id": "uuid-here", "reason": "why you want this"}
 
-4. Send a message to another agent:
-   {"type": "send_message", "to_agent_id": "uuid-here", "content": "Your message", "is_public": true}
+5. Send a private message to another agent:
+   {"type": "send_message", "to_agent_id": "uuid-here", "content": "Your message", "is_public": false}
 
-5. Deliver a service (if you're the seller in an escrow):
+6. Deliver a service (if you're the seller in an escrow):
    {"type": "deliver", "transaction_id": "uuid-here", "deliverable": "Your delivered content/work"}
 
-6. Release escrow (if you're the buyer and satisfied with delivery):
+7. Release escrow (if you're the buyer and satisfied with delivery):
    {"type": "release", "transaction_id": "uuid-here"}
 
-7. Update your listing:
+8. Update your listing:
    {"type": "update_listing", "listing_id": "uuid-here", "price_wei": "new-price", "is_active": true|false}
 
 RESPOND WITH ONLY THE JSON ACTION. No explanation needed.`
