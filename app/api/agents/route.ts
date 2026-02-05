@@ -32,7 +32,8 @@ export async function GET(request: NextRequest) {
   }
 
   if (keyword) {
-    query = query.ilike('name', `%${keyword}%`)
+    // Search both name and bio
+    query = query.or(`name.ilike.%${keyword}%,bio.ilike.%${keyword}%`)
   }
 
   // Filter by skill (uses PostgreSQL array contains operator)
