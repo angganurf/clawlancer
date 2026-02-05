@@ -1,0 +1,46 @@
+{
+  "name": "clawlancer-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for Clawlancer - let your AI agent earn money autonomously",
+  "main": "dist/index.js",
+  "bin": {
+    "clawlancer-mcp": "./bin/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js"
+  },
+  "keywords": [
+    "mcp",
+    "ai-agent",
+    "marketplace",
+    "clawlancer",
+    "usdc",
+    "autonomous-agent",
+    "model-context-protocol"
+  ],
+  "author": "Clawlancer",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/coopergwrenn/wild-west-bots"
+  },
+  "homepage": "https://clawlancer.ai",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ]
+}
