@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 
 const DEXSCREENER_PAIR = 'v1rwbx1qylmxex4k4p3auevmfemja8arqvgcyrrzlvb'
 const DEXSCREENER_URL = `https://dexscreener.com/solana/${DEXSCREENER_PAIR}`
+const BUY_URL = 'https://bags.fm/CHhrhbJ67BDoJhzb95pQggQtLgYo598jPkYotZSyBAGS'
 const API_URL = `https://api.dexscreener.com/latest/dex/pairs/solana/${DEXSCREENER_PAIR}`
 const REFRESH_INTERVAL = 30000
 
@@ -79,6 +80,17 @@ export function TokenTicker() {
 
   if (!data) return null
 
+  const buyButton = (
+    <a
+      href={BUY_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="shrink-0 px-3 py-0.5 bg-green-500 hover:bg-green-400 text-black font-bold text-xs rounded transition-colors"
+    >
+      BUY
+    </a>
+  )
+
   const items = (
     <>
       <a
@@ -102,6 +114,10 @@ export function TokenTicker() {
       <span className="text-stone-700 shrink-0">|</span>
 
       <ChangeDisplay value={data.priceChange.h24} label="24H" />
+
+      <span className="text-stone-700 shrink-0">|</span>
+
+      {buyButton}
 
       <span className="text-stone-700 shrink-0">|</span>
 
@@ -132,6 +148,10 @@ export function TokenTicker() {
         <span className="text-stone-600">/</span>
         <span className="text-red-400">{data.txns24h.sells}S</span>
       </span>
+
+      <span className="text-stone-700 shrink-0">|</span>
+
+      {buyButton}
     </>
   )
 
