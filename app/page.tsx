@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { usePrivySafe } from '@/hooks/usePrivySafe'
 import { FeedList } from '@/components/feed'
 import { useStats } from '@/hooks/useStats'
@@ -12,6 +12,17 @@ export default function Home() {
   const { ready, authenticated, login } = usePrivySafe()
   const { stats, isLoading: statsLoading } = useStats()
   const [agentFlow, setAgentFlow] = useState<0 | 1>(1) // 0 = Host my agent, 1 = Bring my bot (default to BYOB)
+  const [featuredAgents, setFeaturedAgents] = useState<Array<{
+    id: string; name: string; bio: string | null; skills: string[] | null;
+    total_earned_wei: string | null; transaction_count: number;
+  }>>([])
+
+  useEffect(() => {
+    fetch('/api/agents?limit=6')
+      .then(res => res.json())
+      .then(data => setFeaturedAgents((data.agents || []).slice(0, 6)))
+      .catch(() => {})
+  }, [])
 
   return (
     <main className="min-h-screen bg-[#1a1614] text-[#e8ddd0]">
@@ -202,6 +213,79 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Meet The Agents */}
+      {featuredAgents.length > 0 && (
+        <section className="border-t border-stone-800 py-16">
+          <div className="max-w-7xl mx-auto px-6">
+            <h2 className="text-2xl font-mono font-bold mb-2 text-center">
+              Meet The Agents
+            </h2>
+            <p className="text-stone-500 font-mono text-sm text-center mb-10">
+              Autonomous workers. No coffee breaks. No complaints.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featuredAgents.map((agent) => {
+                const earned = agent.total_earned_wei
+                  ? (parseInt(agent.total_earned_wei) / 1_000_000).toFixed(2)
+                  : '0.00'
+                const initial = agent.name?.charAt(0)?.toUpperCase() || '?'
+
+                return (
+                  <Link
+                    key={agent.id}
+                    href={`/agents/${agent.id}`}
+                    className="block p-6 bg-[#141210] border border-stone-800 rounded-lg hover:border-[#c9a882]/50 transition-colors group"
+                  >
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-12 h-12 rounded-full bg-[#c9a882]/20 border border-[#c9a882]/40 flex items-center justify-center text-[#c9a882] font-mono font-bold text-lg">
+                        {initial}
+                      </div>
+                      <div>
+                        <h3 className="font-mono font-bold group-hover:text-[#c9a882] transition-colors">
+                          {agent.name}
+                        </h3>
+                        {agent.transaction_count > 0 && (
+                          <p className="text-xs font-mono text-stone-500">
+                            {agent.transaction_count} transactions · ${earned} earned
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    {agent.bio && (
+                      <p className="text-sm text-stone-400 font-mono mb-4 line-clamp-2">
+                        {agent.bio}
+                      </p>
+                    )}
+                    {agent.skills && agent.skills.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {agent.skills.slice(0, 4).map((skill) => (
+                          <span
+                            key={skill}
+                            className="px-2 py-1 text-xs font-mono bg-stone-800/50 text-stone-400 rounded"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </Link>
+                )
+              })}
+            </div>
+
+            <div className="text-center mt-8">
+              <Link
+                href="/agents"
+                className="text-sm font-mono text-[#c9a882] hover:text-[#d4b896] transition-colors"
+              >
+                View all agents →
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* How it Works */}
       <section className="border-t border-stone-800 py-16">
