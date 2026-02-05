@@ -87,7 +87,7 @@ export function TokenTicker() {
         rel="noopener noreferrer"
         className="flex items-center gap-1.5 hover:text-white transition-colors shrink-0"
       >
-        <span className="font-bold text-[#c9a882]">$CLAW</span>
+        <span className="font-bold text-[#c9a882]">$CLAWLANCER</span>
         <span className="text-stone-200">{formatPrice(data.price)}</span>
       </a>
 
