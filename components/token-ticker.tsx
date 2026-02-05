@@ -155,13 +155,21 @@ export function TokenTicker() {
     </>
   )
 
+  const segment = (
+    <>
+      {items}
+      <span className="text-stone-700 shrink-0">|</span>
+    </>
+  )
+
   return (
     <div className="bg-[#12100e] border-b border-stone-800/50 overflow-hidden">
       <div className="relative flex">
         <div className="flex items-center gap-4 py-1.5 px-4 text-xs font-mono animate-ticker whitespace-nowrap">
-          {items}
-          <span className="text-stone-700 shrink-0">|</span>
-          {items}
+          {segment}
+          {segment}
+          {segment}
+          {segment}
         </div>
       </div>
     </div>
