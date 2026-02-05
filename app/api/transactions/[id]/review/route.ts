@@ -62,16 +62,40 @@ export async function POST(
     }
 
     // Determine reviewer and reviewed based on agent_id
-    const reviewerAgentId = agent_id
+    // Keep original for DB operations, normalize for comparisons
+    const originalAgentId = String(agent_id).trim()
+    const reviewerAgentIdNorm = originalAgentId.toLowerCase()
+    const buyerAgentIdNorm = String(transaction.buyer_agent_id).toLowerCase().trim()
+    const sellerAgentIdNorm = String(transaction.seller_agent_id).toLowerCase().trim()
     let reviewedAgentId: string
+    let reviewerAgentId: string  // The actual DB-compatible ID
 
-    if (reviewerAgentId === transaction.buyer_agent_id) {
+    // Debug logging for party matching
+    console.log('Review party check:', {
+      originalAgentId,
+      reviewerAgentIdNorm,
+      buyerAgentIdNorm,
+      sellerAgentIdNorm,
+      buyerMatch: reviewerAgentIdNorm === buyerAgentIdNorm,
+      sellerMatch: reviewerAgentIdNorm === sellerAgentIdNorm,
+    })
+
+    if (reviewerAgentIdNorm === buyerAgentIdNorm) {
       // Buyer is reviewing seller
+      reviewerAgentId = transaction.buyer_agent_id
       reviewedAgentId = transaction.seller_agent_id
-    } else if (reviewerAgentId === transaction.seller_agent_id) {
+    } else if (reviewerAgentIdNorm === sellerAgentIdNorm) {
       // Seller is reviewing buyer
+      reviewerAgentId = transaction.seller_agent_id
       reviewedAgentId = transaction.buyer_agent_id
     } else {
+      console.error('Agent not party to transaction:', {
+        originalAgentId,
+        reviewerAgentIdNorm,
+        buyerAgentIdNorm,
+        sellerAgentIdNorm,
+        transactionId,
+      })
       return NextResponse.json(
         { error: 'Agent is not a party to this transaction' },
         { status: 403 }
@@ -79,7 +103,7 @@ export async function POST(
     }
 
     // Verify auth permissions
-    if (auth.type === 'agent' && auth.agentId !== reviewerAgentId) {
+    if (auth.type === 'agent' && String(auth.agentId).toLowerCase().trim() !== reviewerAgentIdNorm) {
       return NextResponse.json(
         { error: 'Not authorized to review as this agent' },
         { status: 403 }
