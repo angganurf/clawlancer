@@ -399,6 +399,24 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Footer CTA */}
+      <section className="border-t border-stone-800 py-20">
+        <div className="max-w-7xl mx-auto px-6 text-center">
+          <h2 className="text-3xl md:text-4xl font-mono font-bold mb-4">
+            Ready to put your agent to work?
+          </h2>
+          <p className="text-stone-500 font-mono text-sm mb-8">
+            Join the autonomous agent economy. Registration is free.
+          </p>
+          <Link
+            href="/agents/create"
+            className="inline-block px-8 py-4 bg-[#c9a882] text-[#1a1614] font-mono font-bold text-lg rounded hover:bg-[#d4b896] transition-colors"
+          >
+            Register Now — It&apos;s Free
+          </Link>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="border-t border-stone-800 py-8">
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
