@@ -24,7 +24,10 @@ export async function POST(
 
   try {
     const body = await request.json()
-    const { agent_id, rating, review_text } = body
+    const { agent_id, rating, comment, review_text } = body
+
+    // Accept both 'comment' and 'review_text' field names
+    const reviewContent = comment || review_text
 
     // Validate rating
     if (!rating || typeof rating !== 'number' || rating < 1 || rating > 5) {
@@ -35,7 +38,7 @@ export async function POST(
     }
 
     // Validate review text if provided
-    if (review_text && (typeof review_text !== 'string' || review_text.length > 1000)) {
+    if (reviewContent && (typeof reviewContent !== 'string' || reviewContent.length > 1000)) {
       return NextResponse.json(
         { error: 'Review text must be a string under 1000 characters' },
         { status: 400 }
@@ -61,37 +64,13 @@ export async function POST(
       )
     }
 
-    // === REVIEW DEBUG ===
-    console.log('=== REVIEW DEBUG ===')
-    console.log('Auth object:', JSON.stringify(auth, null, 2))
-    console.log('Request body agent_id:', agent_id, 'type:', typeof agent_id)
-    console.log('Transaction object:', JSON.stringify(transaction, null, 2))
-    console.log('Comparing body agent_id to buyer:', agent_id, '===', transaction.buyer_agent_id, '→', agent_id === transaction.buyer_agent_id)
-    console.log('Comparing body agent_id to seller:', agent_id, '===', transaction.seller_agent_id, '→', agent_id === transaction.seller_agent_id)
-    if (auth.type === 'agent') {
-      console.log('Auth agentId:', auth.agentId, 'type:', typeof auth.agentId)
-      console.log('Comparing auth.agentId to buyer:', auth.agentId, '===', transaction.buyer_agent_id, '→', auth.agentId === transaction.buyer_agent_id)
-      console.log('Comparing auth.agentId to seller:', auth.agentId, '===', transaction.seller_agent_id, '→', auth.agentId === transaction.seller_agent_id)
-    }
-    console.log('===================')
-
     // Determine reviewer and reviewed based on agent_id
-    // Keep original for DB operations, normalize for comparisons
-    const originalAgentId = String(agent_id).trim()
-    const reviewerAgentIdNorm = originalAgentId.toLowerCase()
+    // Normalize IDs for comparison to handle case differences
+    const reviewerAgentIdNorm = String(agent_id).toLowerCase().trim()
     const buyerAgentIdNorm = String(transaction.buyer_agent_id).toLowerCase().trim()
     const sellerAgentIdNorm = String(transaction.seller_agent_id).toLowerCase().trim()
     let reviewedAgentId: string
-    let reviewerAgentId: string  // The actual DB-compatible ID
-
-    // Additional normalized comparison debug
-    console.log('Normalized comparison:', {
-      reviewerAgentIdNorm,
-      buyerAgentIdNorm,
-      sellerAgentIdNorm,
-      buyerMatch: reviewerAgentIdNorm === buyerAgentIdNorm,
-      sellerMatch: reviewerAgentIdNorm === sellerAgentIdNorm,
-    })
+    let reviewerAgentId: string
 
     if (reviewerAgentIdNorm === buyerAgentIdNorm) {
       // Buyer is reviewing seller
@@ -102,13 +81,6 @@ export async function POST(
       reviewerAgentId = transaction.seller_agent_id
       reviewedAgentId = transaction.buyer_agent_id
     } else {
-      console.error('Agent not party to transaction:', {
-        originalAgentId,
-        reviewerAgentIdNorm,
-        buyerAgentIdNorm,
-        sellerAgentIdNorm,
-        transactionId,
-      })
       return NextResponse.json(
         { error: 'Agent is not a party to this transaction' },
         { status: 403 }
@@ -162,7 +134,7 @@ export async function POST(
         reviewer_agent_id: reviewerAgentId,
         reviewed_agent_id: reviewedAgentId,
         rating,
-        review_text: review_text?.trim() || null,
+        review_text: reviewContent?.trim() || null,
       })
       .select(`
         id, rating, review_text, created_at,
