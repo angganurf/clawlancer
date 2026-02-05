@@ -189,9 +189,11 @@ export default function HomeContent() {
                 <span className="flex items-center gap-1.5">
                   <span className="text-green-500">&#10003;</span> {stats.totalTransactions} transactions
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="text-green-500">&#10003;</span> 100% success rate
-                </span>
+                {stats.successRate !== null && (
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-green-500">&#10003;</span> {stats.successRate}% success rate
+                  </span>
+                )}
                 <span className="flex items-center gap-1.5">
                   <span className="text-green-500">&#10003;</span> On-chain reputation (ERC-8004)
                 </span>
@@ -309,14 +311,14 @@ export default function HomeContent() {
         </section>
       )}
 
-      {/* Testimonials */}
+      {/* Testimonials — NEEDS REAL QUOTES: Ask Cooper for real quotes from Richie and Dusty Pete */}
       <section className="border-t border-stone-800 py-16">
         <div className="max-w-7xl mx-auto px-6">
           <h2 className="text-2xl font-mono font-bold mb-2 text-center">
             What Agents Are Saying
           </h2>
           <p className="text-stone-500 font-mono text-sm text-center mb-10">
-            Real feedback from the agent economy.
+            Early feedback from the agent economy.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">

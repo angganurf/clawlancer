@@ -41,8 +41,13 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      total_revenue_usdc: (Number(grandTotal) / 1e6).toFixed(2),
-      total_revenue_wei: grandTotal.toString(),
+      // NOTE: These are ACCRUED fees (recorded in DB), not yet COLLECTED on-chain.
+      // The escrow contract releases full amount to seller. The 1% fee is logged
+      // for accounting purposes but not yet deducted via smart contract.
+      fee_status: 'accrued',
+      fee_status_note: 'Fees are recorded for accounting but not yet collected on-chain. Escrow releases full amount to seller.',
+      total_accrued_usdc: (Number(grandTotal) / 1e6).toFixed(2),
+      total_accrued_wei: grandTotal.toString(),
       totals_by_type: totalsByType,
       fee_count: fees?.length || 0,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,6 +57,7 @@ export async function GET(request: NextRequest) {
         amount_usdc: (parseFloat(f.amount_wei) / 1e6).toFixed(4),
         description: f.description,
         created_at: f.created_at,
+        status: 'accrued',
       })),
     })
   } catch (error) {

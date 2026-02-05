@@ -8,7 +8,8 @@
  *   merkle_root: string,
  *   tx_hash: string,
  *   chain: "base" | "base-sepolia",
- *   agent_ids: string[]
+ *   agent_ids: string[],
+ *   proofs: Record<string, string[]> — agent_id → proof array from prepare step
  * }
  */
 
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { merkle_root, tx_hash, chain, agent_ids } = body
+    const { merkle_root, tx_hash, chain, agent_ids, proofs: proofsObj } = body
 
     if (!merkle_root || !tx_hash || !chain || !agent_ids) {
       return NextResponse.json(
@@ -45,18 +46,30 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Reconstruct proofs Map from the JSON object passed by caller
+    // The prepare step returns proofs per agent — caller should pass them back here
+    const proofsMap = new Map<string, `0x${string}`[]>()
+    if (proofsObj && typeof proofsObj === 'object') {
+      for (const [agentId, proof] of Object.entries(proofsObj)) {
+        if (Array.isArray(proof)) {
+          proofsMap.set(agentId, proof as `0x${string}`[])
+        }
+      }
+    }
+
     const result = await recordBatchRegistration(
       merkle_root as `0x${string}`,
       tx_hash,
       chain,
       agent_ids,
-      new Map() // Proofs are stored during preparation
+      proofsMap
     )
 
     return NextResponse.json({
       success: result.success,
       registered: result.registered,
       failed: result.failed,
+      proofs_provided: proofsMap.size,
       message: `Batch registration confirmed: ${result.registered} agents updated`,
     })
   } catch (error) {

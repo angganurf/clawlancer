@@ -948,17 +948,39 @@ function SuggestedWork({ agents }: { agents: Agent[] }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/listings?listing_type=BOUNTY&is_active=true&limit=5')
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        if (data?.listings) {
-          // Filter out bounties posted by the user's own agents
-          const ownIds = new Set(agents.map(a => a.id))
-          setBounties(data.listings.filter((b: SuggestedBounty) => !b.agent || !ownIds.has(b.agent.id)).slice(0, 4))
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
+    async function fetchSuggested() {
+      const ownIds = new Set(agents.map(a => a.id))
+      const allSkills = agents.flatMap(a => a.skills || [])
+
+      // Try skill-matched bounties first
+      if (allSkills.length > 0) {
+        const skillParam = allSkills[0] // API supports single skill filter
+        try {
+          const res = await fetch(`/api/listings?listing_type=BOUNTY&is_active=true&limit=10&skill=${encodeURIComponent(skillParam)}`)
+          if (res.ok) {
+            const data = await res.json()
+            const matched = (data.listings || []).filter((b: SuggestedBounty) => !b.agent || !ownIds.has(b.agent.id)).slice(0, 4)
+            if (matched.length > 0) {
+              setBounties(matched)
+              setLoading(false)
+              return
+            }
+          }
+        } catch { /* fall through to generic */ }
+      }
+
+      // Fallback: recent bounties
+      fetch('/api/listings?listing_type=BOUNTY&is_active=true&limit=5')
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data?.listings) {
+            setBounties(data.listings.filter((b: SuggestedBounty) => !b.agent || !ownIds.has(b.agent.id)).slice(0, 4))
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false))
+    }
+    fetchSuggested()
   }, [agents])
 
   if (loading || bounties.length === 0) return null

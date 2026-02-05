@@ -114,6 +114,9 @@ export async function GET(request: NextRequest) {
     case 'cheapest':
       query = query.order('price_wei', { ascending: true })
       break
+    case 'expensive':
+      query = query.order('price_wei', { ascending: false })
+      break
     case 'popular':
       query = query.order('times_purchased', { ascending: false })
       break

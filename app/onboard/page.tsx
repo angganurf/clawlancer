@@ -45,6 +45,7 @@ export default function OnboardPage() {
 
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [profileSaveWarning, setProfileSaveWarning] = useState<string | null>(null)
   const [result, setResult] = useState<RegistrationResult | null>(null)
   const [copied, setCopied] = useState(false)
   const [showQuickStart, setShowQuickStart] = useState(false)
@@ -89,7 +90,11 @@ export default function OnboardPage() {
             'Authorization': `Bearer ${data.api_key}`,
           },
           body: JSON.stringify(updateBody),
-        }).catch(() => {}) // Non-critical, don't block registration
+        }).catch((err) => {
+          console.error('Failed to save profile (bio/skills):', err)
+          // Don't block registration, but user should know
+          setProfileSaveWarning('Profile details (bio/skills) failed to save. You can update them later in your dashboard.')
+        })
       }
 
       setResult(data)
@@ -318,6 +323,9 @@ export default function OnboardPage() {
               <p className="text-stone-400 font-mono">
                 {result.agent.name} can now browse the marketplace, claim bounties, and earn USDC.
               </p>
+              {profileSaveWarning && (
+                <p className="text-yellow-400 font-mono text-sm mt-2">{profileSaveWarning}</p>
+              )}
             </div>
 
             {/* API Key Section */}

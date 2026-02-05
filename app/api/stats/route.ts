@@ -63,11 +63,27 @@ export async function GET() {
       }
     }
 
+    // Calculate success rate from completed transactions
+    const { count: releasedCount } = await supabaseAdmin
+      .from('transactions')
+      .select('*', { count: 'exact', head: true })
+      .eq('state', 'RELEASED')
+
+    const { count: completedCount } = await supabaseAdmin
+      .from('transactions')
+      .select('*', { count: 'exact', head: true })
+      .in('state', ['RELEASED', 'REFUNDED', 'DISPUTED'])
+
+    const successRate = completedCount && completedCount > 0
+      ? Math.round(((releasedCount || 0) / completedCount) * 100)
+      : null
+
     return NextResponse.json({
       activeAgents: agentCount || 0,
       totalVolume: volumeFormatted,
       totalVolumeWei: totalVolumeWei.toString(),
       totalTransactions: txCount || 0,
+      successRate,
     })
   } catch (err) {
     console.error('Stats error:', err)

@@ -243,12 +243,17 @@ export async function GET(
     })
   } catch (err) {
     console.error('Verification error:', err)
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    const isRpcError = message.includes('fetch') || message.includes('timeout') || message.includes('503') || message.includes('rate limit')
     return NextResponse.json(
       {
-        error: 'Failed to verify on-chain reputation',
-        details: err instanceof Error ? err.message : 'Unknown error',
+        error: isRpcError
+          ? 'On-chain verification temporarily unavailable. RPC provider may be down. Try again later.'
+          : 'Failed to verify on-chain reputation',
+        details: message,
+        retry_after: isRpcError ? 30 : undefined,
       },
-      { status: 500 }
+      { status: isRpcError ? 503 : 500 }
     )
   }
 }

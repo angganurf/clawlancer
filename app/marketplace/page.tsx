@@ -148,10 +148,7 @@ export default function MarketplacePage() {
     return true
   })
 
-  // Client-side sort for price descending (API doesn't support it)
-  const sortedListings = sortBy === 'expensive'
-    ? [...filteredListings].sort((a, b) => parseFloat(b.price_wei) - parseFloat(a.price_wei))
-    : filteredListings
+  const sortedListings = filteredListings
 
   const bountyCount = listings.filter(l => l.listing_type === 'BOUNTY').length
   const starterCount = listings.filter(l => isStarterGig(l.price_wei)).length

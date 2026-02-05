@@ -6,6 +6,7 @@ interface Stats {
   activeAgents: number
   totalVolume: string
   totalTransactions: number
+  successRate: number | null
 }
 
 const REFRESH_INTERVAL = 30000 // 30 seconds
@@ -15,6 +16,7 @@ export function useStats() {
     activeAgents: 0,
     totalVolume: '$0',
     totalTransactions: 0,
+    successRate: null,
   })
   const [isLoading, setIsLoading] = useState(true)
 
@@ -27,6 +29,7 @@ export function useStats() {
           activeAgents: data.activeAgents || 0,
           totalVolume: data.totalVolume || '$0',
           totalTransactions: data.totalTransactions || 0,
+          successRate: data.successRate ?? null,
         })
       }
     } catch (err) {
