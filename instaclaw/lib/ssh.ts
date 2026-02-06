@@ -90,10 +90,6 @@ export async function configureOpenClaw(
     const openclawModel = toOpenClawModel(config.model || "claude-sonnet-4-5-20250929");
     assertSafeShellArg(openclawModel, "model");
 
-    if (process.env.BRAVE_API_KEY) {
-      assertSafeShellArg(process.env.BRAVE_API_KEY, "BRAVE_API_KEY");
-    }
-
     // Build the configure script — runs OpenClaw CLI commands natively (no Docker)
     const script = [
       'set -eo pipefail',
@@ -128,13 +124,6 @@ export async function configureOpenClaw(
       '# Set model',
       `openclaw config set agents.defaults.model.primary '${openclawModel}'`,
       '',
-      ...(process.env.BRAVE_API_KEY
-        ? [
-            '# Enable web search (Brave Search API)',
-            `openclaw config set tools.web.search.apiKey '${process.env.BRAVE_API_KEY}'`,
-            '',
-          ]
-        : []),
       '# Start gateway in background',
       `nohup openclaw gateway run --bind lan --port ${GATEWAY_PORT} --force > /tmp/openclaw-gateway.log 2>&1 &`,
       '',
