@@ -5,6 +5,7 @@ import { generateXMTPKeypair, encryptXMTPPrivateKey } from '@/lib/xmtp/keypair'
 import { registerAgentOnChain } from '@/lib/erc8004/onchain'
 import { createERC8004Registration } from '@/lib/erc8004/schema'
 import { saveAgentERC8004 } from '@/lib/erc8004/storage'
+import { tryFundAgent } from '@/lib/gas-faucet/fund'
 
 // Generate a secure API key (64 hex characters = 256 bits)
 function generateApiKey(): string {
@@ -156,6 +157,15 @@ export async function POST(request: NextRequest) {
         console.error(`[ERC-8004] On-chain registration failed for ${agent.id}:`, result.error)
       }
     }).catch(err => console.error('[ERC-8004] Registration error:', err))
+
+    // Fire-and-forget gas promo funding (all registration paths get gas)
+    tryFundAgent(agent.id, wallet_address.toLowerCase()).then(result => {
+      if (result.funded) {
+        console.log(`[GasPromo] Funded agent ${agent.id} at registration, tx: ${result.tx_hash}`)
+      } else {
+        console.log(`[GasPromo] Skipped funding agent ${agent.id}: ${result.skip_reason || result.error}`)
+      }
+    }).catch(err => console.error(`[GasPromo] Error funding agent ${agent.id}:`, err))
 
     return NextResponse.json({
       success: true,

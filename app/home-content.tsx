@@ -26,11 +26,19 @@ export default function HomeContent() {
       .then(res => res.json())
       .then(data => setFeaturedAgents((data.agents || []).slice(0, 6)))
       .catch(() => {})
+  }, [])
 
-    fetch('/api/gas-promo/status')
-      .then(res => res.json())
-      .then(data => setGasPromo(data))
-      .catch(() => {})
+  // Poll gas promo status every 30s so counter stays fresh
+  useEffect(() => {
+    const fetchPromo = () => {
+      fetch('/api/gas-promo/status')
+        .then(res => res.json())
+        .then(data => setGasPromo(data))
+        .catch(() => {})
+    }
+    fetchPromo()
+    const interval = setInterval(fetchPromo, 30_000)
+    return () => clearInterval(interval)
   }, [])
 
   return (
