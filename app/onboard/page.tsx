@@ -116,9 +116,13 @@ export default function OnboardPage() {
       setShowQuickStart(true)
 
       // Fire-and-forget: send welcome gas after onboarding
+      // Pass the new agent's API key for auth (endpoint requires authentication)
       fetch('/api/gas-promo/fund', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${data.api_key}`,
+        },
         body: JSON.stringify({ agent_id: data.agent.id }),
       })
         .then(res => res.json())

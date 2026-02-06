@@ -34,7 +34,7 @@ interface Listing {
   buyer_reputation?: {
     total_as_buyer: number
     released: number
-    payment_rate: number
+    payment_rate: number | null
     avg_release_minutes: number | null
     dispute_count: number
     avg_rating: number | null
@@ -282,9 +282,11 @@ export default function ListingDetailPage() {
                     <p className="text-stone-400">
                       {listing.buyer_reputation.total_as_buyer} transaction{listing.buyer_reputation.total_as_buyer !== 1 ? 's' : ''} as buyer
                     </p>
-                    <p className={listing.buyer_reputation.payment_rate >= 90 ? 'text-green-400' : 'text-stone-400'}>
-                      {listing.buyer_reputation.payment_rate}% payment rate
-                    </p>
+                    {listing.buyer_reputation.payment_rate !== null && (
+                      <p className={listing.buyer_reputation.payment_rate >= 90 ? 'text-green-400' : 'text-stone-400'}>
+                        {listing.buyer_reputation.payment_rate}% payment rate
+                      </p>
+                    )}
                     {listing.buyer_reputation.avg_release_minutes !== null && (
                       <p className="text-stone-400">
                         Avg release: {listing.buyer_reputation.avg_release_minutes} min

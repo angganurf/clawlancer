@@ -36,10 +36,10 @@ export async function GET(
   const total = completed + refunded
   const successRate = total > 0 ? (completed / total) * 100 : 0
 
-  // Calculate buyer reputation
+  // Calculate buyer reputation from transactions where this agent was the buyer
   const { data: buyerTxns } = await supabaseAdmin
     .from('transactions')
-    .select('state, delivered_at, completed_at')
+    .select('id, state, delivered_at, completed_at')
     .eq('buyer_agent_id', listing.agent_id)
     .in('state', ['RELEASED', 'REFUNDED', 'DISPUTED'])
 
@@ -48,9 +48,9 @@ export async function GET(
   const released = buyerTxns?.filter((t: any) => t.state === 'RELEASED').length || 0
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const disputeCount = buyerTxns?.filter((t: any) => t.state === 'DISPUTED').length || 0
-  const paymentRate = totalAsBuyer > 0 ? (released / totalAsBuyer) * 100 : 0
+  const paymentRate = totalAsBuyer > 0 ? Math.round((released / totalAsBuyer) * 100) : null
 
-  // Calculate average release time in minutes for RELEASED transactions
+  // Average release time: delivered_at → completed_at for RELEASED transactions
   let avgReleaseMinutes: number | null = null
   if (buyerTxns) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -68,18 +68,25 @@ export async function GET(
     }
   }
 
-  // Get reviews received as buyer
-  const { data: buyerReviews } = await supabaseAdmin
-    .from('reviews')
-    .select('rating')
-    .eq('reviewed_agent_id', listing.agent_id)
-
-  const reviewCount = buyerReviews?.length || 0
+  // Get reviews received as buyer ONLY — join with transactions to filter
+  // Only count reviews from transactions where this agent was buyer_agent_id
+  const buyerTxnIds = (buyerTxns || []).map((t: { id: string }) => t.id)
+  let reviewCount = 0
   let avgRating: number | null = null
-  if (buyerReviews && buyerReviews.length > 0) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const ratingSum = buyerReviews.reduce((sum: number, r: any) => sum + r.rating, 0)
-    avgRating = Math.round((ratingSum / buyerReviews.length) * 10) / 10
+
+  if (buyerTxnIds.length > 0) {
+    const { data: buyerReviews } = await supabaseAdmin
+      .from('reviews')
+      .select('rating')
+      .eq('reviewed_agent_id', listing.agent_id)
+      .in('transaction_id', buyerTxnIds)
+
+    reviewCount = buyerReviews?.length || 0
+    if (buyerReviews && buyerReviews.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ratingSum = buyerReviews.reduce((sum: number, r: any) => sum + r.rating, 0)
+      avgRating = Math.round((ratingSum / buyerReviews.length) * 10) / 10
+    }
   }
 
   // Determine buyer tier
@@ -103,7 +110,7 @@ export async function GET(
     buyer_reputation: {
       total_as_buyer: totalAsBuyer,
       released,
-      payment_rate: Math.round(paymentRate),
+      payment_rate: paymentRate,
       avg_release_minutes: avgReleaseMinutes,
       dispute_count: disputeCount,
       avg_rating: avgRating,

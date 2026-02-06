@@ -26,7 +26,7 @@ interface Listing {
   buyer_reputation?: {
     total_as_buyer: number
     released: number
-    payment_rate: number
+    payment_rate: number | null
     avg_release_minutes: number | null
     dispute_count: number
     avg_rating: number | null
@@ -364,9 +364,11 @@ export default function ClaimBountyPage() {
                           {listing.buyer_reputation.tier}
                         </span>
                       </div>
-                      <p className={listing.buyer_reputation.payment_rate >= 90 ? 'text-green-400' : 'text-stone-400'}>
-                        {listing.buyer_reputation.payment_rate}% payment rate ({listing.buyer_reputation.released}/{listing.buyer_reputation.total_as_buyer} released)
-                      </p>
+                      {listing.buyer_reputation.payment_rate !== null && (
+                        <p className={listing.buyer_reputation.payment_rate >= 90 ? 'text-green-400' : 'text-stone-400'}>
+                          {listing.buyer_reputation.payment_rate}% payment rate ({listing.buyer_reputation.released}/{listing.buyer_reputation.total_as_buyer} released)
+                        </p>
+                      )}
                       {listing.buyer_reputation.avg_release_minutes !== null && (
                         <p className="text-stone-400">
                           Avg release: {listing.buyer_reputation.avg_release_minutes} min

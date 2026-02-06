@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
   let query = supabaseAdmin
     .from('listings')
     .select(`
-      id, title, description, category, listing_type, price_wei, price_usdc, currency,
+      id, agent_id, title, description, category, listing_type, price_wei, price_usdc, currency,
       is_negotiable, times_purchased, avg_rating, created_at, is_active,
       agent:agents!inner(id, name, wallet_address, transaction_count, reputation_tier)
     `)
@@ -144,14 +144,23 @@ export async function GET(request: NextRequest) {
   if (bountyAgentIds.length > 0) {
     const { data: buyerTxns } = await supabaseAdmin
       .from('transactions')
-      .select('buyer_agent_id, state, delivered_at, completed_at')
+      .select('id, buyer_agent_id, state, delivered_at, completed_at')
       .in('buyer_agent_id', bountyAgentIds)
       .in('state', ['RELEASED', 'REFUNDED', 'DISPUTED'])
 
-    const { data: buyerReviews } = await supabaseAdmin
-      .from('reviews')
-      .select('reviewed_agent_id, rating')
-      .in('reviewed_agent_id', bountyAgentIds)
+    // Collect all buyer transaction IDs to filter reviews by buyer-side only
+    const allBuyerTxnIds = (buyerTxns || []).map((t: { id: string }) => t.id)
+
+    // Only fetch reviews from transactions where these agents were BUYERS
+    let buyerReviews: { reviewed_agent_id: string; rating: number }[] = []
+    if (allBuyerTxnIds.length > 0) {
+      const { data } = await supabaseAdmin
+        .from('reviews')
+        .select('reviewed_agent_id, rating')
+        .in('reviewed_agent_id', bountyAgentIds)
+        .in('transaction_id', allBuyerTxnIds)
+      buyerReviews = data || []
+    }
 
     for (const agentId of bountyAgentIds) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -161,7 +170,7 @@ export async function GET(request: NextRequest) {
       const released = txns.filter((t: any) => t.state === 'RELEASED').length
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const disputeCount = txns.filter((t: any) => t.state === 'DISPUTED').length
-      const paymentRate = totalAsBuyer > 0 ? (released / totalAsBuyer) * 100 : 0
+      const paymentRate = totalAsBuyer > 0 ? Math.round((released / totalAsBuyer) * 100) : null
 
       let avgReleaseMinutes: number | null = null
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -178,13 +187,11 @@ export async function GET(request: NextRequest) {
         avgReleaseMinutes = Math.round(totalMinutes / releasedWithTimes.length)
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const reviews = buyerReviews?.filter((r: any) => r.reviewed_agent_id === agentId) || []
+      const reviews = buyerReviews.filter(r => r.reviewed_agent_id === agentId)
       const reviewCount = reviews.length
       let avgRating: number | null = null
       if (reviews.length > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const ratingSum = reviews.reduce((sum: number, r: any) => sum + r.rating, 0)
+        const ratingSum = reviews.reduce((sum, r) => sum + r.rating, 0)
         avgRating = Math.round((ratingSum / reviews.length) * 10) / 10
       }
 
@@ -201,7 +208,7 @@ export async function GET(request: NextRequest) {
       buyerRepMap[agentId] = {
         total_as_buyer: totalAsBuyer,
         released,
-        payment_rate: Math.round(paymentRate),
+        payment_rate: paymentRate,
         avg_release_minutes: avgReleaseMinutes,
         dispute_count: disputeCount,
         avg_rating: avgRating,

@@ -29,7 +29,7 @@ interface Listing {
   buyer_reputation?: {
     total_as_buyer: number
     released: number
-    payment_rate: number
+    payment_rate: number | null
     avg_release_minutes: number | null
     dispute_count: number
     avg_rating: number | null
@@ -429,7 +429,9 @@ export default function MarketplacePage() {
                           {listing.buyer_reputation.avg_release_minutes !== null && (
                             <p>Avg release: {listing.buyer_reputation.avg_release_minutes} min</p>
                           )}
-                          <p>Payment rate: {listing.buyer_reputation.payment_rate}%</p>
+                          {listing.buyer_reputation.payment_rate !== null && (
+                            <p>Payment rate: {listing.buyer_reputation.payment_rate}%</p>
+                          )}
                         </div>
                       )}
                     </div>
