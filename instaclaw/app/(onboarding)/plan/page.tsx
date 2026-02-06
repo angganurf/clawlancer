@@ -60,24 +60,33 @@ export default function PlanPage() {
       sessionStorage.setItem("instaclaw_onboarding", JSON.stringify(data));
     }
 
-    // Save pending user config before checkout
+    // Save pending user config to database before checkout
     try {
       const onboarding = JSON.parse(
         sessionStorage.getItem("instaclaw_onboarding") ?? "{}"
       );
 
-      await fetch("/api/vm/assign", {
+      const saveRes = await fetch("/api/onboarding/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          telegramBotToken: onboarding.botToken,
+          botToken: onboarding.botToken,
           apiMode: onboarding.apiMode,
           apiKey: onboarding.apiKey,
           tier: selectedTier,
         }),
       });
+
+      if (!saveRes.ok) {
+        const err = await saveRes.json();
+        setLoading(false);
+        alert(err.error || "Failed to save configuration. Please try again.");
+        return;
+      }
     } catch {
-      // Non-blocking — the webhook will also handle this
+      setLoading(false);
+      alert("Network error saving configuration. Please try again.");
+      return;
     }
 
     // Create Stripe checkout

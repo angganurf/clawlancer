@@ -13,8 +13,9 @@ export default function ConnectPage() {
   );
   const [apiKey, setApiKey] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleContinue() {
+  async function handleContinue() {
     setError("");
 
     if (!TOKEN_RE.test(botToken.trim())) {
@@ -27,7 +28,7 @@ export default function ConnectPage() {
       return;
     }
 
-    // Store in sessionStorage for the plan page
+    // Also store in sessionStorage for the plan page to read apiMode
     sessionStorage.setItem(
       "instaclaw_onboarding",
       JSON.stringify({
@@ -38,6 +39,35 @@ export default function ConnectPage() {
     );
 
     router.push("/plan");
+  }
+
+  async function handleVerifyToken() {
+    if (!TOKEN_RE.test(botToken.trim())) {
+      setError("Invalid bot token format. It should look like 123456789:ABC...");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await fetch(
+        `https://api.telegram.org/bot${botToken.trim()}/getMe`
+      );
+      const data = await res.json();
+
+      if (data.ok && data.result?.username) {
+        setError("");
+      } else {
+        setError(
+          "Could not verify bot token. Check that the token is correct."
+        );
+      }
+    } catch {
+      setError("Network error verifying bot token.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -60,18 +90,33 @@ export default function ConnectPage() {
           <p>2. Send /newbot and follow the prompts</p>
           <p>3. Copy the bot token and paste it below</p>
         </div>
-        <input
-          type="text"
-          placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
-          value={botToken}
-          onChange={(e) => setBotToken(e.target.value)}
-          className="w-full px-4 py-3 rounded-lg text-sm font-mono outline-none"
-          style={{
-            background: "var(--card)",
-            border: "1px solid var(--border)",
-            color: "var(--foreground)",
-          }}
-        />
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
+            value={botToken}
+            onChange={(e) => setBotToken(e.target.value)}
+            className="flex-1 px-4 py-3 rounded-lg text-sm font-mono outline-none"
+            style={{
+              background: "var(--card)",
+              border: "1px solid var(--border)",
+              color: "var(--foreground)",
+            }}
+          />
+          <button
+            type="button"
+            onClick={handleVerifyToken}
+            disabled={loading || !botToken.trim()}
+            className="px-4 py-3 rounded-lg text-xs font-medium transition-all cursor-pointer disabled:opacity-50"
+            style={{
+              background: "var(--card)",
+              border: "1px solid var(--border)",
+              color: "var(--foreground)",
+            }}
+          >
+            {loading ? "..." : "Verify"}
+          </button>
+        </div>
       </div>
 
       {/* API Mode */}

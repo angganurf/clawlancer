@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "motion/react";
 import { WaitlistForm } from "./waitlist-form";
 
@@ -74,13 +75,30 @@ export function Hero() {
           <WaitlistForm />
         </motion.div>
 
+        {/* Already have an invite? */}
+        <motion.p
+          className="text-sm"
+          style={{ color: "var(--muted)" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1, duration: 0.7 }}
+        >
+          Already have an invite code?{" "}
+          <Link
+            href="/signup"
+            className="underline text-white hover:opacity-80 transition-opacity"
+          >
+            Sign up here
+          </Link>
+        </motion.p>
+
         {/* Trust line */}
         <motion.p
           className="text-xs tracking-wide"
           style={{ color: "var(--muted)" }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1, duration: 0.7 }}
+          transition={{ delay: 1.2, duration: 0.7 }}
         >
           Powered by Anthropic
         </motion.p>

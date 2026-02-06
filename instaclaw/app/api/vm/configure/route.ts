@@ -54,12 +54,13 @@ export async function POST(req: NextRequest) {
     // Wait for health check
     const healthy = await waitForHealth(result.gatewayUrl);
 
-    // Update VM health status
+    // Update VM health status + store bot username for dashboard
     await supabase
       .from("instaclaw_vms")
       .update({
         health_status: healthy ? "healthy" : "unhealthy",
         last_health_check: new Date().toISOString(),
+        telegram_bot_username: pending.telegram_bot_username ?? null,
       })
       .eq("id", vm.id);
 

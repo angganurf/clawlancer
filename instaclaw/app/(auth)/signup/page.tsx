@@ -41,8 +41,8 @@ export default function SignupPage() {
   }
 
   async function handleGoogleSignIn() {
-    // Store invite code in localStorage so it can be consumed after OAuth
-    localStorage.setItem("instaclaw_invite_code", code);
+    // Store invite code in a cookie so the server-side signIn callback can read it
+    document.cookie = `instaclaw_invite_code=${encodeURIComponent(code)}; path=/; max-age=3600; SameSite=Lax`;
     await signIn("google", { callbackUrl: "/connect" });
   }
 

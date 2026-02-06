@@ -18,6 +18,7 @@ interface VMStatus {
     healthStatus: string;
     lastHealthCheck: string;
     assignedAt: string;
+    telegramBotUsername: string | null;
   };
 }
 
@@ -145,24 +146,26 @@ export default function DashboardPage() {
                 </a>
               )}
 
-              <a
-                href="https://t.me/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="glass rounded-xl p-4 flex items-center gap-3 transition-all hover:border-white/30"
-                style={{ border: "1px solid var(--border)" }}
-              >
-                <Send className="w-5 h-5 text-white" />
-                <div>
-                  <p className="text-sm font-semibold">Open Telegram</p>
-                  <p
-                    className="text-xs"
-                    style={{ color: "var(--muted)" }}
-                  >
-                    Chat with your bot
-                  </p>
-                </div>
-              </a>
+              {vm.telegramBotUsername && (
+                <a
+                  href={`https://t.me/${vm.telegramBotUsername}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="glass rounded-xl p-4 flex items-center gap-3 transition-all hover:border-white/30"
+                  style={{ border: "1px solid var(--border)" }}
+                >
+                  <Send className="w-5 h-5 text-white" />
+                  <div>
+                    <p className="text-sm font-semibold">Open Telegram</p>
+                    <p
+                      className="text-xs"
+                      style={{ color: "var(--muted)" }}
+                    >
+                      @{vm.telegramBotUsername}
+                    </p>
+                  </div>
+                </a>
+              )}
 
               <button
                 onClick={handleRestart}

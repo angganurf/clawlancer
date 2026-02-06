@@ -15,7 +15,7 @@ export async function GET() {
     const { data: vm } = await supabase
       .from("instaclaw_vms")
       .select(
-        "id, ip_address, gateway_url, control_ui_url, status, health_status, last_health_check, assigned_at"
+        "id, ip_address, gateway_url, control_ui_url, status, health_status, last_health_check, assigned_at, telegram_bot_username"
       )
       .eq("assigned_to", session.user.id)
       .single();
@@ -30,6 +30,7 @@ export async function GET() {
           healthStatus: vm.health_status,
           lastHealthCheck: vm.last_health_check,
           assignedAt: vm.assigned_at,
+          telegramBotUsername: vm.telegram_bot_username,
         },
       });
     }

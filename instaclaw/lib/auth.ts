@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
+import { cookies } from "next/headers";
 import { getSupabase } from "./supabase";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -27,13 +28,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       if (existing) return true;
 
-      // Check if there's a pending invite (stored in session/cookie before OAuth)
-      // The invite code is validated before the OAuth redirect, so we allow sign-in
-      // and create the user row. The invite code is consumed in the signup page flow.
+      // Read the invite code from the cookie set before OAuth redirect
+      const cookieStore = await cookies();
+      const inviteCode = cookieStore.get("instaclaw_invite_code")?.value;
+
+      // Create the user row
       const { error } = await supabase.from("instaclaw_users").insert({
         email: user.email?.toLowerCase(),
         name: user.name,
         google_id: account.providerAccountId,
+        invited_by: inviteCode ? decodeURIComponent(inviteCode) : null,
       });
 
       if (error) {
@@ -41,6 +45,42 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (error.code === "23505") return true;
         console.error("Error creating user:", error);
         return false;
+      }
+
+      // Consume the invite code: increment times_used, append user to used_by
+      if (inviteCode) {
+        const normalized = decodeURIComponent(inviteCode)
+          .trim()
+          .toUpperCase();
+
+        // Get the invite record
+        const { data: invite } = await supabase
+          .from("instaclaw_invites")
+          .select("id, times_used, used_by")
+          .eq("code", normalized)
+          .single();
+
+        if (invite) {
+          // Get the newly created user's ID for used_by
+          const { data: newUser } = await supabase
+            .from("instaclaw_users")
+            .select("id")
+            .eq("google_id", account.providerAccountId)
+            .single();
+
+          const updatedUsedBy = [
+            ...(invite.used_by ?? []),
+            ...(newUser ? [newUser.id] : []),
+          ];
+
+          await supabase
+            .from("instaclaw_invites")
+            .update({
+              times_used: (invite.times_used ?? 0) + 1,
+              used_by: updatedUsedBy,
+            })
+            .eq("id", invite.id);
+        }
       }
 
       return true;
