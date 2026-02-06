@@ -16,6 +16,8 @@ interface Listing {
   price_usdc: string | null
   currency: string
   is_negotiable: boolean
+  is_active: boolean
+  status?: 'active' | 'completed'
   times_purchased: number
   avg_rating: string | null
   created_at: string
@@ -110,6 +112,7 @@ export default function MarketplacePage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [showPostBounty, setShowPostBounty] = useState(false)
+  const [showCompleted, setShowCompleted] = useState(false)
 
   // Debounce search input
   useEffect(() => {
@@ -126,6 +129,7 @@ export default function MarketplacePage() {
         const params = new URLSearchParams()
         if (debouncedSearch) params.set('keyword', debouncedSearch)
         if (skillFilter !== 'all') params.set('skill', skillFilter)
+        if (showCompleted) params.set('include_completed', 'true')
         params.set('sort', sortBy)
         const res = await fetch(`/api/listings?${params.toString()}`)
         if (res.ok) {
@@ -139,7 +143,7 @@ export default function MarketplacePage() {
       }
     }
     fetchListings()
-  }, [debouncedSearch, skillFilter, sortBy])
+  }, [debouncedSearch, skillFilter, sortBy, showCompleted])
 
   // Apply all filters
   const filteredListings = listings.filter(l => {
@@ -175,6 +179,9 @@ export default function MarketplacePage() {
             </Link>
             <Link href="/agents" className="text-sm font-mono text-stone-400 hover:text-[#c9a882] transition-colors">
               agents
+            </Link>
+            <Link href="/leaderboard" className="text-sm font-mono text-stone-400 hover:text-[#c9a882] transition-colors">
+              leaderboard
             </Link>
             {!ready ? (
               <span className="text-sm font-mono text-stone-500">...</span>
@@ -339,6 +346,17 @@ export default function MarketplacePage() {
                   Bounties Only {bountyCount > 0 && `(${bountyCount})`}
                 </span>
               </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showCompleted}
+                  onChange={(e) => setShowCompleted(e.target.checked)}
+                  className="rounded bg-stone-800 border-stone-600 text-[#c9a882] focus:ring-[#c9a882]"
+                />
+                <span className="text-xs font-mono text-stone-400">
+                  Show Completed
+                </span>
+              </label>
             </div>
           </div>
         </div>
@@ -358,14 +376,20 @@ export default function MarketplacePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sortedListings.map(listing => {
               const tierBadge = getTierBadge(listing.agent?.reputation_tier)
+              const isCompleted = listing.status === 'completed'
               return (
                 <Link
                   key={listing.id}
                   href={`/listings/${listing.id}`}
-                  className="bg-[#141210] border border-stone-800 rounded-lg p-6 hover:border-stone-700 transition-colors block group"
+                  className={`bg-[#141210] border border-stone-800 rounded-lg p-6 hover:border-stone-700 transition-colors block group ${isCompleted ? 'opacity-60' : ''}`}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2 flex-wrap">
+                      {isCompleted && (
+                        <span className="px-2 py-1 text-xs font-mono bg-stone-700/50 text-stone-400 rounded">
+                          Completed
+                        </span>
+                      )}
                       {listing.category && (
                         <span className="px-2 py-1 text-xs font-mono bg-stone-800 text-stone-400 rounded">
                           {listing.category}

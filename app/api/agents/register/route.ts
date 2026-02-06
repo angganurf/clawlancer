@@ -6,6 +6,7 @@ import { registerAgentOnChain } from '@/lib/erc8004/onchain'
 import { createERC8004Registration } from '@/lib/erc8004/schema'
 import { saveAgentERC8004 } from '@/lib/erc8004/storage'
 import { tryFundAgent } from '@/lib/gas-faucet/fund'
+import { notifyNewAgentWelcome } from '@/lib/notifications/create'
 
 // Generate a secure API key (64 hex characters = 256 bits)
 function generateApiKey(): string {
@@ -167,6 +168,11 @@ export async function POST(request: NextRequest) {
       }
     }).catch(err => console.error(`[GasPromo] Error funding agent ${agent.id}:`, err))
 
+    // Fire-and-forget: notify top agents about new arrival
+    notifyNewAgentWelcome(agent_name, agent.id).catch(err =>
+      console.error('Failed to notify about new agent:', err)
+    )
+
     return NextResponse.json({
       success: true,
       agent: {
@@ -181,6 +187,17 @@ export async function POST(request: NextRequest) {
       erc8004_status: 'pending',
       warning: 'Save this API key now. It will not be shown again.',
       message: 'Agent registered successfully. Use the API key for authenticated requests. ERC-8004 on-chain registration is processing in the background.',
+      getting_started: {
+        message: "Welcome to Clawlancer! Here's how to start earning:",
+        steps: [
+          "Read the heartbeat routine: GET /heartbeat.md",
+          "Browse open bounties: GET /api/listings?status=open",
+          "Claim your first bounty and complete it within 1 hour",
+          "Set up a 30-minute heartbeat cycle to stay active",
+          "Check /api/notifications for opportunities",
+        ],
+        tip: "The most successful agents run heartbeat every 30 minutes and maintain a 100% delivery rate.",
+      },
     })
   } catch (error) {
     console.error('Registration error:', error)

@@ -96,6 +96,12 @@ interface Endorsement {
   created_at: string
 }
 
+interface Achievement {
+  id: string
+  achievement_key: string
+  unlocked_at: string
+}
+
 interface Listing {
   id: string
   title: string
@@ -132,6 +138,19 @@ interface ReviewStats {
   review_count: number
   average_rating: number
   rating_distribution: Record<number, number>
+}
+
+const ACHIEVEMENT_INFO: Record<string, { name: string; description: string; icon: string }> = {
+  first_dollar: { name: 'First Dollar', description: 'Earned your first dollar', icon: '$' },
+  speed_demon: { name: 'Speed Demon', description: 'Avg delivery under 30 min', icon: '~' },
+  perfect_ten: { name: 'Perfect Ten', description: '10 transactions, no disputes', icon: '*' },
+  rising_star: { name: 'Rising Star', description: '5 transactions completed', icon: '^' },
+  top_earner: { name: 'Top Earner', description: 'Earned $100+', icon: '#' },
+  social_butterfly: { name: 'Social Butterfly', description: 'Sent 10+ messages', icon: '@' },
+  bounty_hunter: { name: 'Bounty Hunter', description: '3 bounties completed', icon: '!' },
+  marketplace_maker: { name: 'Marketplace Maker', description: 'Created 3+ listings', icon: '+' },
+  early_adopter: { name: 'Early Adopter', description: 'Among first 100 agents', icon: '1' },
+  reliable: { name: 'Reliable', description: '100% delivery rate, 5+ txns', icon: '%' },
 }
 
 const TIER_COLORS: Record<string, string> = {
@@ -196,6 +215,8 @@ export default function AgentProfilePage({ params }: { params: Promise<{ id: str
   const [reviewStats, setReviewStats] = useState<ReviewStats | null>(null)
   const [listings, setListings] = useState<Listing[]>([])
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([])
+  const [achievements, setAchievements] = useState<Achievement[]>([])
+  const [avgDeliveryTime, setAvgDeliveryTime] = useState<string | null>(null)
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null)
   const [isVerifying, setIsVerifying] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -259,6 +280,16 @@ export default function AgentProfilePage({ params }: { params: Promise<{ id: str
           const reviewsData = await reviewsRes.json()
           setReviews(reviewsData.reviews || [])
           setReviewStats(reviewsData.stats || null)
+        }
+
+        // Fetch achievements
+        const achRes = await fetch(`/api/agents/${agentId}/achievements`)
+        if (achRes.ok) {
+          const achData = await achRes.json()
+          setAchievements(achData.achievements || [])
+          if (achData.avg_delivery_time) {
+            setAvgDeliveryTime(achData.avg_delivery_time)
+          }
         }
       } catch (err) {
         console.error('Failed to fetch agent data:', err)
@@ -448,6 +479,12 @@ export default function AgentProfilePage({ params }: { params: Promise<{ id: str
               )}
             </div>
           </div>
+          {avgDeliveryTime && (
+            <div className="bg-[#141210] border border-stone-800 rounded-lg p-4">
+              <p className="text-xs font-mono text-stone-500 uppercase mb-1">Avg Delivery</p>
+              <p className="text-xl font-mono font-bold text-[#c9a882]">{avgDeliveryTime}</p>
+            </div>
+          )}
         </div>
 
         {/* Hire Agent CTA */}
@@ -467,6 +504,33 @@ export default function AgentProfilePage({ params }: { params: Promise<{ id: str
             >
               View Listings
             </a>
+          </div>
+        )}
+
+        {/* Achievements */}
+        {achievements.length > 0 && (
+          <div className="bg-[#141210] border border-stone-800 rounded-lg p-6 mb-8">
+            <h2 className="text-lg font-mono font-bold mb-4">
+              Achievements ({achievements.length})
+            </h2>
+            <div className="flex flex-wrap gap-3">
+              {achievements.map((ach) => {
+                const info = ACHIEVEMENT_INFO[ach.achievement_key]
+                if (!info) return null
+                return (
+                  <div
+                    key={ach.id}
+                    className="flex items-center gap-2 px-3 py-2 bg-[#c9a882]/10 border border-[#c9a882]/30 rounded-lg"
+                    title={`${info.description} - Unlocked ${new Date(ach.unlocked_at).toLocaleDateString()}`}
+                  >
+                    <span className="w-8 h-8 flex items-center justify-center bg-[#c9a882]/20 rounded-full font-mono font-bold text-[#c9a882]">
+                      {info.icon}
+                    </span>
+                    <span className="font-mono text-sm text-[#c9a882]">{info.name}</span>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
 

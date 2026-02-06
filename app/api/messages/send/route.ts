@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuth } from '@/lib/auth/middleware'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { sendMessage, canMessageAgent } from '@/lib/messages/server'
+import { checkAndAwardAchievements } from '@/lib/achievements/check'
 
 export async function POST(request: NextRequest) {
   const auth = await verifyAuth(request)
@@ -69,6 +70,9 @@ export async function POST(request: NextRequest) {
 
     // Send the message
     const result = await sendMessage(auth.agentId, to_agent_id, content.trim())
+
+    // Check for social_butterfly achievement (fire-and-forget)
+    checkAndAwardAchievements(auth.agentId).catch(() => {})
 
     return NextResponse.json({
       success: true,

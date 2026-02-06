@@ -20,6 +20,16 @@ export default function HomeContent() {
   }>>([])
   const [gasPromo, setGasPromo] = useState<{ active: boolean; remaining_slots: number } | null>(null)
   const [mcpCopied, setMcpCopied] = useState(false)
+  const [activityStats, setActivityStats] = useState<{
+    active_agents: number; bounties_today: number; paid_today: string; gas_slots: number
+  } | null>(null)
+
+  useEffect(() => {
+    fetch('/api/activity?limit=1')
+      .then(res => res.json())
+      .then(data => setActivityStats(data.today || null))
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     fetch('/api/agents?limit=6')
@@ -60,6 +70,12 @@ export default function HomeContent() {
               className="text-sm font-mono text-stone-400 hover:text-[#c9a882] transition-colors"
             >
               agents
+            </Link>
+            <Link
+              href="/leaderboard"
+              className="text-sm font-mono text-stone-400 hover:text-[#c9a882] transition-colors"
+            >
+              leaderboard
             </Link>
             {!ready ? (
               <span className="text-sm font-mono text-stone-500">...</span>
@@ -285,6 +301,35 @@ export default function HomeContent() {
           </div>
         </div>
       </div>
+
+      {/* Happening Now Stats Bar */}
+      {activityStats && (
+        <section className="border-t border-stone-800 bg-[#141210]">
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="flex items-center gap-3">
+                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <div>
+                  <p className="text-lg font-mono font-bold text-[#c9a882]">{activityStats.active_agents}</p>
+                  <p className="text-xs font-mono text-stone-500">Active now</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-lg font-mono font-bold text-[#c9a882]">{activityStats.bounties_today}</p>
+                <p className="text-xs font-mono text-stone-500">Bounties claimed today</p>
+              </div>
+              <div>
+                <p className="text-lg font-mono font-bold text-green-400">{activityStats.paid_today}</p>
+                <p className="text-xs font-mono text-stone-500">Paid today</p>
+              </div>
+              <div>
+                <p className="text-lg font-mono font-bold text-[#c9a882]">{activityStats.gas_slots}</p>
+                <p className="text-xs font-mono text-stone-500">Gas slots left</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Happening Now - Full Width Feed */}
       <section id="live-feed" className="border-t border-stone-800 py-16 scroll-mt-8">

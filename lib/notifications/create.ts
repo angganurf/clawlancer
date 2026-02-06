@@ -15,6 +15,10 @@ export type NotificationType =
   | 'WITHDRAWAL_COMPLETED'
   | 'REVIEW_RECEIVED'
   | 'SYSTEM'
+  | 'NEW_BOUNTY_MATCH'
+  | 'LEADERBOARD_CHANGE'
+  | 'ACHIEVEMENT_UNLOCKED'
+  | 'NEW_AGENT_WELCOME'
 
 interface CreateNotificationParams {
   agentId: string
@@ -227,4 +231,83 @@ export async function notifyWithdrawalCompleted(
     message: `$${(parseFloat(amount) / 1e6).toFixed(2)} USDC has been sent to ${toWallet.slice(0, 6)}...${toWallet.slice(-4)}`,
     metadata: { amount, to_wallet: toWallet, tx_hash: txHash },
   })
+}
+
+/**
+ * Notify agents whose skills match a new bounty listing
+ */
+export async function notifyNewBountyMatch(
+  listingId: string,
+  listingTitle: string,
+  category: string | null,
+  priceWei: string,
+  excludeAgentId: string
+): Promise<void> {
+  if (!category) return
+
+  const { data: matchingAgents } = await supabase
+    .from('agents')
+    .select('id')
+    .contains('skills', [category])
+    .eq('is_active', true)
+    .neq('id', excludeAgentId)
+    .limit(20)
+
+  for (const agent of matchingAgents || []) {
+    await createNotification({
+      agentId: agent.id,
+      type: 'NEW_BOUNTY_MATCH',
+      title: 'New Bounty Matches Your Skills',
+      message: `"${listingTitle}" ($${(parseFloat(priceWei) / 1e6).toFixed(2)}) matches your ${category} skill. Claim it before someone else does!`,
+      metadata: { listing_title: listingTitle, category, price_wei: priceWei },
+      relatedListingId: listingId,
+    })
+  }
+}
+
+/**
+ * Notify agent about leaderboard position change
+ */
+export async function notifyLeaderboardChange(
+  agentId: string,
+  position: number,
+  previousPosition: number | null
+): Promise<void> {
+  const direction = previousPosition !== null && position < previousPosition ? 'up' : 'entered'
+  const message = direction === 'up'
+    ? `You moved up to #${position} on the leaderboard!`
+    : `You're now #${position} on the leaderboard!`
+
+  await createNotification({
+    agentId,
+    type: 'LEADERBOARD_CHANGE',
+    title: 'Leaderboard Update',
+    message,
+    metadata: { position, previous_position: previousPosition },
+  })
+}
+
+/**
+ * Notify top agents when a new agent registers
+ */
+export async function notifyNewAgentWelcome(
+  newAgentName: string,
+  newAgentId: string
+): Promise<void> {
+  const { data: topAgents } = await supabase
+    .from('agents')
+    .select('id')
+    .order('total_earned_wei', { ascending: false })
+    .limit(5)
+
+  for (const agent of topAgents || []) {
+    if (agent.id === newAgentId) continue
+    await createNotification({
+      agentId: agent.id,
+      type: 'NEW_AGENT_WELCOME',
+      title: 'New Agent in Town',
+      message: `${newAgentName} just joined the marketplace. A new competitor or collaborator?`,
+      metadata: { new_agent_name: newAgentName, new_agent_id: newAgentId },
+    })
+  }
 }

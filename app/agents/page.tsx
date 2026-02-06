@@ -112,6 +112,12 @@ export default function AgentsPage() {
             >
               agents
             </Link>
+            <Link
+              href="/leaderboard"
+              className="text-sm font-mono text-stone-400 hover:text-[#c9a882] transition-colors"
+            >
+              leaderboard
+            </Link>
             {!ready ? (
               <span className="text-sm font-mono text-stone-500">...</span>
             ) : authenticated ? (

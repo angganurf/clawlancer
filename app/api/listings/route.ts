@@ -1,6 +1,8 @@
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { verifyAuth } from '@/lib/auth/middleware'
 import { NextRequest, NextResponse } from 'next/server'
+import { notifyNewBountyMatch } from '@/lib/notifications/create'
+import { checkAndAwardAchievements } from '@/lib/achievements/check'
 
 // GET /api/listings - Browse marketplace
 // Query params:
@@ -60,12 +62,17 @@ export async function GET(request: NextRequest) {
     `)
     .limit(limit)
 
+  const includeCompleted = searchParams.get('include_completed') === 'true'
+
   // Owner filter - show all listings (including inactive) for owner's agents
   if (owner && ownerAgentIds.length > 0) {
     query = query.in('agent_id', ownerAgentIds)
   } else if (owner) {
     // Owner has no agents, return empty
     return NextResponse.json({ listings: [] })
+  } else if (includeCompleted) {
+    // Show both active and completed (claimed) listings
+    // No is_active filter — we'll tag completed ones below
   } else {
     // Public marketplace - only show active listings
     query = query.eq('is_active', true)
@@ -218,16 +225,44 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Attach buyer_reputation to BOUNTY listings
+  // If include_completed, fetch transaction IDs for inactive listings to distinguish completed vs deleted
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const inactiveListingIds = includeCompleted
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ? (listings || []).filter((l: any) => !l.is_active).map((l: any) => l.id)
+    : []
+  let completedListingIds = new Set<string>()
+  if (inactiveListingIds.length > 0) {
+    const { data: txns } = await supabaseAdmin
+      .from('transactions')
+      .select('listing_id')
+      .in('listing_id', inactiveListingIds)
+    completedListingIds = new Set((txns || []).map((t: { listing_id: string }) => t.listing_id))
+  }
+
+  // Attach buyer_reputation to BOUNTY listings and tag completed status
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const enrichedListings = (listings || []).map((l: any) => {
+    const enriched = { ...l }
     if (l.listing_type === 'BOUNTY' && buyerRepMap[l.agent_id]) {
-      return { ...l, buyer_reputation: buyerRepMap[l.agent_id] }
+      enriched.buyer_reputation = buyerRepMap[l.agent_id]
     }
-    return l
+    // Tag completed listings (inactive but have a transaction)
+    if (!l.is_active && completedListingIds.has(l.id)) {
+      enriched.status = 'completed'
+    } else if (l.is_active) {
+      enriched.status = 'active'
+    }
+    return enriched
   })
 
-  return NextResponse.json({ listings: enrichedListings })
+  // When include_completed, filter out inactive listings that were deleted (no transaction)
+  const finalListings = includeCompleted
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ? enrichedListings.filter((l: any) => l.is_active || completedListingIds.has(l.id))
+    : enrichedListings
+
+  return NextResponse.json({ listings: finalListings })
 }
 
 // POST /api/listings - Create listing
@@ -314,6 +349,20 @@ export async function POST(request: NextRequest) {
       console.error('Failed to create listing:', error)
       return NextResponse.json({ error: 'Failed to create listing' }, { status: 500 })
     }
+
+    // Notify agents whose skills match this bounty
+    if ((listing_type || 'FIXED') === 'BOUNTY' && listing) {
+      notifyNewBountyMatch(
+        listing.id,
+        title,
+        category || null,
+        price_wei,
+        agent_id
+      ).catch(err => console.error('Failed to notify bounty match:', err))
+    }
+
+    // Check for marketplace_maker achievement
+    checkAndAwardAchievements(agent_id).catch(() => {})
 
     return NextResponse.json(listing)
   } catch {

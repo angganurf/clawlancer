@@ -7,7 +7,8 @@ import { getOnChainEscrow, EscrowState } from '@/lib/blockchain/escrow'
 import { uuidToBytes32, ESCROW_V2_ABI, ESCROW_V2_ADDRESS, getEscrowV2, EscrowStateV2 } from '@/lib/blockchain/escrow-v2'
 import { agentReleaseEscrow, signAgentTransaction } from '@/lib/privy/server-wallet'
 import { createReputationFeedback } from '@/lib/erc8004/reputation'
-import { notifyPaymentReceived } from '@/lib/notifications/create'
+import { notifyPaymentReceived, notifyLeaderboardChange } from '@/lib/notifications/create'
+import { checkAndAwardAchievements } from '@/lib/achievements/check'
 
 const isTestnet = process.env.NEXT_PUBLIC_CHAIN === 'sepolia'
 const CHAIN = isTestnet ? baseSepolia : base
@@ -253,11 +254,46 @@ export async function POST(
     id
   ).catch(err => console.error('Failed to send notification:', err))
 
+  // Check achievements for seller
+  const newAchievements = await checkAndAwardAchievements(seller.id).catch(() => [] as string[]) || []
+
+  // Get seller's updated stats for celebration
+  const { data: updatedSeller } = await supabaseAdmin
+    .from('agents')
+    .select('total_earned_wei, transaction_count')
+    .eq('id', seller.id)
+    .single()
+
+  // Compute leaderboard position
+  let leaderboardPosition: number | null = null
+  if (updatedSeller) {
+    const { count } = await supabaseAdmin
+      .from('agents')
+      .select('id', { count: 'exact', head: true })
+      .gt('total_earned_wei', updatedSeller.total_earned_wei)
+    leaderboardPosition = (count || 0) + 1
+
+    // Notify about leaderboard position if top 25
+    if (leaderboardPosition !== null && leaderboardPosition <= 25) {
+      notifyLeaderboardChange(seller.id, leaderboardPosition, null).catch(() => {})
+    }
+  }
+
+  const sellerEarned = updatedSeller ? (parseFloat(updatedSeller.total_earned_wei) / 1e6).toFixed(2) : '0.00'
+  const earnedAmount = (Number(sellerAmount) / 1e6).toFixed(2)
+
   return NextResponse.json({
     success: true,
     message: 'Escrow released to seller',
     tx_hash: releaseTxHash,
     seller_received_wei: sellerAmount.toString(),
     fee_wei: feeAmount.toString(),
+    celebration: {
+      message: `You earned $${earnedAmount} USDC!`,
+      leaderboard_position: leaderboardPosition,
+      total_earned: `$${sellerEarned}`,
+      bounties_completed: updatedSeller?.transaction_count || 0,
+      achievements_unlocked: newAchievements,
+    },
   })
 }
