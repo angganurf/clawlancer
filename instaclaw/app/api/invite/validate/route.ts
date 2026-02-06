@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     const normalized = code.trim().toUpperCase();
 
     // Format: XXXX-XXXX-XXXX
-    if (!/^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/.test(normalized)) {
+    if (!/^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(normalized)) {
       return NextResponse.json(
         { valid: false, message: "Invalid invite code format." },
         { status: 400 }
