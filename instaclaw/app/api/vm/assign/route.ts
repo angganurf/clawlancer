@@ -9,8 +9,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { userId } = await req.json();
-    const targetUserId = userId ?? session.user.id;
+    // Always use the authenticated user's ID — never accept userId from the body
+    const targetUserId = session.user.id;
 
     const supabase = getSupabase();
 

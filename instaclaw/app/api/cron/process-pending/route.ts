@@ -36,7 +36,10 @@ export async function GET(req: NextRequest) {
     try {
       await fetch(`${process.env.NEXTAUTH_URL}/api/vm/configure`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Admin-Key": process.env.ADMIN_API_KEY ?? "",
+        },
         body: JSON.stringify({ userId: p.user_id }),
       });
 

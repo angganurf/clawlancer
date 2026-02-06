@@ -61,14 +61,20 @@ export async function POST(req: NextRequest) {
 
         if (vm) {
           // VM assigned — trigger configuration via internal call
-          await fetch(
+          const configRes = await fetch(
             `${process.env.NEXTAUTH_URL}/api/vm/configure`,
             {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                "X-Admin-Key": process.env.ADMIN_API_KEY ?? "",
+              },
               body: JSON.stringify({ userId }),
             }
           );
+          if (!configRes.ok) {
+            console.error("VM configure call failed:", configRes.status, await configRes.text());
+          }
         }
         // If no VM available, pending user stays in queue for cron to pick up
       }

@@ -6,6 +6,7 @@ interface VMRecord {
   ip_address: string;
   ssh_port: number;
   ssh_user: string;
+  assigned_to?: string;
 }
 
 interface UserConfig {
@@ -15,15 +16,26 @@ interface UserConfig {
   tier: string;
 }
 
+// Strict input validation to prevent shell injection
+function assertSafeShellArg(value: string, label: string): void {
+  // Only allow alphanumeric, dashes, underscores, colons, dots, and slashes
+  if (!/^[A-Za-z0-9_:.\-\/]+$/.test(value)) {
+    throw new Error(`Invalid characters in ${label}`);
+  }
+}
+
 // Dynamic import to avoid Turbopack bundling issues with ssh2's native crypto
 async function connectSSH(vm: VMRecord) {
+  if (!process.env.SSH_PRIVATE_KEY_B64) {
+    throw new Error("SSH_PRIVATE_KEY_B64 not set");
+  }
   const { NodeSSH } = await import("node-ssh");
   const ssh = new NodeSSH();
   await ssh.connect({
     host: vm.ip_address,
     port: vm.ssh_port,
     username: vm.ssh_user,
-    privateKey: Buffer.from(process.env.SSH_PRIVATE_KEY_B64!, 'base64').toString('utf-8'),
+    privateKey: Buffer.from(process.env.SSH_PRIVATE_KEY_B64, 'base64').toString('utf-8'),
   });
   return ssh;
 }
@@ -32,27 +44,31 @@ export async function configureOpenClaw(
   vm: VMRecord,
   config: UserConfig
 ): Promise<{ gatewayUrl: string; gatewayToken: string; controlUiUrl: string }> {
+  // Validate BYOK mode has an API key
+  if (config.apiMode === "byok" && !config.apiKey) {
+    throw new Error("API key required for BYOK mode");
+  }
+
   const ssh = await connectSSH(vm);
 
   try {
     const gatewayToken = generateGatewayToken();
 
-    // Resolve the API key — for all-inclusive, use the platform key
-    const apiKeyValue =
-      config.apiMode === "byok"
-        ? config.apiKey!
-        : process.env.ANTHROPIC_API_KEY!;
+    // Validate all inputs before building the shell command
+    assertSafeShellArg(config.telegramBotToken, "telegramBotToken");
+    assertSafeShellArg(gatewayToken, "gatewayToken");
 
-    // Call configure-vm.sh on the VM. It handles encryption, config writing,
-    // and container startup. The API key argument is 'ALL_INCLUSIVE' for
-    // platform-provided keys (configure-vm.sh reads ANTHROPIC_API_KEY from env).
     const apiArg =
       config.apiMode === "byok" ? config.apiKey! : "ALL_INCLUSIVE";
+    assertSafeShellArg(apiArg, "apiKey");
 
-    // For all-inclusive mode, set ANTHROPIC_API_KEY in the SSH environment
+    // For all-inclusive mode, pass ANTHROPIC_API_KEY via SSH environment
     const envPrefix =
-      config.apiMode === "all_inclusive"
-        ? `ANTHROPIC_API_KEY='${process.env.ANTHROPIC_API_KEY}' `
+      config.apiMode === "all_inclusive" && process.env.ANTHROPIC_API_KEY
+        ? (() => {
+            assertSafeShellArg(process.env.ANTHROPIC_API_KEY, "ANTHROPIC_API_KEY");
+            return `ANTHROPIC_API_KEY='${process.env.ANTHROPIC_API_KEY}' `;
+          })()
         : "";
 
     const result = await ssh.execCommand(
@@ -76,7 +92,7 @@ export async function configureOpenClaw(
 
     // Update VM record in Supabase
     const supabase = getSupabase();
-    await supabase
+    const { error: vmError } = await supabase
       .from("instaclaw_vms")
       .update({
         gateway_url: gatewayUrl,
@@ -85,12 +101,9 @@ export async function configureOpenClaw(
       })
       .eq("id", vm.id);
 
-    // Store encrypted API key in pending_users if BYOK (for reconfiguration)
-    if (encryptedApiKey) {
-      await supabase
-        .from("instaclaw_pending_users")
-        .update({ api_key: encryptedApiKey })
-        .eq("user_id", vm.ip_address); // Will be a no-op if row was already deleted
+    if (vmError) {
+      console.error("Failed to update VM record:", vmError);
+      throw new Error("Failed to update VM record in database");
     }
 
     return { gatewayUrl, gatewayToken, controlUiUrl };
