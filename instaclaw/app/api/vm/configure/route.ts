@@ -3,6 +3,9 @@ import { getSupabase } from "@/lib/supabase";
 import { configureOpenClaw, waitForHealth } from "@/lib/ssh";
 import { validateAdminKey } from "@/lib/security";
 
+// SSH + configure-vm.sh + health check can take 60-90s
+export const maxDuration = 120;
+
 export async function POST(req: NextRequest) {
   // This endpoint is called internally by the billing webhook and cron jobs.
   // Require an admin API key for authentication.
