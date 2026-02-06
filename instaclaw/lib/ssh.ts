@@ -68,12 +68,15 @@ export async function configureOpenClaw(
 
     // For all-inclusive mode, pass proxy URL instead of raw API key.
     // The VM gateway calls our proxy which holds the real API key and enforces rate limits.
-    const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL;
+    const appUrl = (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || "").trim();
     const proxyEnv =
       config.apiMode === "all_inclusive" && appUrl
         ? (() => {
             const proxyUrl = `${appUrl.startsWith("http") ? appUrl : `https://${appUrl}`}/api/gateway/proxy`;
-            assertSafeShellArg(proxyUrl.replace(/[:/]/g, "_"), "proxyUrl"); // validate sans URL chars
+            // Validate it's a real URL and contains no shell-dangerous chars
+            // (single quotes would break the shell command)
+            try { new URL(proxyUrl); } catch { throw new Error("Invalid proxyUrl"); }
+            if (proxyUrl.includes("'")) throw new Error("Invalid characters in proxyUrl");
             return `ANTHROPIC_PROXY_URL='${proxyUrl}' `;
           })()
         : "";
