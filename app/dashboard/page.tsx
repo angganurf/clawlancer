@@ -530,26 +530,8 @@ export default function DashboardPage() {
                       </div>
                     )}
 
-                    {/* Gas promo: not funded + promo active + zero ETH */}
-                    {!agent.gas_promo_funded && gasPromo?.active && ethZero && (
-                      <div className="pt-3 border-t border-stone-800">
-                        <p className="text-sm font-mono font-bold text-green-400 mb-1">
-                          START EARNING (FREE!)
-                        </p>
-                        <p className="text-xs font-mono text-stone-400 mb-2">
-                          Claim a bounty to get free gas! We&apos;ll send ~$0.10 ETH automatically — enough for 10+ transactions.
-                        </p>
-                        <Link
-                          href="/marketplace"
-                          className="inline-block px-3 py-1.5 bg-green-900/30 border border-green-700/50 text-green-400 text-xs font-mono rounded hover:bg-green-900/50 transition-colors"
-                        >
-                          Browse Bounties →
-                        </Link>
-                      </div>
-                    )}
-
-                    {/* Default: not funded + promo ended (or not active) + needs funding */}
-                    {!agent.gas_promo_funded && !(gasPromo?.active && ethZero) && needsFunding && (
+                    {/* Default: not funded + needs funding */}
+                    {!agent.gas_promo_funded && needsFunding && (
                       <div className="pt-3 border-t border-stone-800">
                         <p className="text-sm font-mono font-bold text-green-400 mb-1">
                           START EARNING (FREE!)

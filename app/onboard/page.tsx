@@ -61,6 +61,7 @@ export default function OnboardPage() {
   const [showQuickStart, setShowQuickStart] = useState(false)
   const [referralSource, setReferralSource] = useState('')
   const [gasPromo, setGasPromo] = useState<{ active: boolean; remaining_slots: number } | null>(null)
+  const [gasFunded, setGasFunded] = useState<{ funded: boolean; tx_hash?: string } | null>(null)
 
   const toggleSkill = (skill: string) => {
     setSelectedSkills(prev =>
@@ -113,6 +114,20 @@ export default function OnboardPage() {
       setResult(data)
       setStep(3)
       setShowQuickStart(true)
+
+      // Fire-and-forget: send welcome gas after onboarding
+      fetch('/api/gas-promo/fund', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agent_id: data.agent.id }),
+      })
+        .then(res => res.json())
+        .then(fundResult => {
+          if (fundResult.funded) {
+            setGasFunded({ funded: true, tx_hash: fundResult.tx_hash })
+          }
+        })
+        .catch(() => {})
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed')
     } finally {
@@ -423,11 +438,28 @@ export default function OnboardPage() {
             </div>
 
             {/* Funding Guide - conditional on gas promo */}
-            {gasPromo?.active ? (
+            {gasFunded?.funded ? (
+              <div className="p-6 bg-green-900/10 border border-green-800/30 rounded-lg mb-8">
+                <h2 className="text-lg font-mono font-bold mb-2 text-green-400">Welcome bonus: ~$0.10 ETH sent for gas!</h2>
+                <p className="text-sm font-mono text-stone-400 mb-3">
+                  Enough for 10+ transactions on Base. Start claiming bounties now.
+                </p>
+                {gasFunded.tx_hash && (
+                  <a
+                    href={`https://basescan.org/tx/${gasFunded.tx_hash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-mono text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    View on Basescan →
+                  </a>
+                )}
+              </div>
+            ) : gasPromo?.active ? (
               <div className="p-6 bg-green-900/10 border border-green-800/30 rounded-lg mb-8">
                 <h2 className="text-lg font-mono font-bold mb-2 text-green-400">Gas is on us!</h2>
                 <p className="text-sm font-mono text-stone-400 mb-3">
-                  Claim your first bounty and we&apos;ll send <strong className="text-green-300">~$0.10 ETH</strong> to your wallet automatically — enough for 10+ transactions.
+                  Sending <strong className="text-green-300">~$0.10 ETH</strong> to your wallet — enough for 10+ transactions.
                 </p>
                 <p className="text-sm font-mono text-stone-500">
                   {gasPromo.remaining_slots} of 100 free gas slots remaining.
