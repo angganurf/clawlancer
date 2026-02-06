@@ -15,12 +15,14 @@ export default function ConnectPage() {
   const [model, setModel] = useState("claude-sonnet-4-5-20250929");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [verified, setVerified] = useState(false);
+  const [botUsername, setBotUsername] = useState("");
 
   async function handleContinue() {
     setError("");
 
-    if (!TOKEN_RE.test(botToken.trim())) {
-      setError("Invalid bot token format. It should look like 123456789:ABC...");
+    if (!verified) {
+      setError("Please verify your bot token first.");
       return;
     }
 
@@ -45,12 +47,14 @@ export default function ConnectPage() {
 
   async function handleVerifyToken() {
     if (!TOKEN_RE.test(botToken.trim())) {
-      setError("Invalid bot token format. It should look like 123456789:ABC...");
+      setError("Invalid token format. It should look like 123456789:ABC...");
       return;
     }
 
     setLoading(true);
     setError("");
+    setVerified(false);
+    setBotUsername("");
 
     try {
       const res = await fetch(
@@ -59,16 +63,26 @@ export default function ConnectPage() {
       const data = await res.json();
 
       if (data.ok && data.result?.username) {
+        setVerified(true);
+        setBotUsername(data.result.username);
         setError("");
       } else {
         setError(
-          "Could not verify bot token. Check that the token is correct."
+          "Invalid token \u2014 check that you copied the full token from BotFather."
         );
       }
     } catch {
-      setError("Network error verifying bot token.");
+      setError("Network error verifying bot token. Please try again.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  function handleTokenChange(value: string) {
+    setBotToken(value);
+    if (verified) {
+      setVerified(false);
+      setBotUsername("");
     }
   }
 
@@ -97,28 +111,51 @@ export default function ConnectPage() {
             type="text"
             placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
             value={botToken}
-            onChange={(e) => setBotToken(e.target.value)}
-            className="flex-1 px-4 py-3 rounded-lg text-sm font-mono outline-none"
+            onChange={(e) => handleTokenChange(e.target.value)}
+            className="flex-1 px-4 py-3 rounded-lg text-sm font-mono outline-none transition-colors"
             style={{
               background: "var(--card)",
-              border: "1px solid var(--border)",
+              border: verified
+                ? "1px solid #22c55e"
+                : error
+                ? "1px solid var(--error)"
+                : "1px solid var(--border)",
               color: "var(--foreground)",
             }}
           />
           <button
             type="button"
             onClick={handleVerifyToken}
-            disabled={loading || !botToken.trim()}
-            className="px-4 py-3 rounded-lg text-xs font-medium transition-all cursor-pointer disabled:opacity-50"
+            disabled={loading || !botToken.trim() || verified}
+            className="px-4 py-3 rounded-lg text-xs font-medium transition-all cursor-pointer disabled:opacity-50 min-w-[90px]"
             style={{
-              background: "var(--card)",
-              border: "1px solid var(--border)",
-              color: "var(--foreground)",
+              background: verified ? "rgba(34,197,94,0.15)" : "var(--card)",
+              border: verified
+                ? "1px solid #22c55e"
+                : "1px solid var(--border)",
+              color: verified ? "#22c55e" : "var(--foreground)",
             }}
           >
-            {loading ? "..." : "Verify"}
+            {loading ? (
+              <span className="flex items-center gap-1.5 justify-center">
+                <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Verifying...
+              </span>
+            ) : verified ? (
+              "Verified \u2713"
+            ) : (
+              "Verify"
+            )}
           </button>
         </div>
+        {verified && botUsername && (
+          <p className="text-xs" style={{ color: "#22c55e" }}>
+            Connected to @{botUsername}
+          </p>
+        )}
       </div>
 
       {/* API Mode */}
@@ -241,7 +278,8 @@ export default function ConnectPage() {
 
       <button
         onClick={handleContinue}
-        className="w-full px-6 py-3 rounded-lg text-sm font-semibold transition-all cursor-pointer hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+        disabled={!verified}
+        className="w-full px-6 py-3 rounded-lg text-sm font-semibold transition-all cursor-pointer hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none"
         style={{ background: "#ffffff", color: "#000000" }}
       >
         Continue to Plan Selection
