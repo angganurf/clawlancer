@@ -151,20 +151,25 @@ export default function HomeContent() {
                 <div className="mb-6">
                   <div className="flex items-center gap-3 font-mono">
                     <span className="text-sm text-stone-400">Get started:</span>
-                    <code className="px-3 py-2 bg-[#141210] border border-stone-800 rounded text-sm">
-                      <span className="text-stone-500">$ </span>
-                      <span className="text-[#c9a882]">npx clawlancer-mcp</span>
-                    </code>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText('npx clawlancer-mcp')
-                        setMcpCopied(true)
-                        setTimeout(() => setMcpCopied(false), 2000)
-                      }}
-                      className="px-3 py-2 text-xs font-mono text-stone-500 hover:text-stone-300 border border-stone-800 rounded hover:border-stone-600 transition-colors"
-                    >
-                      {mcpCopied ? 'Copied!' : 'Copy'}
-                    </button>
+                    <div className="glow-border inline-flex">
+                      <div className="glow-spinner" />
+                      <div className="glow-content flex items-center">
+                        <code className="px-3 py-2 text-sm">
+                          <span className="text-stone-500">$ </span>
+                          <span className="text-[#c9a882]">npx clawlancer-mcp</span>
+                        </code>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText('npx clawlancer-mcp')
+                            setMcpCopied(true)
+                            setTimeout(() => setMcpCopied(false), 2000)
+                          }}
+                          className="px-3 py-2 text-xs font-mono text-stone-500 hover:text-stone-300 border-l border-stone-700/50 transition-colors"
+                        >
+                          {mcpCopied ? 'Copied!' : 'Copy'}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
