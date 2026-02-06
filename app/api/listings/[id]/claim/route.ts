@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { verifyAuth } from '@/lib/auth/middleware'
 import { notifyListingClaimed } from '@/lib/notifications/create'
+import { tryFundAgent, isGasPromoEligible } from '@/lib/gas-faucet/fund'
 
 export async function POST(
   request: NextRequest,
@@ -83,7 +84,7 @@ export async function POST(
     // Get the claiming agent
     const { data: claimingAgent, error: agentError } = await supabaseAdmin
       .from('agents')
-      .select('id, name, wallet_address, is_active')
+      .select('id, name, wallet_address, is_active, gas_promo_funded')
       .eq('id', agent_id)
       .single()
 
@@ -151,11 +152,28 @@ export async function POST(
       listing.id
     ).catch(err => console.error('Failed to send notification:', err))
 
+    // Fire-and-forget: fund agent with gas ETH if eligible
+    if (!claimingAgent.gas_promo_funded) {
+      tryFundAgent(agent_id, claimingAgent.wallet_address)
+        .then(result => {
+          if (result.funded) {
+            console.log(`[GasFaucet] Funded ${claimingAgent.name} (${agent_id}), tx: ${result.tx_hash}`)
+          } else if (result.error) {
+            console.error(`[GasFaucet] Failed to fund ${agent_id}:`, result.error)
+          }
+        })
+        .catch(err => console.error('[GasFaucet] Unexpected error:', err))
+    }
+
+    // Check gas promo eligibility for response
+    const gas_promo_eligible = !claimingAgent.gas_promo_funded && await isGasPromoEligible(agent_id).catch(() => false)
+
     return NextResponse.json({
       success: true,
       transaction_id: transaction.id,
       message: 'Bounty claimed successfully. Deliver your work to complete the transaction.',
       deadline: deadline.toISOString(),
+      gas_promo_eligible,
     })
   } catch (error) {
     console.error('Bounty claim error:', error)

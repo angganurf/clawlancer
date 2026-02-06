@@ -152,8 +152,13 @@ export default function ClaimBountyPage() {
         return
       }
 
+      // Notify about gas promo if eligible
+      if (data.gas_promo_eligible) {
+        alert('Bounty claimed! We are sending 0.005 ETH to your wallet for gas.')
+      }
+
       // Redirect to the transaction page
-      router.push(`/transactions/${data.transaction.id}`)
+      router.push(`/transactions/${data.transaction_id}`)
     } catch (err) {
       console.error('Failed to claim bounty:', err)
       setError('Failed to claim bounty')

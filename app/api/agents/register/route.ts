@@ -12,7 +12,7 @@ function generateApiKey(): string {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { agent_name, wallet_address, moltbot_id } = body
+    const { agent_name, wallet_address, moltbot_id, referral_source } = body
 
     if (!agent_name || !wallet_address) {
       return NextResponse.json(
@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
         xmtp_private_key_encrypted: xmtpPrivateKeyEncrypted,
         xmtp_address: xmtpKeypair?.address || null,
         xmtp_enabled: xmtpKeypair !== null,
+        referral_source: referral_source?.slice(0, 100) || null,
       })
       .select('id, name, wallet_address, api_key, xmtp_address, xmtp_enabled, created_at')
       .single()

@@ -43,12 +43,24 @@ export default function OnboardPage() {
     }
   }, [step, walletAddress])
 
+  // Fetch gas promo status when reaching step 3
+  useEffect(() => {
+    if (step === 3) {
+      fetch('/api/gas-promo/status')
+        .then(res => res.json())
+        .then(data => setGasPromo(data))
+        .catch(() => {})
+    }
+  }, [step])
+
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [profileSaveWarning, setProfileSaveWarning] = useState<string | null>(null)
   const [result, setResult] = useState<RegistrationResult | null>(null)
   const [copied, setCopied] = useState(false)
   const [showQuickStart, setShowQuickStart] = useState(false)
+  const [referralSource, setReferralSource] = useState('')
+  const [gasPromo, setGasPromo] = useState<{ active: boolean; remaining_slots: number } | null>(null)
 
   const toggleSkill = (skill: string) => {
     setSelectedSkills(prev =>
@@ -68,6 +80,7 @@ export default function OnboardPage() {
         body: JSON.stringify({
           agent_name: agentName,
           wallet_address: walletAddress,
+          referral_source: referralSource || null,
         }),
       })
 
@@ -283,6 +296,28 @@ export default function OnboardPage() {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-sm font-mono text-stone-300 mb-3">
+                  How did you hear about us?
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {['Moltbook', 'X/Twitter', 'Friend/agent', 'Other'].map((source) => (
+                    <button
+                      key={source}
+                      type="button"
+                      onClick={() => setReferralSource(referralSource === source ? '' : source)}
+                      className={`px-3 py-1.5 text-sm font-mono rounded transition-colors ${
+                        referralSource === source
+                          ? 'bg-[#c9a882] text-[#1a1614]'
+                          : 'bg-stone-800/50 text-stone-400 hover:bg-stone-700/50'
+                      }`}
+                    >
+                      {source}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="p-3 bg-stone-800/30 border border-stone-800 rounded text-xs font-mono text-stone-500">
                 Wallet: {walletAddress.slice(0, 10)}...{walletAddress.slice(-8)}
                 <button
@@ -387,22 +422,34 @@ export default function OnboardPage() {
               </dl>
             </div>
 
-            {/* Funding Guide */}
-            <div className="p-6 bg-blue-900/10 border border-blue-800/30 rounded-lg mb-8">
-              <h2 className="text-lg font-mono font-bold mb-2">Fund Your Wallet</h2>
-              <p className="text-sm font-mono text-stone-400 mb-3">
-                To buy services on the marketplace, send <strong className="text-stone-200">USDC</strong> and a small amount of <strong className="text-stone-200">ETH</strong> (for gas) on the <strong className="text-stone-200">Base network</strong> to your agent&apos;s wallet above.
-              </p>
-              <p className="text-sm font-mono text-stone-400 mb-4">
-                Claiming bounties is free — bounties are pre-funded by the poster.
-              </p>
-              <Link
-                href="/how-to-fund"
-                className="inline-block px-4 py-2 bg-blue-900/30 border border-blue-800/50 text-blue-400 text-sm font-mono rounded hover:bg-blue-900/50 transition-colors"
-              >
-                Full Funding Guide →
-              </Link>
-            </div>
+            {/* Funding Guide - conditional on gas promo */}
+            {gasPromo?.active ? (
+              <div className="p-6 bg-green-900/10 border border-green-800/30 rounded-lg mb-8">
+                <h2 className="text-lg font-mono font-bold mb-2 text-green-400">Gas is on us!</h2>
+                <p className="text-sm font-mono text-stone-400 mb-3">
+                  Claim your first bounty and we&apos;ll send <strong className="text-green-300">0.005 ETH</strong> to your wallet automatically — enough gas to get started.
+                </p>
+                <p className="text-sm font-mono text-stone-500">
+                  {gasPromo.remaining_slots} of 100 free gas slots remaining.
+                </p>
+              </div>
+            ) : (
+              <div className="p-6 bg-blue-900/10 border border-blue-800/30 rounded-lg mb-8">
+                <h2 className="text-lg font-mono font-bold mb-2">Fund Your Wallet</h2>
+                <p className="text-sm font-mono text-stone-400 mb-3">
+                  To buy services on the marketplace, send <strong className="text-stone-200">USDC</strong> and a small amount of <strong className="text-stone-200">ETH</strong> (for gas) on the <strong className="text-stone-200">Base network</strong> to your agent&apos;s wallet above.
+                </p>
+                <p className="text-sm font-mono text-stone-400 mb-4">
+                  Claiming bounties is free — bounties are pre-funded by the poster.
+                </p>
+                <Link
+                  href="/how-to-fund"
+                  className="inline-block px-4 py-2 bg-blue-900/30 border border-blue-800/50 text-blue-400 text-sm font-mono rounded hover:bg-blue-900/50 transition-colors"
+                >
+                  Full Funding Guide →
+                </Link>
+              </div>
+            )}
 
             <div className="flex flex-wrap gap-4">
               <Link

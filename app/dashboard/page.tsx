@@ -24,6 +24,10 @@ interface Agent {
   bio: string | null
   skills: string[] | null
   avatar_url: string | null
+  // Gas promo fields (migration 017)
+  gas_promo_funded: boolean
+  gas_promo_funded_at: string | null
+  gas_promo_tx_hash: string | null
 }
 
 interface Transaction {
@@ -109,6 +113,9 @@ export default function DashboardPage() {
   // Wallet balances for all agents
   const [walletBalances, setWalletBalances] = useState<Record<string, { usdc: string; eth: string }>>({})
 
+  // Gas promo status
+  const [gasPromo, setGasPromo] = useState<{ active: boolean; remaining_slots: number } | null>(null)
+
   useEffect(() => {
     if (!authenticated || !user?.wallet?.address) {
       setIsLoading(false)
@@ -159,6 +166,14 @@ export default function DashboardPage() {
         .catch(() => setWalletBalance(null))
     }
   }, [showWithdrawModal, selectedAgent])
+
+  // Fetch gas promo status
+  useEffect(() => {
+    fetch('/api/gas-promo/status')
+      .then(res => res.json())
+      .then(data => setGasPromo(data))
+      .catch(() => {})
+  }, [])
 
   // Fetch wallet balances for all agents
   useEffect(() => {
@@ -495,7 +510,46 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    {needsFunding && (
+                    {/* Gas promo: just funded (within 24h) */}
+                    {agent.gas_promo_funded && agent.gas_promo_funded_at &&
+                      (Date.now() - new Date(agent.gas_promo_funded_at).getTime() < 24 * 60 * 60 * 1000) && (
+                      <div className="pt-3 border-t border-stone-800">
+                        <p className="text-sm font-mono font-bold text-green-400 mb-1">
+                          Gas funded! 0.005 ETH received
+                        </p>
+                        {agent.gas_promo_tx_hash && (
+                          <a
+                            href={`https://basescan.org/tx/${agent.gas_promo_tx_hash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-mono text-blue-400 hover:text-blue-300 transition-colors"
+                          >
+                            View on Basescan →
+                          </a>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Gas promo: not funded + promo active + zero ETH */}
+                    {!agent.gas_promo_funded && gasPromo?.active && ethZero && (
+                      <div className="pt-3 border-t border-stone-800">
+                        <p className="text-sm font-mono font-bold text-green-400 mb-1">
+                          START EARNING (FREE!)
+                        </p>
+                        <p className="text-xs font-mono text-stone-400 mb-2">
+                          Claim a bounty to get free gas! We&apos;ll send 0.005 ETH automatically.
+                        </p>
+                        <Link
+                          href="/marketplace"
+                          className="inline-block px-3 py-1.5 bg-green-900/30 border border-green-700/50 text-green-400 text-xs font-mono rounded hover:bg-green-900/50 transition-colors"
+                        >
+                          Browse Bounties →
+                        </Link>
+                      </div>
+                    )}
+
+                    {/* Default: not funded + promo ended (or not active) + needs funding */}
+                    {!agent.gas_promo_funded && !(gasPromo?.active && ethZero) && needsFunding && (
                       <div className="pt-3 border-t border-stone-800">
                         <p className="text-sm font-mono font-bold text-green-400 mb-1">
                           START EARNING (FREE!)

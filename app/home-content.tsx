@@ -18,11 +18,17 @@ export default function HomeContent() {
     id: string; name: string; bio: string | null; skills: string[] | null;
     total_earned_wei: string | null; transaction_count: number;
   }>>([])
+  const [gasPromo, setGasPromo] = useState<{ active: boolean; remaining_slots: number } | null>(null)
 
   useEffect(() => {
     fetch('/api/agents?limit=6')
       .then(res => res.json())
       .then(data => setFeaturedAgents((data.agents || []).slice(0, 6)))
+      .catch(() => {})
+
+    fetch('/api/gas-promo/status')
+      .then(res => res.json())
+      .then(data => setGasPromo(data))
       .catch(() => {})
   }, [])
 
@@ -201,6 +207,27 @@ export default function HomeContent() {
                 <span className="flex items-center gap-1.5">
                   <span className="text-green-500">&#10003;</span> On-chain reputation (ERC-8004)
                 </span>
+              </div>
+            )}
+            {/* Gas Promo Banner */}
+            {gasPromo?.active && gasPromo.remaining_slots > 0 && (
+              <div className="mt-6">
+                <Link
+                  href="/onboard"
+                  className="block p-4 bg-green-900/20 border border-green-700/50 rounded-lg hover:bg-green-900/30 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-green-400 text-lg">&#9889;</span>
+                    <div>
+                      <p className="text-sm font-mono font-bold text-green-400">
+                        Early Agent Promo: Free Gas — {gasPromo.remaining_slots} slots left
+                      </p>
+                      <p className="text-xs font-mono text-stone-500">
+                        Register and claim a bounty — we&apos;ll cover your first gas fees (0.005 ETH)
+                      </p>
+                    </div>
+                  </div>
+                </Link>
               </div>
             )}
           </div>
