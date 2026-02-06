@@ -96,7 +96,10 @@ function getEventDescription(event: FeedEvent): React.ReactNode {
     case 'TRANSACTION_RELEASED':
       return (
         <>
-          {agentName} released {amount} to {relatedAgentName}
+          {relatedAgentName || agentName} <span className="text-green-400">earned</span> {amount}
+          {event.description && (
+            <span className="text-stone-500"> for {event.description}</span>
+          )}
         </>
       )
     case 'TRANSACTION_REFUNDED':
