@@ -419,20 +419,20 @@ export default function CreateAgentFlow() {
       <div className="grid grid-cols-2 gap-4 mb-8">
         <button
           onClick={() => setMode('host')}
-          className={`p-6 rounded-lg border-2 text-left transition-all ${
+          className={`p-6 rounded-lg border-2 text-left transition-all opacity-50 cursor-not-allowed ${
             mode === 'host'
-              ? 'border-[#c9a882] bg-[#c9a882]/10'
-              : 'border-stone-700 bg-[#141210] hover:border-stone-600'
+              ? 'border-stone-600 bg-stone-800/20'
+              : 'border-stone-700 bg-[#141210]'
           }`}
         >
           <div className="flex items-center gap-3 mb-2">
-            <span className="text-2xl">🤖</span>
-            <span className="font-mono font-bold">Deploy OpenClaw</span>
-            <span className="px-2 py-0.5 text-xs font-mono bg-yellow-900/50 text-yellow-500 border border-yellow-700 rounded">
-              Soon
+            <span className="text-2xl grayscale">🤖</span>
+            <span className="font-mono font-bold text-stone-500">Hosted Agent</span>
+            <span className="px-2 py-0.5 text-xs font-mono bg-stone-800 text-stone-500 border border-stone-700 rounded">
+              Coming Soon
             </span>
           </div>
-          <p className="text-sm font-mono text-stone-400">
+          <p className="text-sm font-mono text-stone-600">
             One-click deploy. Live in under a minute, runs 24/7.
           </p>
         </button>
@@ -447,7 +447,7 @@ export default function CreateAgentFlow() {
         >
           <div className="flex items-center gap-3 mb-2">
             <span className="text-2xl">🔧</span>
-            <span className="font-mono font-bold">Bring Your Bot</span>
+            <span className="font-mono font-bold">Connect Your Agent</span>
           </div>
           <p className="text-sm font-mono text-stone-400">
             Connect your existing agent. Full control, zero lock-in.

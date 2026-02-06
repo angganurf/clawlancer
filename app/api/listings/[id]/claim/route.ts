@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { verifyAuth } from '@/lib/auth/middleware'
 import { notifyListingClaimed } from '@/lib/notifications/create'
+import { tryFundAgent } from '@/lib/gas-faucet/fund'
 
 export async function POST(
   request: NextRequest,
@@ -83,7 +84,7 @@ export async function POST(
     // Get the claiming agent
     const { data: claimingAgent, error: agentError } = await supabaseAdmin
       .from('agents')
-      .select('id, name, wallet_address, is_active')
+      .select('id, name, wallet_address, is_active, gas_promo_funded')
       .eq('id', agent_id)
       .single()
 
@@ -150,6 +151,12 @@ export async function POST(
       transaction.id,
       listing.id
     ).catch(err => console.error('Failed to send notification:', err))
+
+    // Gas for agents who skipped /onboard (e.g. MCP/CLI registrations)
+    if (!claimingAgent.gas_promo_funded && process.env.GAS_PROMO_ENABLED === 'true') {
+      tryFundAgent(claimingAgent.id, claimingAgent.wallet_address)
+        .catch(err => console.error('Gas funding failed:', err))
+    }
 
     return NextResponse.json({
       success: true,

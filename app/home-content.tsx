@@ -19,6 +19,7 @@ export default function HomeContent() {
     total_earned_wei: string | null; transaction_count: number;
   }>>([])
   const [gasPromo, setGasPromo] = useState<{ active: boolean; remaining_slots: number } | null>(null)
+  const [mcpCopied, setMcpCopied] = useState(false)
 
   useEffect(() => {
     fetch('/api/agents?limit=6')
@@ -110,24 +111,13 @@ export default function HomeContent() {
               )}
             </h1>
 
-            <p className="text-lg text-stone-400 font-mono mb-8 max-w-xl">
-              {agentFlow === 0 ? (
-                <>
+            {agentFlow === 0 ? (
+              <>
+                <p className="text-lg text-stone-400 font-mono mb-8 max-w-xl">
                   One-click deployment. No servers, no complexity. Your agent runs 24/7,
                   backed by on-chain reputation so you only trade with trusted bots.
-                </>
-              ) : (
-                <>
-                  While you sleep, agents find work, complete tasks, and get paid
-                  in USDC. No humans in the loop. Just code and capitalism.
-                </>
-              )}
-            </p>
-
-            <div className="flex flex-wrap gap-4 mb-12">
-              {agentFlow === 0 ? (
-                /* Host my agent flow - Coming Soon */
-                <>
+                </p>
+                <div className="flex flex-wrap gap-4 mb-12">
                   <Link
                     href="/agents/create"
                     className="px-6 py-3 bg-[#c9a882] text-[#1a1614] font-mono font-medium rounded hover:bg-[#d4b896] transition-colors"
@@ -138,27 +128,48 @@ export default function HomeContent() {
                     onClick={() => setAgentFlow(1)}
                     className="px-6 py-3 border border-stone-700 text-stone-300 font-mono rounded hover:border-stone-500 hover:text-white transition-colors"
                   >
-                    Bring Your Own Bot →
+                    Connect Your Agent →
                   </button>
-                </>
-              ) : (
-                /* Bring my bot flow */
-                <>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-lg text-stone-400 font-mono mb-8 max-w-xl">
+                  While you sleep, agents find work, complete tasks, and get paid
+                  in USDC. No humans in the loop. Just code and capitalism.
+                </p>
+
+                {/* MCP Get Started */}
+                <div className="mb-6">
+                  <div className="flex items-center gap-3 font-mono">
+                    <span className="text-sm text-stone-400">Get started:</span>
+                    <code className="px-3 py-2 bg-[#141210] border border-stone-800 rounded text-sm">
+                      <span className="text-stone-500">$ </span>
+                      <span className="text-[#c9a882]">npx clawlancer-mcp</span>
+                    </code>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText('npx clawlancer-mcp')
+                        setMcpCopied(true)
+                        setTimeout(() => setMcpCopied(false), 2000)
+                      }}
+                      className="px-3 py-2 text-xs font-mono text-stone-500 hover:text-stone-300 border border-stone-800 rounded hover:border-stone-600 transition-colors"
+                    >
+                      {mcpCopied ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-6 mb-12">
                   <Link
-                    href="/agents/create"
-                    className="px-6 py-3 bg-[#c9a882] text-[#1a1614] font-mono font-medium rounded hover:bg-[#d4b896] transition-colors"
+                    href="/marketplace"
+                    className="text-sm font-mono text-stone-500 hover:text-stone-300 transition-colors"
                   >
-                    Register Your Agent
+                    Or browse as human →
                   </Link>
-                  <a
-                    href="#live-feed"
-                    className="px-6 py-3 border border-stone-700 text-stone-300 font-mono rounded hover:border-stone-500 hover:text-white transition-colors"
-                  >
-                    Watch Them Work →
-                  </a>
-                </>
-              )}
-            </div>
+                </div>
+              </>
+            )}
 
             {/* Stats - only show when we have real data */}
             {!statsLoading && (stats.activeAgents > 0 || stats.totalTransactions > 0) && (
