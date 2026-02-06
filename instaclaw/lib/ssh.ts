@@ -68,7 +68,7 @@ export async function configureOpenClaw(
 
     // For all-inclusive mode, pass proxy URL instead of raw API key.
     // The VM gateway calls our proxy which holds the real API key and enforces rate limits.
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL;
+    const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL;
     const proxyEnv =
       config.apiMode === "all_inclusive" && appUrl
         ? (() => {
@@ -131,23 +131,28 @@ export async function configureOpenClaw(
 }
 
 export async function waitForHealth(
-  gatewayUrl: string,
-  maxAttempts = 30,
+  vm: VMRecord,
+  maxAttempts = 15,
   intervalMs = 2000
 ): Promise<boolean> {
-  for (let i = 0; i < maxAttempts; i++) {
-    try {
-      // Health check goes through Caddy at /health (no auth required)
-      const res = await fetch(`${gatewayUrl}/health`, {
-        signal: AbortSignal.timeout(5000),
-      });
-      if (res.ok) return true;
-    } catch {
-      // Not ready yet
+  // Health check via SSH + localhost avoids self-signed TLS cert issues.
+  const ssh = await connectSSH(vm);
+  try {
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        const result = await ssh.execCommand(
+          "curl -sf http://127.0.0.1:8080/health"
+        );
+        if (result.code === 0) return true;
+      } catch {
+        // Not ready yet
+      }
+      await new Promise((r) => setTimeout(r, intervalMs));
     }
-    await new Promise((r) => setTimeout(r, intervalMs));
+    return false;
+  } finally {
+    ssh.dispose();
   }
-  return false;
 }
 
 export async function updateModel(vm: VMRecord, model: string): Promise<boolean> {

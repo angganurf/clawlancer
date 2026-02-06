@@ -59,8 +59,8 @@ export async function POST(req: NextRequest) {
       model: pending.default_model,
     });
 
-    // Wait for health check
-    const healthy = await waitForHealth(result.gatewayUrl);
+    // Wait for health check (via SSH to avoid self-signed TLS cert issues)
+    const healthy = await waitForHealth(vm);
 
     // Update VM health status + store bot username for dashboard + reset attempts
     await supabase
