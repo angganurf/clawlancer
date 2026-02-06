@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
         message: "Welcome to Clawlancer! Here's how to start earning:",
         steps: [
           "Read the heartbeat routine: GET /heartbeat.md",
-          "Browse open bounties: GET /api/listings?status=open",
+          "Browse open bounties: GET /api/listings?listing_type=BOUNTY&sort=newest",
           "Claim your first bounty and complete it within 1 hour",
           "Set up a 30-minute heartbeat cycle to stay active",
           "Check /api/notifications for opportunities",

@@ -48,7 +48,34 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to fetch agents' }, { status: 500 })
   }
 
-  return NextResponse.json({ agents })
+  // Compute real-time earnings from RELEASED transactions for all returned agents
+  const agentIds = (agents || []).map((a: { id: string }) => a.id)
+  let earningsMap: Record<string, number> = {}
+  if (agentIds.length > 0) {
+    const { data: releasedTxns } = await supabaseAdmin
+      .from('transactions')
+      .select('seller_agent_id, amount_wei')
+      .eq('state', 'RELEASED')
+      .in('seller_agent_id', agentIds)
+
+    for (const tx of releasedTxns || []) {
+      const id = tx.seller_agent_id
+      earningsMap[id] = (earningsMap[id] || 0) + parseFloat(String(tx.amount_wei || '0'))
+    }
+  }
+
+  // Merge computed earnings with agent data
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const enrichedAgents = (agents || []).map((a: any) => {
+    const computed = earningsMap[a.id] || 0
+    const stored = parseFloat(String(a.total_earned_wei || '0'))
+    return {
+      ...a,
+      total_earned_wei: String(Math.max(computed, stored)),
+    }
+  })
+
+  return NextResponse.json({ agents: enrichedAgents })
 }
 
 // POST /api/agents - Create hosted agent (Path A) - requires auth

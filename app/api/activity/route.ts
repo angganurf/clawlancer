@@ -1,8 +1,8 @@
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 
-function formatUSDC(wei: string): string {
-  const usdc = parseFloat(wei) / 1e6
+function formatUSDC(wei: number | string | null): string {
+  const usdc = parseFloat(String(wei || '0')) / 1e6
   return `$${usdc.toFixed(2)}`
 }
 
@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Build human-readable event strings
+  // DB event_types: AGENT_CREATED, LISTING_CREATED, LISTING_UPDATED, TRANSACTION_CREATED, TRANSACTION_RELEASED, MESSAGE_SENT
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const richEvents = (events || []).map((e: any) => {
     let message = ''
@@ -32,19 +33,25 @@ export async function GET(request: NextRequest) {
 
     switch (e.event_type) {
       case 'TRANSACTION_RELEASED':
-        message = `${relatedName} earned ${formatUSDC(e.amount_wei || '0')} for ${e.description || 'a task'}`
+        message = `${relatedName} earned ${formatUSDC(e.amount_wei)} for ${e.description || 'a task'}`
         break
-      case 'agent_joined':
+      case 'AGENT_CREATED':
         message = `New agent ${agentName} just registered`
         break
-      case 'bounty_claimed':
-        message = `${agentName} claimed bounty: ${e.description || e.preview || 'a bounty'}`
+      case 'LISTING_CREATED':
+        message = `${agentName} posted: ${e.description || 'a new listing'}`
+        break
+      case 'LISTING_UPDATED':
+        message = `${agentName} updated a listing`
         break
       case 'TRANSACTION_CREATED':
         message = `${agentName} started a new transaction with ${relatedName}`
         break
+      case 'MESSAGE_SENT':
+        message = `${agentName} sent a message to ${relatedName}`
+        break
       default:
-        message = e.description || e.preview || `${agentName} did something`
+        message = e.description || `${agentName} did something`
     }
 
     return {
@@ -61,31 +68,45 @@ export async function GET(request: NextRequest) {
   // Compute "today" stats
   const now = new Date()
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
-  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString()
+  const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
 
-  // Active agents in last hour (any agent with a feed event)
-  const { count: activeAgentCount } = await supabaseAdmin
+  // Active agents in last 24 hours (distinct agent_ids with feed events)
+  const { data: activeAgentData } = await supabaseAdmin
     .from('feed_events')
-    .select('agent_id', { count: 'exact', head: true })
-    .gte('created_at', oneHourAgo)
+    .select('agent_id')
+    .gte('created_at', twentyFourHoursAgo)
 
-  // Bounties claimed today
+  const uniqueActiveAgents = new Set((activeAgentData || []).map((e: { agent_id: string }) => e.agent_id).filter(Boolean))
+
+  // Bounties completed today (TRANSACTION_RELEASED events, not bounty_claimed which doesn't exist)
   const { count: bountiesCount } = await supabaseAdmin
     .from('feed_events')
     .select('id', { count: 'exact', head: true })
-    .eq('event_type', 'bounty_claimed')
+    .eq('event_type', 'TRANSACTION_RELEASED')
     .gte('created_at', todayStart)
 
-  // $ paid today (sum of TRANSACTION_RELEASED amounts)
+  // $ paid today (sum of TRANSACTION_RELEASED amounts from feed_events)
   const { data: releasedToday } = await supabaseAdmin
     .from('feed_events')
     .select('amount_wei')
     .eq('event_type', 'TRANSACTION_RELEASED')
     .gte('created_at', todayStart)
 
-  const paidToday = (releasedToday || []).reduce((sum: number, e: { amount_wei: string | null }) => {
-    return sum + (parseFloat(e.amount_wei || '0') / 1e6)
+  // Also check transactions table directly for released transactions today
+  const { data: releasedTxns } = await supabaseAdmin
+    .from('transactions')
+    .select('amount_wei')
+    .eq('state', 'RELEASED')
+    .gte('completed_at', todayStart)
+
+  // Use whichever source has more data
+  const feedPaid = (releasedToday || []).reduce((sum: number, e: { amount_wei: number | string | null }) => {
+    return sum + (parseFloat(String(e.amount_wei || '0')) / 1e6)
   }, 0)
+  const txnPaid = (releasedTxns || []).reduce((sum: number, t: { amount_wei: number | string | null }) => {
+    return sum + (parseFloat(String(t.amount_wei || '0')) / 1e6)
+  }, 0)
+  const paidToday = Math.max(feedPaid, txnPaid)
 
   // Gas slots remaining
   const { data: gasSetting } = await supabaseAdmin
@@ -101,7 +122,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     events: richEvents,
     today: {
-      active_agents: activeAgentCount || 0,
+      active_agents: uniqueActiveAgents.size,
       bounties_today: bountiesCount || 0,
       paid_today: `$${paidToday.toFixed(2)}`,
       gas_slots: gasSlots,

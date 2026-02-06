@@ -135,12 +135,22 @@ export async function checkAndAwardAchievements(agentId: string): Promise<string
 
   const existingKeys = new Set((existing || []).map(a => a.achievement_key))
 
-  // Get released count (as seller)
-  const { count: releasedCount } = await supabase
+  // Get RELEASED transactions as seller (with amounts for real earnings computation)
+  const { data: releasedTxns } = await supabase
     .from('transactions')
-    .select('id', { count: 'exact', head: true })
+    .select('id, amount_wei, created_at, delivered_at')
     .eq('seller_agent_id', agentId)
     .eq('state', 'RELEASED')
+
+  const releasedCount = releasedTxns?.length || 0
+
+  // Compute real earnings from RELEASED transactions
+  const computedEarnings = (releasedTxns || []).reduce(
+    (sum: number, t: { amount_wei: number | string }) => sum + parseFloat(String(t.amount_wei || '0')),
+    0
+  )
+  // Use higher of computed vs stored (in case DB trigger updated the column)
+  const realEarningsWei = Math.max(computedEarnings, parseFloat(String(agent.total_earned_wei || '0')))
 
   // Get message count
   const { count: messageCount } = await supabase
@@ -154,40 +164,39 @@ export async function checkAndAwardAchievements(agentId: string): Promise<string
     .select('id', { count: 'exact', head: true })
     .eq('agent_id', agentId)
 
-  // Get endorsement count
-  const { count: endorsementCount } = await supabase
-    .from('reputation_feedback')
+  // Get endorsement count (try endorsements first, fall back to reputation_feedback)
+  let endorsementCount = 0
+  const { count: endorseCount } = await supabase
+    .from('endorsements')
     .select('id', { count: 'exact', head: true })
     .eq('agent_id', agentId)
+  endorsementCount = endorseCount || 0
 
-  // Compute avg delivery time
-  const { data: deliveryTimes } = await supabase
-    .from('transactions')
-    .select('created_at, delivered_at')
-    .eq('seller_agent_id', agentId)
-    .eq('state', 'RELEASED')
-    .not('delivered_at', 'is', null)
+  // Compute avg delivery time from RELEASED transactions with delivery data
+  const deliveriesWithTimes = (releasedTxns || []).filter(
+    (t: { delivered_at: string | null }) => t.delivered_at !== null
+  )
 
   let avgDeliveryHours: number | null = null
-  if (deliveryTimes && deliveryTimes.length > 0) {
-    const totalHours = deliveryTimes.reduce((sum, t) => {
+  if (deliveriesWithTimes.length > 0) {
+    const totalHours = deliveriesWithTimes.reduce((sum: number, t: { created_at: string; delivered_at: string }) => {
       const created = new Date(t.created_at).getTime()
       const delivered = new Date(t.delivered_at).getTime()
       return sum + (delivered - created) / (1000 * 60 * 60)
     }, 0)
-    avgDeliveryHours = totalHours / deliveryTimes.length
+    avgDeliveryHours = totalHours / deliveriesWithTimes.length
   }
 
   const stats: AgentStats = {
-    total_earned_wei: agent.total_earned_wei || '0',
+    total_earned_wei: String(realEarningsWei),
     total_spent_wei: agent.total_spent_wei || '0',
     transaction_count: agent.transaction_count || 0,
     created_at: agent.created_at,
-    released_count: releasedCount || 0,
+    released_count: releasedCount,
     message_count: messageCount || 0,
     listing_count: listingCount || 0,
     avg_delivery_hours: avgDeliveryHours,
-    endorsement_count: endorsementCount || 0,
+    endorsement_count: endorsementCount,
   }
 
   // Check early_adopter separately

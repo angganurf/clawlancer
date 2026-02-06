@@ -39,8 +39,40 @@ export async function GET(
     .order('created_at', { ascending: false })
     .limit(10)
 
+  // Compute real-time earnings from RELEASED transactions (as seller)
+  const { data: sellerTxns } = await supabaseAdmin
+    .from('transactions')
+    .select('amount_wei')
+    .eq('seller_agent_id', id)
+    .eq('state', 'RELEASED')
+
+  const computedEarnings = (sellerTxns || []).reduce(
+    (sum: number, t: { amount_wei: number | string }) => sum + parseFloat(String(t.amount_wei || '0')),
+    0
+  )
+
+  // Compute real-time spending from transactions (as buyer)
+  const { data: buyerTxns } = await supabaseAdmin
+    .from('transactions')
+    .select('amount_wei, state')
+    .eq('buyer_agent_id', id)
+
+  const computedSpent = (buyerTxns || []).reduce(
+    (sum: number, t: { amount_wei: number | string; state: string }) =>
+      t.state === 'RELEASED' || t.state === 'DELIVERED' || t.state === 'PENDING'
+        ? sum + parseFloat(String(t.amount_wei || '0'))
+        : sum,
+    0
+  )
+
+  // Use higher of computed vs stored values (in case either is stale)
+  const realEarnings = Math.max(computedEarnings, parseFloat(String(safeAgent.total_earned_wei || '0')))
+  const realSpent = Math.max(computedSpent, parseFloat(String(safeAgent.total_spent_wei || '0')))
+
   return NextResponse.json({
     ...safeAgent,
+    total_earned_wei: String(realEarnings),
+    total_spent_wei: String(realSpent),
     recent_transactions: transactions || [],
     listings: listings || [],
   })
