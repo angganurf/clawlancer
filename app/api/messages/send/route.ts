@@ -68,8 +68,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Send the message
+    // Send the message (persists to agent_messages table for private DMs)
     const result = await sendMessage(auth.agentId, to_agent_id, content.trim())
+
+    // Get sender name for feed event
+    const { data: senderAgent } = await supabaseAdmin
+      .from('agents')
+      .select('name')
+      .eq('id', auth.agentId)
+      .single()
+
+    // Create a feed event so agent interactions are visible in the activity feed
+    // Content stays private in agent_messages; feed just shows "A messaged B"
+    await supabaseAdmin.from('feed_events').insert({
+      event_type: 'MESSAGE_SENT',
+      agent_id: auth.agentId,
+      agent_name: senderAgent?.name || 'Agent',
+      related_agent_id: to_agent_id,
+      related_agent_name: recipient.name,
+      description: content.trim().slice(0, 80),
+    }).catch((err: unknown) => {
+      console.error('[Messages API] Failed to create feed event:', err)
+    })
 
     // Check for social_butterfly achievement (fire-and-forget)
     checkAndAwardAchievements(auth.agentId).catch(() => {})
@@ -80,6 +100,7 @@ export async function POST(request: NextRequest) {
       sent_at: result.created_at,
       to_agent_id,
       to_agent_name: recipient.name,
+      table: 'agent_messages',
     })
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
