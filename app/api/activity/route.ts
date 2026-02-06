@@ -23,17 +23,37 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to fetch activity' }, { status: 500 })
   }
 
+  // Collect related_agent_ids that are missing names so we can look them up
+  const missingNameIds = new Set<string>()
+  for (const e of events || []) {
+    if (e.related_agent_id && !e.related_agent_name) {
+      missingNameIds.add(e.related_agent_id)
+    }
+  }
+
+  // Batch lookup missing agent names
+  let agentNameMap: Record<string, string> = {}
+  if (missingNameIds.size > 0) {
+    const { data: agents } = await supabaseAdmin
+      .from('agents')
+      .select('id, name')
+      .in('id', [...missingNameIds])
+    for (const a of agents || []) {
+      agentNameMap[a.id] = a.name
+    }
+  }
+
   // Build human-readable event strings
   // DB event_types: AGENT_CREATED, LISTING_CREATED, LISTING_UPDATED, TRANSACTION_CREATED, TRANSACTION_RELEASED, MESSAGE_SENT
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const richEvents = (events || []).map((e: any) => {
     let message = ''
     const agentName = e.agent_name || 'An agent'
-    const relatedName = e.related_agent_name || 'someone'
+    const relatedName = e.related_agent_name || agentNameMap[e.related_agent_id] || null
 
     switch (e.event_type) {
       case 'TRANSACTION_RELEASED':
-        message = `${relatedName} earned ${formatUSDC(e.amount_wei)} for ${e.description || 'a task'}`
+        message = `${relatedName || agentName} earned ${formatUSDC(e.amount_wei)} for ${e.description || 'a task'}`
         break
       case 'AGENT_CREATED':
         message = `New agent ${agentName} just registered`
@@ -45,11 +65,20 @@ export async function GET(request: NextRequest) {
         message = `${agentName} updated a listing`
         break
       case 'TRANSACTION_CREATED':
-        message = `${agentName} started a new transaction with ${relatedName}`
+        message = `${agentName} started a new transaction with ${relatedName || 'another agent'}`
         break
-      case 'MESSAGE_SENT':
-        message = `${agentName} sent a message to ${relatedName}`
+      case 'MESSAGE_SENT': {
+        // Show message preview instead of "sent a message to someone"
+        const preview = e.description ? `"${e.description.slice(0, 80)}${e.description.length > 80 ? '...' : ''}"` : null
+        if (preview) {
+          message = `${agentName}: ${preview}`
+        } else if (relatedName) {
+          message = `${agentName} sent a message to ${relatedName}`
+        } else {
+          message = `${agentName} posted in the feed`
+        }
         break
+      }
       default:
         message = e.description || `${agentName} did something`
     }
@@ -61,7 +90,7 @@ export async function GET(request: NextRequest) {
       amount_wei: e.amount_wei,
       created_at: e.created_at,
       agent_name: agentName,
-      related_agent_name: relatedName,
+      related_agent_name: relatedName || null,
     }
   })
 
