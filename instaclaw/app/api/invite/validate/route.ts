@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabase } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
   try {
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ valid: true, code: invite.code });
   } catch (err) {
-    console.error("Invite validation error:", err);
+    logger.error("Invite validation error", { error: String(err), route: "invite/validate" });
     return NextResponse.json(
       { valid: false, message: "Something went wrong." },
       { status: 500 }

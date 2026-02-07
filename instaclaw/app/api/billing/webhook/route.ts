@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { getSupabase } from "@/lib/supabase";
+import { sendPaymentFailedEmail, sendCanceledEmail, sendPendingEmail, sendTrialEndingEmail, sendAdminAlertEmail } from "@/lib/email";
+import { logger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -21,7 +23,15 @@ export async function POST(req: NextRequest) {
       process.env.STRIPE_WEBHOOK_SECRET!
     );
   } catch (err) {
-    console.error("Webhook signature verification failed:", err);
+    logger.error("Webhook signature verification failed", { error: String(err), route: "billing/webhook" });
+    try {
+      await sendAdminAlertEmail(
+        "Stripe Webhook Signature Failure",
+        `Webhook signature verification failed.\nError: ${String(err)}`
+      );
+    } catch {
+      // Non-fatal
+    }
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
@@ -42,6 +52,7 @@ export async function POST(req: NextRequest) {
           stripe_subscription_id: session.subscription as string,
           stripe_customer_id: session.customer as string,
           status: "active",
+          payment_status: "current",
         },
         { onConflict: "user_id" }
       );
@@ -73,10 +84,33 @@ export async function POST(req: NextRequest) {
             }
           );
           if (!configRes.ok) {
-            console.error("VM configure call failed:", configRes.status, await configRes.text());
+            const configErr = await configRes.text();
+            logger.error("VM configure call failed", { error: configErr, route: "billing/webhook", status: configRes.status, userId });
+            try {
+              await sendAdminAlertEmail(
+                "VM Configure Failed After Checkout",
+                `User: ${userId}\nStatus: ${configRes.status}\nError: ${configErr}`
+              );
+            } catch {
+              // Non-fatal
+            }
           }
         }
-        // If no VM available, pending user stays in queue for cron to pick up
+        // If no VM available, send pending email
+        if (!vm) {
+          const { data: user } = await supabase
+            .from("instaclaw_users")
+            .select("email")
+            .eq("id", userId)
+            .single();
+          if (user?.email) {
+            try {
+              await sendPendingEmail(user.email);
+            } catch (emailErr) {
+              logger.error("Failed to send pending email", { error: String(emailErr), route: "billing/webhook", userId });
+            }
+          }
+        }
       }
 
       break;
@@ -116,13 +150,113 @@ export async function POST(req: NextRequest) {
         // Update subscription status
         await supabase
           .from("instaclaw_subscriptions")
-          .update({ status: "canceled" })
+          .update({ status: "canceled", payment_status: "current" })
           .eq("user_id", sub.user_id);
 
         // Reclaim the VM
         await supabase.rpc("instaclaw_reclaim_vm", {
           p_user_id: sub.user_id,
         });
+
+        // Send cancellation email
+        const { data: user } = await supabase
+          .from("instaclaw_users")
+          .select("email")
+          .eq("id", sub.user_id)
+          .single();
+
+        if (user?.email) {
+          try {
+            await sendCanceledEmail(user.email);
+          } catch (emailErr) {
+            logger.error("Failed to send canceled email", { error: String(emailErr), route: "billing/webhook" });
+          }
+        }
+      }
+
+      break;
+    }
+
+    case "invoice.payment_failed": {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const invoice = event.data.object as any;
+      const customerId = invoice.customer as string;
+
+      // Update subscription payment status to past_due
+      const { data: sub } = await supabase
+        .from("instaclaw_subscriptions")
+        .select("user_id")
+        .eq("stripe_customer_id", customerId)
+        .single();
+
+      if (sub) {
+        await supabase
+          .from("instaclaw_subscriptions")
+          .update({ payment_status: "past_due" })
+          .eq("user_id", sub.user_id);
+
+        // Send payment failed email
+        const { data: user } = await supabase
+          .from("instaclaw_users")
+          .select("email")
+          .eq("id", sub.user_id)
+          .single();
+
+        if (user?.email) {
+          try {
+            await sendPaymentFailedEmail(user.email);
+          } catch (emailErr) {
+            logger.error("Failed to send payment failed email", { error: String(emailErr), route: "billing/webhook" });
+          }
+        }
+      }
+
+      break;
+    }
+
+    case "invoice.payment_succeeded": {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const invoice = event.data.object as any;
+      const customerId = invoice.customer as string;
+
+      // Clear past_due status on successful payment
+      await supabase
+        .from("instaclaw_subscriptions")
+        .update({ payment_status: "current" })
+        .eq("stripe_customer_id", customerId);
+
+      break;
+    }
+
+    case "customer.subscription.trial_will_end": {
+      const subscription = event.data.object;
+      const customerId = subscription.customer as string;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const trialEnd = (subscription as any).trial_end as number | undefined;
+      const daysLeft = trialEnd
+        ? Math.max(0, Math.ceil((trialEnd * 1000 - Date.now()) / (1000 * 60 * 60 * 24)))
+        : 3;
+
+      const { data: sub } = await supabase
+        .from("instaclaw_subscriptions")
+        .select("user_id")
+        .eq("stripe_customer_id", customerId)
+        .single();
+
+      if (sub) {
+        const { data: user } = await supabase
+          .from("instaclaw_users")
+          .select("email")
+          .eq("id", sub.user_id)
+          .single();
+
+        if (user?.email) {
+          try {
+            await sendTrialEndingEmail(user.email, daysLeft);
+          } catch (emailErr) {
+            logger.error("Failed to send trial ending email", { error: String(emailErr), route: "billing/webhook" });
+          }
+        }
       }
 
       break;

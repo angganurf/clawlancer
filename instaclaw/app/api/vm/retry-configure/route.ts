@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getSupabase } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
 
 const MAX_CONFIGURE_ATTEMPTS = 3;
 
@@ -75,7 +76,7 @@ export async function POST() {
 
     return NextResponse.json({ retried: true });
   } catch (err) {
-    console.error("VM retry-configure error:", err);
+    logger.error("VM retry-configure error", { error: String(err), route: "vm/retry-configure" });
     return NextResponse.json(
       { error: "Failed to retry configuration" },
       { status: 500 }

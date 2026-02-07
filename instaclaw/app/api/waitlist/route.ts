@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabase } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -98,7 +99,7 @@ export async function POST(req: NextRequest) {
       position: inserted.position,
     });
   } catch (err) {
-    console.error("Waitlist error:", err);
+    logger.error("Waitlist error", { error: String(err), route: "waitlist" });
     return NextResponse.json(
       { success: false, message: "Something went wrong. Please try again." },
       { status: 500 }

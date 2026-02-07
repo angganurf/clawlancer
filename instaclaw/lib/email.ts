@@ -83,6 +83,129 @@ export async function sendPendingEmail(email: string): Promise<void> {
   });
 }
 
+export async function sendPaymentFailedEmail(email: string): Promise<void> {
+  const resend = getResend();
+  await resend.emails.send({
+    from: FROM,
+    to: email,
+    subject: "Payment Failed — Action Required",
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #000; color: #fff;">
+        <h1 style="font-size: 24px; margin-bottom: 16px;">Payment Failed</h1>
+        <p style="color: #888; line-height: 1.6;">
+          We were unable to process your latest payment. Please update your payment method to keep your OpenClaw instance running.
+        </p>
+        <a href="${process.env.NEXTAUTH_URL}/billing" style="display: inline-block; margin-top: 16px; padding: 12px 24px; background: #fff; color: #000; text-decoration: none; border-radius: 6px; font-weight: 600;">
+          Update Payment Method
+        </a>
+        <p style="margin-top: 24px; font-size: 12px; color: #888;">
+          If your payment is not resolved, your instance may be suspended.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendHealthAlertEmail(
+  email: string,
+  vmName: string
+): Promise<void> {
+  const resend = getResend();
+  await resend.emails.send({
+    from: FROM,
+    to: email,
+    subject: "Your OpenClaw Instance Needs Attention",
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #000; color: #fff;">
+        <h1 style="font-size: 24px; margin-bottom: 16px;">Health Alert</h1>
+        <p style="color: #888; line-height: 1.6;">
+          Your OpenClaw instance (${vmName}) has failed multiple health checks. We're attempting an automatic restart. If the issue persists, our team will investigate.
+        </p>
+        <a href="${process.env.NEXTAUTH_URL}/dashboard" style="display: inline-block; margin-top: 16px; padding: 12px 24px; background: #fff; color: #000; text-decoration: none; border-radius: 6px; font-weight: 600;">
+          Check Dashboard
+        </a>
+      </div>
+    `,
+  });
+}
+
+export async function sendTrialEndingEmail(
+  email: string,
+  daysLeft: number
+): Promise<void> {
+  const resend = getResend();
+  await resend.emails.send({
+    from: FROM,
+    to: email,
+    subject: `Your Free Trial Ends in ${daysLeft} Day${daysLeft !== 1 ? "s" : ""}`,
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #000; color: #fff;">
+        <h1 style="font-size: 24px; margin-bottom: 16px;">Trial Ending Soon</h1>
+        <p style="color: #888; line-height: 1.6;">
+          Your InstaClaw free trial ends in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}. After that, your subscription will automatically convert to a paid plan. No action needed if you'd like to continue.
+        </p>
+        <p style="color: #888; line-height: 1.6; margin-top: 12px;">
+          To cancel before the trial ends, visit your billing page.
+        </p>
+        <a href="${process.env.NEXTAUTH_URL}/billing" style="display: inline-block; margin-top: 16px; padding: 12px 24px; background: #fff; color: #000; text-decoration: none; border-radius: 6px; font-weight: 600;">
+          Manage Subscription
+        </a>
+      </div>
+    `,
+  });
+}
+
+export async function sendWelcomeEmail(
+  email: string,
+  name: string
+): Promise<void> {
+  const resend = getResend();
+  await resend.emails.send({
+    from: FROM,
+    to: email,
+    subject: "Welcome to InstaClaw!",
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #000; color: #fff;">
+        <h1 style="font-size: 24px; margin-bottom: 16px;">Welcome, ${name || "there"}!</h1>
+        <p style="color: #888; line-height: 1.6;">
+          Your InstaClaw account has been created. You're one step away from deploying your own personal AI agent.
+        </p>
+        <p style="color: #888; line-height: 1.6; margin-top: 12px;">
+          Complete your setup to get a dedicated OpenClaw instance with Telegram, Discord, and more.
+        </p>
+        <a href="${process.env.NEXTAUTH_URL}/connect" style="display: inline-block; margin-top: 16px; padding: 12px 24px; background: #fff; color: #000; text-decoration: none; border-radius: 6px; font-weight: 600;">
+          Start Setup
+        </a>
+        <p style="margin-top: 24px; font-size: 12px; color: #888;">
+          All plans include a 7-day free trial. No charge until the trial ends.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendAdminAlertEmail(
+  subject: string,
+  details: string
+): Promise<void> {
+  const adminEmail = process.env.ADMIN_ALERT_EMAIL;
+  if (!adminEmail) return;
+
+  const resend = getResend();
+  await resend.emails.send({
+    from: FROM,
+    to: adminEmail,
+    subject: `[InstaClaw Admin] ${subject}`,
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #000; color: #fff;">
+        <h1 style="font-size: 24px; margin-bottom: 16px;">Admin Alert</h1>
+        <p style="color: #888; line-height: 1.6;">${subject}</p>
+        <pre style="margin-top: 16px; padding: 16px; background: #0a0a0a; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: #ccc; white-space: pre-wrap; font-size: 13px;">${details}</pre>
+      </div>
+    `,
+  });
+}
+
 export async function sendCanceledEmail(email: string): Promise<void> {
   const resend = getResend();
   await resend.emails.send({

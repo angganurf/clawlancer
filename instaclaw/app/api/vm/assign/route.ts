@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getSupabase } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
   try {
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ assigned: true, vm });
   } catch (err) {
-    console.error("VM assign error:", err);
+    logger.error("VM assign error", { error: String(err), route: "vm/assign" });
     return NextResponse.json(
       { error: "Failed to assign VM" },
       { status: 500 }

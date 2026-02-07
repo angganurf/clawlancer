@@ -11,6 +11,7 @@ const tiers = [
     byok: 9,
     description: "Perfect for personal use",
     features: ["Full OpenClaw instance", "Dedicated VM", "Telegram integration"],
+    trial: true,
   },
   {
     id: "pro" as const,
@@ -20,6 +21,7 @@ const tiers = [
     description: "For power users",
     features: ["Everything in Starter", "More CPU & RAM", "Priority support"],
     popular: true,
+    trial: true,
   },
   {
     id: "power" as const,
@@ -28,6 +30,7 @@ const tiers = [
     byok: 39,
     description: "Maximum performance",
     features: ["Everything in Pro", "Top-tier resources", "Dedicated support"],
+    trial: true,
   },
 ];
 
@@ -71,6 +74,8 @@ export default function PlanPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           botToken: onboarding.botToken,
+          discordToken: onboarding.discordToken,
+          channels: onboarding.channels,
           apiMode: onboarding.apiMode,
           apiKey: onboarding.apiKey,
           tier: selectedTier,
@@ -94,7 +99,11 @@ export default function PlanPage() {
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tier: selectedTier, apiMode }),
+        body: JSON.stringify({
+          tier: selectedTier,
+          apiMode,
+          trial: true,
+        }),
       });
       const data = await res.json();
 
@@ -147,6 +156,14 @@ export default function PlanPage() {
                   Popular
                 </span>
               )}
+              {tier.trial && (
+                <span
+                  className="absolute -top-2.5 left-4 px-2 py-0.5 rounded-full text-xs font-semibold"
+                  style={{ background: "#3b82f6", color: "#ffffff" }}
+                >
+                  7-Day Free Trial
+                </span>
+              )}
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-semibold">{tier.name}</p>
@@ -165,6 +182,11 @@ export default function PlanPage() {
                   >
                     /mo
                   </span>
+                  {tier.trial && (
+                    <p className="text-xs" style={{ color: "#3b82f6" }}>
+                      Free for 7 days
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex gap-3 mt-3 flex-wrap">
@@ -192,7 +214,7 @@ export default function PlanPage() {
         className="w-full px-6 py-3 rounded-lg text-sm font-semibold transition-all cursor-pointer disabled:opacity-50 hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]"
         style={{ background: "#ffffff", color: "#000000" }}
       >
-        {loading ? "Redirecting to checkout..." : "Continue to Checkout"}
+        {loading ? "Redirecting to checkout..." : "Start Free Trial"}
       </button>
     </div>
   );

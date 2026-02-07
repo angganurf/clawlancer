@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabase } from "@/lib/supabase";
 import { sendVMReadyEmail } from "@/lib/email";
+import { logger } from "@/lib/logger";
 
 const MAX_CONFIGURE_ATTEMPTS = 3;
 
@@ -70,7 +71,7 @@ export async function GET(req: NextRequest) {
           assigned++;
         }
       } catch (err) {
-        console.error(`Failed to configure VM for user ${p.user_id}:`, err);
+        logger.error("Failed to configure VM for user", { error: String(err), route: "cron/process-pending", userId: p.user_id });
       }
     }
   }
@@ -128,10 +129,7 @@ export async function GET(req: NextRequest) {
           }
         }
       } catch (err) {
-        console.error(
-          `Failed to retry configure for user ${vm.assigned_to}:`,
-          err
-        );
+        logger.error("Failed to retry configure for user", { error: String(err), route: "cron/process-pending", userId: vm.assigned_to });
       }
     }
   }

@@ -1,3 +1,5 @@
+import { logger } from "./logger";
+
 const HETZNER_BASE = "https://api.hetzner.cloud/v1";
 
 function getToken(): string {
@@ -191,4 +193,73 @@ export function getNextVmNumber(
 
 export function formatVmName(num: number): string {
   return `instaclaw-vm-${String(num).padStart(2, "0")}`;
+}
+
+// ---------------------------------------------------------------------------
+// DNS record management (Cloudflare)
+// ---------------------------------------------------------------------------
+
+const CF_API = "https://api.cloudflare.com/client/v4";
+
+/**
+ * Create a DNS A record for a VM: <vm-id>.vm.instaclaw.io → <ip>
+ * Requires CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID env vars.
+ * Returns the record ID on success, or null if DNS is not configured.
+ */
+export async function createDNSRecord(
+  vmId: string,
+  ipAddress: string
+): Promise<string | null> {
+  const token = process.env.CLOUDFLARE_API_TOKEN;
+  const zoneId = process.env.CLOUDFLARE_ZONE_ID;
+  if (!token || !zoneId) return null;
+
+  const hostname = `${vmId}.vm.instaclaw.io`;
+
+  try {
+    const res = await fetch(`${CF_API}/zones/${zoneId}/dns_records`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        type: "A",
+        name: hostname,
+        content: ipAddress,
+        ttl: 300,
+        proxied: false,
+      }),
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      logger.error("DNS record creation failed", { error: body, route: "lib/hetzner", hostname });
+      return null;
+    }
+
+    const data = await res.json();
+    return data.result?.id ?? null;
+  } catch (err) {
+    logger.error("DNS record creation error", { error: String(err), route: "lib/hetzner", hostname });
+    return null;
+  }
+}
+
+/**
+ * Delete a DNS record by ID.
+ */
+export async function deleteDNSRecord(recordId: string): Promise<void> {
+  const token = process.env.CLOUDFLARE_API_TOKEN;
+  const zoneId = process.env.CLOUDFLARE_ZONE_ID;
+  if (!token || !zoneId) return;
+
+  try {
+    await fetch(`${CF_API}/zones/${zoneId}/dns_records/${recordId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch (err) {
+    logger.error("DNS record deletion error", { error: String(err), route: "lib/hetzner" });
+  }
 }

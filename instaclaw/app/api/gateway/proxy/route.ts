@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabase } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
     );
 
     if (limitError) {
-      console.error("Usage limit check failed:", limitError);
+      logger.error("Usage limit check failed", { error: String(limitError), route: "gateway/proxy", vmId: vm.id });
       // Fail open — allow the request but log the error
     } else if (limitResult && !limitResult.allowed) {
       return NextResponse.json(
@@ -75,7 +76,7 @@ export async function POST(req: NextRequest) {
     // --- Proxy to Anthropic ---
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
-      console.error("ANTHROPIC_API_KEY not set for proxy");
+      logger.error("ANTHROPIC_API_KEY not set for proxy", { route: "gateway/proxy" });
       return NextResponse.json(
         { error: "Platform API key not configured" },
         { status: 500 }
@@ -102,7 +103,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err) {
-    console.error("Gateway proxy error:", err);
+    logger.error("Gateway proxy error", { error: String(err), route: "gateway/proxy" });
     return NextResponse.json(
       { error: "Proxy error" },
       { status: 500 }

@@ -2,11 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Settings, CreditCard, LogOut } from "lucide-react";
+import {
+  LayoutDashboard,
+  Settings,
+  CreditCard,
+  LogOut,
+  MessageSquare,
+  Clock,
+  FolderOpen,
+  Key,
+} from "lucide-react";
 import { signOut } from "next-auth/react";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/history", label: "History", icon: MessageSquare },
+  { href: "/files", label: "Files", icon: FolderOpen },
+  { href: "/scheduled", label: "Tasks", icon: Clock },
+  { href: "/env-vars", label: "API Keys", icon: Key },
   { href: "/settings", label: "Settings", icon: Settings },
   { href: "/billing", label: "Billing", icon: CreditCard },
 ];
@@ -45,7 +58,7 @@ export default function DashboardLayout({
                 }}
               >
                 <item.icon className="w-4 h-4" />
-                <span className="hidden sm:inline">{item.label}</span>
+                <span className="hidden lg:inline">{item.label}</span>
               </Link>
             ))}
             <button
@@ -54,7 +67,7 @@ export default function DashboardLayout({
               style={{ color: "var(--muted)" }}
             >
               <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Sign Out</span>
+              <span className="hidden lg:inline">Sign Out</span>
             </button>
           </div>
         </div>

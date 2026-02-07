@@ -2,6 +2,8 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import { cookies } from "next/headers";
 import { getSupabase } from "./supabase";
+import { sendWelcomeEmail } from "./email";
+import { logger } from "./logger";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -43,8 +45,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (error) {
         // Unique constraint = user already exists (race condition)
         if (error.code === "23505") return true;
-        console.error("Error creating user:", error);
+        logger.error("Error creating user", { error: String(error), route: "auth/signIn" });
         return false;
+      }
+
+      // Send welcome email (fire and forget)
+      if (user.email) {
+        sendWelcomeEmail(user.email, user.name ?? "").catch((err) =>
+          logger.error("Failed to send welcome email", { error: String(err), route: "auth/signIn" })
+        );
       }
 
       // Consume the invite code: increment times_used, append user to used_by

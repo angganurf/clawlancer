@@ -11,6 +11,7 @@ import {
   getSnapshotUserData,
   HETZNER_DEFAULTS,
 } from "@/lib/hetzner";
+import { logger } from "@/lib/logger";
 
 export const maxDuration = 120;
 
@@ -102,7 +103,7 @@ export async function POST(req: NextRequest) {
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
-      console.error(`[provision] Failed to create ${vmName}:`, msg);
+      logger.error("Failed to create VM", { error: msg, route: "admin/provision", vmName });
       errors.push({ name: vmName, error: msg });
     }
   }

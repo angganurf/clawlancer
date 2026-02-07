@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 
 interface VM {
   id: string;
@@ -127,7 +128,14 @@ export default function AdminVMsPage() {
                 className="border-t"
                 style={{ borderColor: "var(--border)" }}
               >
-                <td className="py-2 px-3 font-mono">{vm.ip_address}</td>
+                <td className="py-2 px-3 font-mono">
+                  <Link
+                    href={`/admin/vms/${vm.id}`}
+                    className="underline hover:opacity-80"
+                  >
+                    {vm.ip_address}
+                  </Link>
+                </td>
                 <td className="py-2 px-3">
                   <span style={{ color: statusColor(vm.status) }}>
                     {vm.status}

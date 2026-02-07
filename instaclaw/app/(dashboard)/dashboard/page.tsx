@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   ExternalLink,
   RefreshCw,
@@ -9,6 +10,8 @@ import {
   Server,
   Calendar,
   Cpu,
+  CreditCard,
+  AlertTriangle,
 } from "lucide-react";
 
 const MODEL_OPTIONS = [
@@ -29,6 +32,19 @@ interface VMStatus {
     telegramBotUsername: string | null;
     model: string | null;
     apiMode: string | null;
+    channelsEnabled: string[];
+    hasDiscord: boolean;
+    hasBraveSearch: boolean;
+  };
+  billing?: {
+    tier: string;
+    tierName: string;
+    apiMode: string;
+    price: number | null;
+    status: string;
+    paymentStatus: string;
+    renewalDate: string | null;
+    trialEndsAt: string | null;
   };
 }
 
@@ -37,6 +53,7 @@ export default function DashboardPage() {
   const [restarting, setRestarting] = useState(false);
   const [updatingModel, setUpdatingModel] = useState(false);
   const [modelSuccess, setModelSuccess] = useState(false);
+  const [usage, setUsage] = useState<{ today: number; week: number; month: number } | null>(null);
 
   async function fetchStatus() {
     try {
@@ -51,6 +68,11 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchStatus();
     const interval = setInterval(fetchStatus, 30_000);
+    // Fetch usage stats once on mount (not on the polling interval)
+    fetch("/api/vm/usage")
+      .then((r) => r.json())
+      .then(setUsage)
+      .catch(() => {});
     return () => clearInterval(interval);
   }, []);
 
@@ -84,12 +106,24 @@ export default function DashboardPage() {
   }
 
   const vm = vmStatus?.vm;
+  const billing = vmStatus?.billing;
   const healthColor =
     vm?.healthStatus === "healthy"
       ? "var(--success)"
       : vm?.healthStatus === "unhealthy"
       ? "var(--error)"
       : "var(--muted)";
+
+  // Trial days remaining
+  const trialDaysLeft = billing?.trialEndsAt
+    ? Math.max(
+        0,
+        Math.ceil(
+          (new Date(billing.trialEndsAt).getTime() - Date.now()) /
+            (1000 * 60 * 60 * 24)
+        )
+      )
+    : null;
 
   return (
     <div className="space-y-8">
@@ -99,6 +133,62 @@ export default function DashboardPage() {
           Manage your OpenClaw instance.
         </p>
       </div>
+
+      {/* Payment past_due banner */}
+      {billing?.paymentStatus === "past_due" && (
+        <div
+          className="rounded-xl p-4 flex items-center gap-3"
+          style={{
+            background: "rgba(239,68,68,0.1)",
+            border: "1px solid rgba(239,68,68,0.3)",
+          }}
+        >
+          <AlertTriangle className="w-5 h-5 shrink-0" style={{ color: "#ef4444" }} />
+          <div className="flex-1">
+            <p className="text-sm font-semibold" style={{ color: "#ef4444" }}>
+              Payment Failed
+            </p>
+            <p className="text-xs" style={{ color: "rgba(239,68,68,0.7)" }}>
+              Please update your payment method to keep your instance running.
+            </p>
+          </div>
+          <Link
+            href="/billing"
+            className="px-3 py-1.5 rounded-lg text-xs font-medium shrink-0"
+            style={{ background: "#ef4444", color: "#fff" }}
+          >
+            Fix Payment
+          </Link>
+        </div>
+      )}
+
+      {/* Trial banner */}
+      {trialDaysLeft !== null && billing?.status === "trialing" && (
+        <div
+          className="rounded-xl p-4 flex items-center gap-3"
+          style={{
+            background: "rgba(59,130,246,0.1)",
+            border: "1px solid rgba(59,130,246,0.3)",
+          }}
+        >
+          <CreditCard className="w-5 h-5 shrink-0" style={{ color: "#3b82f6" }} />
+          <div className="flex-1">
+            <p className="text-sm font-semibold" style={{ color: "#3b82f6" }}>
+              Free Trial: {trialDaysLeft} day{trialDaysLeft !== 1 ? "s" : ""} remaining
+            </p>
+            <p className="text-xs" style={{ color: "rgba(59,130,246,0.7)" }}>
+              Your trial will automatically convert to a paid plan.
+            </p>
+          </div>
+          <Link
+            href="/billing"
+            className="px-3 py-1.5 rounded-lg text-xs font-medium shrink-0"
+            style={{ background: "rgba(59,130,246,0.15)", color: "#3b82f6" }}
+          >
+            Manage
+          </Link>
+        </div>
+      )}
 
       {vmStatus?.status === "assigned" && vm ? (
         <>
@@ -151,6 +241,100 @@ export default function DashboardPage() {
               </span>
             </div>
           </div>
+
+          {/* Usage Stats */}
+          {usage && (
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="glass rounded-xl p-5">
+                <p
+                  className="text-xs uppercase tracking-wide mb-1"
+                  style={{ color: "var(--muted)" }}
+                >
+                  Today
+                </p>
+                <p className="text-2xl font-bold">{usage.today}</p>
+                <p className="text-xs" style={{ color: "var(--muted)" }}>
+                  conversations
+                </p>
+                <div
+                  className="mt-2 h-1.5 rounded-full overflow-hidden"
+                  style={{ background: "rgba(255,255,255,0.06)" }}
+                >
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${Math.min(100, (usage.today / Math.max(usage.week / 7, 1)) * 100)}%`,
+                      background: "var(--success)",
+                      transition: "width 0.5s ease",
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="glass rounded-xl p-5">
+                <p
+                  className="text-xs uppercase tracking-wide mb-1"
+                  style={{ color: "var(--muted)" }}
+                >
+                  7 Days
+                </p>
+                <p className="text-2xl font-bold">{usage.week}</p>
+                <p className="text-xs" style={{ color: "var(--muted)" }}>
+                  conversations
+                </p>
+              </div>
+              <div className="glass rounded-xl p-5">
+                <p
+                  className="text-xs uppercase tracking-wide mb-1"
+                  style={{ color: "var(--muted)" }}
+                >
+                  30 Days
+                </p>
+                <p className="text-2xl font-bold">{usage.month}</p>
+                <p className="text-xs" style={{ color: "var(--muted)" }}>
+                  conversations
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Billing Summary */}
+          {billing && (
+            <div className="glass rounded-xl p-5" style={{ border: "1px solid var(--border)" }}>
+              <div className="flex items-center gap-2 mb-3">
+                <CreditCard className="w-4 h-4" style={{ color: "var(--muted)" }} />
+                <span className="text-sm font-medium">Plan</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-lg font-bold">
+                    {billing.tierName}{" "}
+                    <span className="text-sm font-normal" style={{ color: "var(--muted)" }}>
+                      {billing.apiMode === "byok" ? "BYOK" : "All-Inclusive"}
+                    </span>
+                  </p>
+                  {billing.price !== null && (
+                    <p className="text-sm" style={{ color: "var(--muted)" }}>
+                      ${billing.price}/mo
+                      {billing.renewalDate && (
+                        <> — Renews {new Date(billing.renewalDate).toLocaleDateString()}</>
+                      )}
+                    </p>
+                  )}
+                </div>
+                <Link
+                  href="/billing"
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                  style={{
+                    background: "rgba(255,255,255,0.06)",
+                    color: "var(--muted)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  Manage
+                </Link>
+              </div>
+            </div>
+          )}
 
           {/* Quick Actions */}
           <div>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getStripe } from "@/lib/stripe";
 import { getSupabase } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
 
 export async function POST() {
   try {
@@ -32,7 +33,7 @@ export async function POST() {
 
     return NextResponse.json({ url: portalSession.url });
   } catch (err) {
-    console.error("Portal error:", err);
+    logger.error("Portal error", { error: String(err), route: "billing/portal" });
     return NextResponse.json(
       { error: "Failed to create portal session" },
       { status: 500 }

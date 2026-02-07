@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
 import { getSupabase } from "@/lib/supabase";
 import { sendInviteEmail } from "@/lib/email";
+import { logger } from "@/lib/logger";
 
 const CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
 
       sent++;
     } catch (err) {
-      console.error(`Failed to send invite to ${entry.email}:`, err);
+      logger.error("Failed to send invite", { error: String(err), route: "admin/send-invites", email: entry.email });
     }
   }
 

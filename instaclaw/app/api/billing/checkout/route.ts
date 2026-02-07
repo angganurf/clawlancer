@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getStripe, getPriceId, Tier, ApiMode } from "@/lib/stripe";
 import { getSupabase } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,9 +11,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { tier, apiMode } = (await req.json()) as {
+    const { tier, apiMode, trial } = (await req.json()) as {
       tier: Tier;
       apiMode: ApiMode;
+      trial?: boolean;
     };
 
     if (!["starter", "pro", "power"].includes(tier)) {
@@ -58,6 +60,9 @@ export async function POST(req: NextRequest) {
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${origin}/deploying?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/plan`,
+      ...(trial
+        ? { subscription_data: { trial_period_days: 7 } }
+        : {}),
       metadata: {
         instaclaw_user_id: user.id,
         tier,
@@ -67,7 +72,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url: checkoutSession.url });
   } catch (err) {
-    console.error("Checkout error:", err);
+    logger.error("Checkout error", { error: String(err), route: "billing/checkout" });
     return NextResponse.json(
       { error: "Failed to create checkout session" },
       { status: 500 }

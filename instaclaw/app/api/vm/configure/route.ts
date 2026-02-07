@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabase } from "@/lib/supabase";
 import { configureOpenClaw, waitForHealth } from "@/lib/ssh";
 import { validateAdminKey } from "@/lib/security";
+import { logger } from "@/lib/logger";
 
 // SSH + configure-vm.sh + health check can take 60-90s
 export const maxDuration = 120;
@@ -50,6 +51,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Determine channels
+    const channels: string[] = [];
+    if (pending.telegram_bot_token) channels.push("telegram");
+    if (pending.discord_bot_token) channels.push("discord");
+    if (channels.length === 0) channels.push("telegram");
+
     // Configure OpenClaw on the VM
     const result = await configureOpenClaw(vm, {
       telegramBotToken: pending.telegram_bot_token,
@@ -57,6 +64,8 @@ export async function POST(req: NextRequest) {
       apiKey: pending.api_key,
       tier: pending.tier,
       model: pending.default_model,
+      discordBotToken: pending.discord_bot_token ?? undefined,
+      channels,
     });
 
     // Wait for health check (via SSH + openclaw health CLI)
@@ -69,6 +78,8 @@ export async function POST(req: NextRequest) {
         health_status: healthy ? "healthy" : "unhealthy",
         last_health_check: new Date().toISOString(),
         telegram_bot_username: pending.telegram_bot_username ?? null,
+        discord_bot_token: pending.discord_bot_token ?? null,
+        channels_enabled: channels,
         configure_attempts: 0,
         default_model: pending.default_model ?? "claude-sonnet-4-5-20250929",
         api_mode: pending.api_mode,
@@ -93,7 +104,7 @@ export async function POST(req: NextRequest) {
       healthy,
     });
   } catch (err) {
-    console.error("VM configure error:", err);
+    logger.error("VM configure error", { error: String(err), route: "vm/configure", userId });
 
     // Mark VM as configure_failed so cron and user retry can pick it up
     if (userId) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getSupabase } from "@/lib/supabase";
 import { encryptApiKey } from "@/lib/security";
+import { logger } from "@/lib/logger";
 
 const BOT_TOKEN_RE = /^\d+:[A-Za-z0-9_-]+$/;
 const ALLOWED_MODELS = [
@@ -18,12 +19,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { botToken, apiMode, apiKey, tier, model } = await req.json();
+    const { botToken, discordToken, channels, apiMode, apiKey, tier, model } = await req.json();
 
-    // Validate bot token
-    if (!botToken || !BOT_TOKEN_RE.test(botToken)) {
+    // Validate channels
+    const enabledChannels: string[] = channels ?? ["telegram"];
+    if (enabledChannels.length === 0) {
       return NextResponse.json(
-        { error: "Invalid Telegram bot token format" },
+        { error: "At least one channel must be selected" },
+        { status: 400 }
+      );
+    }
+
+    // Validate Telegram bot token if Telegram is enabled
+    if (enabledChannels.includes("telegram")) {
+      if (!botToken || !BOT_TOKEN_RE.test(botToken)) {
+        return NextResponse.json(
+          { error: "Invalid Telegram bot token format" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate Discord token if Discord is enabled
+    if (enabledChannels.includes("discord") && (!discordToken || typeof discordToken !== "string")) {
+      return NextResponse.json(
+        { error: "Discord bot token is required when Discord is enabled" },
         { status: 400 }
       );
     }
@@ -58,21 +78,22 @@ export async function POST(req: NextRequest) {
         ? model
         : "claude-sonnet-4-5-20250929";
 
-    // Call Telegram getMe to resolve bot username
+    // Call Telegram getMe to resolve bot username (if Telegram enabled)
     let botUsername: string | null = null;
-    try {
-      const tgRes = await fetch(
-        `https://api.telegram.org/bot${botToken}/getMe`
-      );
-      if (tgRes.ok) {
-        const tgData = await tgRes.json();
-        if (tgData.ok && tgData.result?.username) {
-          botUsername = tgData.result.username;
+    if (enabledChannels.includes("telegram") && botToken) {
+      try {
+        const tgRes = await fetch(
+          `https://api.telegram.org/bot${botToken}/getMe`
+        );
+        if (tgRes.ok) {
+          const tgData = await tgRes.json();
+          if (tgData.ok && tgData.result?.username) {
+            botUsername = tgData.result.username;
+          }
         }
+      } catch {
+        logger.warn("Failed to resolve Telegram bot username via getMe", { route: "onboarding/save" });
       }
-    } catch {
-      // Non-fatal — we still save the record without username
-      console.warn("Failed to resolve Telegram bot username via getMe");
     }
 
     // Encrypt API key if BYOK
@@ -87,8 +108,9 @@ export async function POST(req: NextRequest) {
       .upsert(
         {
           user_id: session.user.id,
-          telegram_bot_token: botToken,
+          telegram_bot_token: enabledChannels.includes("telegram") ? botToken : null,
           telegram_bot_username: botUsername,
+          discord_bot_token: enabledChannels.includes("discord") ? discordToken : null,
           api_mode: apiMode,
           api_key: encryptedKey,
           tier,
@@ -100,7 +122,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) {
-      console.error("Failed to save onboarding config:", error);
+      logger.error("Failed to save onboarding config", { error: String(error), route: "onboarding/save" });
       return NextResponse.json(
         { error: "Failed to save configuration" },
         { status: 500 }
@@ -111,9 +133,10 @@ export async function POST(req: NextRequest) {
       saved: true,
       id: data.id,
       botUsername,
+      channels: enabledChannels,
     });
   } catch (err) {
-    console.error("Onboarding save error:", err);
+    logger.error("Onboarding save error", { error: String(err), route: "onboarding/save" });
     return NextResponse.json(
       { error: "Something went wrong" },
       { status: 500 }

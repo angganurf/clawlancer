@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 
 interface User {
   id: string;
@@ -43,7 +44,14 @@ export default function AdminUsersPage() {
                 className="border-t"
                 style={{ borderColor: "var(--border)" }}
               >
-                <td className="py-2 px-3">{user.email}</td>
+                <td className="py-2 px-3">
+                  <Link
+                    href={`/admin/users/${user.id}`}
+                    className="underline hover:opacity-80"
+                  >
+                    {user.email}
+                  </Link>
+                </td>
                 <td className="py-2 px-3" style={{ color: "var(--muted)" }}>
                   {user.name ?? "—"}
                 </td>

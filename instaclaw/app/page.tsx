@@ -4,6 +4,7 @@ import { Comparison } from "@/components/landing/comparison";
 import { UseCases } from "@/components/landing/use-cases";
 import { Features } from "@/components/landing/features";
 import { Pricing } from "@/components/landing/pricing";
+import { FAQ } from "@/components/landing/faq";
 import { Footer } from "@/components/landing/footer";
 
 export default function Home() {
@@ -15,6 +16,7 @@ export default function Home() {
       <UseCases />
       <Features />
       <Pricing />
+      <FAQ />
       <Footer />
     </main>
   );

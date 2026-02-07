@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 import {
   BarChart3,
   Server,
@@ -10,11 +11,6 @@ import {
   Users,
   ClipboardList,
 } from "lucide-react";
-
-const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? "")
-  .split(",")
-  .map((e) => e.trim().toLowerCase())
-  .filter(Boolean);
 
 const navItems = [
   { href: "/admin", label: "Overview", icon: BarChart3 },
@@ -31,8 +27,22 @@ export default function AdminLayout({
 }) {
   const { data: session, status } = useSession();
   const pathname = usePathname();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
-  if (status === "loading") {
+  useEffect(() => {
+    if (status !== "authenticated" || !session?.user?.email) {
+      setIsAdmin(false);
+      return;
+    }
+
+    // Verify admin status via server-side API call
+    fetch("/api/admin/verify")
+      .then((res) => res.json())
+      .then((data) => setIsAdmin(data.isAdmin === true))
+      .catch(() => setIsAdmin(false));
+  }, [status, session?.user?.email]);
+
+  if (status === "loading" || isAdmin === null) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p style={{ color: "var(--muted)" }}>Loading...</p>
@@ -40,8 +50,7 @@ export default function AdminLayout({
     );
   }
 
-  const email = session?.user?.email?.toLowerCase();
-  if (!email || !ADMIN_EMAILS.includes(email)) {
+  if (!isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

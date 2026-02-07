@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getSupabase } from "@/lib/supabase";
 import { restartGateway } from "@/lib/ssh";
+import { logger } from "@/lib/logger";
 
 export async function POST() {
   try {
@@ -36,7 +37,7 @@ export async function POST() {
 
     return NextResponse.json({ restarted: success });
   } catch (err) {
-    console.error("VM restart error:", err);
+    logger.error("VM restart error", { error: String(err), route: "vm/restart" });
     return NextResponse.json(
       { error: "Failed to restart VM" },
       { status: 500 }

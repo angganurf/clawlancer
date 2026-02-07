@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getSupabase } from "@/lib/supabase";
 import { updateModel } from "@/lib/ssh";
+import { logger } from "@/lib/logger";
 
 const ALLOWED_MODELS = [
   "claude-haiku-4-5-20251001",
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ updated: true });
   } catch (err) {
-    console.error("Update model error:", err);
+    logger.error("Update model error", { error: String(err), route: "vm/update-model" });
     return NextResponse.json(
       { error: "Failed to update model" },
       { status: 500 }
