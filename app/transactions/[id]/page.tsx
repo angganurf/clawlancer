@@ -40,11 +40,34 @@ interface Transaction {
   dispute_reason: string | null
   dispute_resolved_at: string | null
   dispute_resolution: string | null
+  tx_hash: string | null
+  release_tx_hash: string | null
+  refund_tx_hash: string | null
+  escrow_id: string | null
+  contract_version: number | null
   buyer: Agent
   seller: Agent
 }
 
 const STATE_STEPS = ['PENDING', 'ESCROWED', 'DELIVERED', 'RELEASED']
+
+const BASESCAN_URL = 'https://basescan.org'
+
+function BaseScanLink({ hash, label }: { hash: string; label: string }) {
+  return (
+    <a
+      href={`${BASESCAN_URL}/tx/${hash}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1 text-[#c9a882] hover:text-[#d4b896] transition-colors"
+    >
+      {label}
+      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+      </svg>
+    </a>
+  )
+}
 
 function formatUSDC(wei: string): string {
   const usdc = parseFloat(wei) / 1e6
@@ -465,22 +488,66 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ id
           </div>
         )}
 
-        {/* Timestamps */}
+        {/* Timeline */}
         <div className="bg-[#141210] border border-stone-800 rounded-lg p-6 mb-8">
           <h2 className="text-sm font-mono text-stone-500 uppercase tracking-wider mb-4">Timeline</h2>
           <div className="space-y-2 text-sm font-mono">
             <p><span className="text-stone-500">Created:</span> {formatDate(transaction.created_at)}</p>
             {transaction.funded_at && (
-              <p><span className="text-stone-500">Funded:</span> {formatDate(transaction.funded_at)}</p>
+              <p>
+                <span className="text-stone-500">Funded:</span> {formatDate(transaction.funded_at)}
+                {transaction.tx_hash && (
+                  <span className="ml-2"><BaseScanLink hash={transaction.tx_hash} label="View tx" /></span>
+                )}
+              </p>
             )}
             {transaction.delivered_at && (
               <p><span className="text-stone-500">Delivered:</span> {formatDate(transaction.delivered_at)}</p>
             )}
             {transaction.completed_at && (
-              <p><span className="text-stone-500">Completed:</span> {formatDate(transaction.completed_at)}</p>
+              <p>
+                <span className="text-stone-500">Completed:</span> {formatDate(transaction.completed_at)}
+                {transaction.release_tx_hash && (
+                  <span className="ml-2"><BaseScanLink hash={transaction.release_tx_hash} label="View tx" /></span>
+                )}
+              </p>
+            )}
+            {transaction.state === 'REFUNDED' && transaction.refund_tx_hash && (
+              <p>
+                <span className="text-stone-500">Refunded:</span> {formatDate(transaction.completed_at)}
+                <span className="ml-2"><BaseScanLink hash={transaction.refund_tx_hash} label="View tx" /></span>
+              </p>
             )}
           </div>
         </div>
+
+        {/* On-Chain Verification */}
+        {transaction.escrow_id && (
+          <div className="bg-[#141210] border border-stone-800 rounded-lg p-6 mb-8">
+            <h2 className="text-sm font-mono text-stone-500 uppercase tracking-wider mb-4">On-Chain Verification</h2>
+            <div className="space-y-2 text-sm font-mono">
+              <p>
+                <span className="text-stone-500">Escrow ID:</span>{' '}
+                <span className="text-stone-300">{transaction.escrow_id.slice(0, 8)}...{transaction.escrow_id.slice(-6)}</span>
+              </p>
+              <p>
+                <span className="text-stone-500">Contract:</span>{' '}
+                <span className="text-stone-300">V{transaction.contract_version || 1}</span>
+              </p>
+              <div className="flex flex-wrap gap-3 mt-3">
+                {transaction.tx_hash && (
+                  <BaseScanLink hash={transaction.tx_hash} label="Escrow creation" />
+                )}
+                {transaction.release_tx_hash && (
+                  <BaseScanLink hash={transaction.release_tx_hash} label="Payment release" />
+                )}
+                {transaction.refund_tx_hash && (
+                  <BaseScanLink hash={transaction.refund_tx_hash} label="Refund" />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Reviews Section - Only shown for RELEASED transactions */}
         {transaction.state === 'RELEASED' && (

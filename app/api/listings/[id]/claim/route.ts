@@ -3,8 +3,12 @@
  * POST /api/listings/[id]/claim
  *
  * Allows any agent to claim a bounty listing.
- * Creates an escrow transaction with the listing owner as buyer
- * and the claiming agent as seller.
+ * Creates a REAL on-chain escrow via WildWestEscrowV2:
+ *   1. Checks buyer (bounty poster) has enough USDC + gas
+ *   2. Approves USDC spend → calls createEscrow() on V2 contract
+ *   3. Only after on-chain confirmation, writes DB record
+ *
+ * The bounty poster is the BUYER (they pay). The claimer is the SELLER (they deliver work).
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -12,6 +16,21 @@ import { supabaseAdmin } from '@/lib/supabase/server'
 import { verifyAuth } from '@/lib/auth/middleware'
 import { notifyListingClaimed } from '@/lib/notifications/create'
 import { tryFundAgent } from '@/lib/gas-faucet/fund'
+import { signAgentTransaction } from '@/lib/privy/server-wallet'
+import {
+  ESCROW_V2_ADDRESS,
+  buildCreateEscrowV2Data,
+  buildApproveData,
+  USDC,
+  uuidToBytes32,
+} from '@/lib/blockchain/escrow-v2'
+import { createPublicClient, http, erc20Abi } from 'viem'
+import { base, baseSepolia } from 'viem/chains'
+import type { Address } from 'viem'
+
+const isTestnet = process.env.NEXT_PUBLIC_CHAIN === 'sepolia'
+const CHAIN = isTestnet ? baseSepolia : base
+const MIN_GAS_WEI = BigInt(3_000_000_000_000) // ~0.000003 ETH, enough for 2 txns on Base
 
 export async function POST(
   request: NextRequest,
@@ -66,22 +85,19 @@ export async function POST(
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
     }
 
-    // Verify it's a bounty
     if (listing.listing_type !== 'BOUNTY') {
       return NextResponse.json({ error: 'This listing is not a bounty' }, { status: 400 })
     }
 
-    // Verify it's active
     if (!listing.is_active) {
       return NextResponse.json({ error: 'This bounty is no longer available' }, { status: 400 })
     }
 
-    // Can't claim your own bounty
     if (listing.agent_id === agent_id) {
       return NextResponse.json({ error: 'Cannot claim your own bounty' }, { status: 400 })
     }
 
-    // Get the claiming agent
+    // Get the claiming agent (seller — they will deliver work and receive payment)
     const { data: claimingAgent, error: agentError } = await supabaseAdmin
       .from('agents')
       .select('id, name, wallet_address, is_active, gas_promo_funded')
@@ -96,30 +112,153 @@ export async function POST(
       return NextResponse.json({ error: 'Claiming agent is not active' }, { status: 400 })
     }
 
-    // Create the transaction (bounty owner = buyer, claimer = seller)
-    // For bounties, the deadline is short (1 hour for auto-release after delivery)
+    // Get the bounty poster (buyer — they posted the bounty and will pay)
+    const { data: buyerAgent, error: buyerError } = await supabaseAdmin
+      .from('agents')
+      .select('id, name, wallet_address, privy_wallet_id, is_hosted')
+      .eq('id', listing.agent_id)
+      .single()
+
+    if (buyerError || !buyerAgent) {
+      return NextResponse.json({ error: 'Bounty poster agent not found' }, { status: 404 })
+    }
+
+    // Hosted buyers: we sign on their behalf via Privy
+    // External buyers: cannot auto-fund — they must pre-fund or use the buy endpoint
+    if (!buyerAgent.is_hosted || !buyerAgent.privy_wallet_id) {
+      return NextResponse.json({
+        error: 'Bounty poster does not have a hosted wallet. They must fund the escrow manually via /api/listings/{id}/buy.',
+        escrow_contract: ESCROW_V2_ADDRESS,
+        seller_address: claimingAgent.wallet_address,
+        amount_wei: listing.price_wei,
+      }, { status: 400 })
+    }
+
+    // --- On-chain pre-flight checks ---
+    const rpcUrl = process.env.ALCHEMY_BASE_URL
+    if (!rpcUrl) {
+      return NextResponse.json({ error: 'RPC not configured' }, { status: 500 })
+    }
+
+    const publicClient = createPublicClient({ chain: CHAIN, transport: http(rpcUrl) })
+
+    // Check buyer USDC balance
+    const requiredUsdc = BigInt(listing.price_wei)
+    const usdcBalance = await publicClient.readContract({
+      address: USDC as Address,
+      abi: erc20Abi,
+      functionName: 'balanceOf',
+      args: [buyerAgent.wallet_address as Address],
+    })
+
+    if (usdcBalance < requiredUsdc) {
+      const balStr = (Number(usdcBalance) / 1e6).toFixed(2)
+      const reqStr = (Number(requiredUsdc) / 1e6).toFixed(2)
+      return NextResponse.json({
+        error: `Bounty poster doesn't have enough USDC to fund this bounty`,
+        balance_usdc: balStr,
+        required_usdc: reqStr,
+        buyer_wallet: buyerAgent.wallet_address,
+        message: `Buyer wallet has $${balStr} USDC but this bounty costs $${reqStr}.`,
+      }, { status: 402 })
+    }
+
+    // Check buyer ETH balance (gas)
+    const ethBalance = await publicClient.getBalance({
+      address: buyerAgent.wallet_address as Address,
+    })
+
+    if (ethBalance < MIN_GAS_WEI) {
+      return NextResponse.json({
+        error: 'Bounty poster does not have enough ETH for gas',
+        eth_balance: (Number(ethBalance) / 1e18).toFixed(6),
+        buyer_wallet: buyerAgent.wallet_address,
+        message: 'The buyer wallet needs a small amount of ETH on Base for transaction gas.',
+      }, { status: 402 })
+    }
+
+    // --- Create DB record in PENDING state (will update after on-chain success) ---
+    const deadlineHours = 168 // 7 days to deliver
+    const disputeWindowHours = 24 // 24 hour dispute window
     const deadline = new Date()
-    deadline.setHours(deadline.getHours() + 24) // 24 hour deadline to deliver
+    deadline.setHours(deadline.getHours() + deadlineHours)
 
     const { data: transaction, error: txError } = await supabaseAdmin
       .from('transactions')
       .insert({
         listing_id: listing.id,
-        buyer_agent_id: listing.agent_id, // Bounty poster is the buyer
-        seller_agent_id: agent_id, // Claimer becomes the seller
+        buyer_agent_id: listing.agent_id,
+        seller_agent_id: agent_id,
         amount_wei: listing.price_wei,
         currency: listing.currency,
-        state: 'FUNDED', // Bounties are pre-funded by the poster
+        state: 'PENDING',
         deadline: deadline.toISOString(),
-        dispute_window_hours: 1, // 1 hour dispute window for bounties (auto-release)
+        dispute_window_hours: disputeWindowHours,
         description: `Bounty: ${listing.title}`,
+        listing_title: listing.title,
       })
       .select()
       .single()
 
-    if (txError) {
+    if (txError || !transaction) {
       console.error('Failed to create transaction:', txError)
       return NextResponse.json({ error: 'Failed to claim bounty' }, { status: 500 })
+    }
+
+    const escrowId = transaction.id
+    const sellerWallet = claimingAgent.wallet_address as Address
+
+    // --- On-chain: Approve USDC + Create V2 Escrow ---
+    let createTxHash: string
+    try {
+      // Step 1: Approve V2 escrow contract to spend buyer's USDC
+      const approveCalldata = buildApproveData(ESCROW_V2_ADDRESS, requiredUsdc)
+      await signAgentTransaction(
+        buyerAgent.privy_wallet_id,
+        USDC as Address,
+        approveCalldata
+      )
+
+      // Step 2: Create the escrow on-chain
+      const createCalldata = buildCreateEscrowV2Data(
+        escrowId,
+        sellerWallet,
+        requiredUsdc,
+        deadlineHours,
+        disputeWindowHours
+      )
+      const createResult = await signAgentTransaction(
+        buyerAgent.privy_wallet_id,
+        ESCROW_V2_ADDRESS,
+        createCalldata
+      )
+      createTxHash = createResult.hash
+
+      // Wait for confirmation
+      await publicClient.waitForTransactionReceipt({ hash: createTxHash as `0x${string}` })
+    } catch (onChainError) {
+      console.error('On-chain escrow creation failed:', onChainError)
+      // Cleanup: delete the PENDING transaction
+      await supabaseAdmin.from('transactions').delete().eq('id', transaction.id)
+      return NextResponse.json({
+        error: 'Failed to create on-chain escrow',
+        details: onChainError instanceof Error ? onChainError.message : 'Unknown error',
+      }, { status: 500 })
+    }
+
+    // --- On-chain succeeded — update DB to FUNDED ---
+    const { error: updateError } = await supabaseAdmin
+      .from('transactions')
+      .update({
+        state: 'FUNDED',
+        escrow_id: escrowId,
+        tx_hash: createTxHash,
+        contract_version: 2,
+      })
+      .eq('id', transaction.id)
+
+    if (updateError) {
+      console.error('Failed to update transaction after on-chain success:', updateError)
     }
 
     // Deactivate the bounty so it can't be claimed again
@@ -138,21 +277,21 @@ export async function POST(
         listing_title: listing.title,
         transaction_id: transaction.id,
         listing_id: listing.id,
+        tx_hash: createTxHash,
       },
     })
 
-    // Notify the bounty poster that their listing was claimed
-    // Note: For bounties, the poster is the buyer and claimer is the seller
+    // Notify the bounty poster
     await notifyListingClaimed(
-      listing.agent_id, // Notify the bounty poster
-      claimingAgent.name || 'Agent', // Who claimed it
+      listing.agent_id,
+      claimingAgent.name || 'Agent',
       listing.title,
       listing.price_wei,
       transaction.id,
       listing.id
     ).catch(err => console.error('Failed to send notification:', err))
 
-    // Gas for agents who skipped /onboard (e.g. MCP/CLI registrations)
+    // Gas for agents who skipped /onboard
     if (!claimingAgent.gas_promo_funded && process.env.GAS_PROMO_ENABLED === 'true') {
       tryFundAgent(claimingAgent.id, claimingAgent.wallet_address)
         .catch(err => console.error('Gas funding failed:', err))
@@ -161,8 +300,14 @@ export async function POST(
     return NextResponse.json({
       success: true,
       transaction_id: transaction.id,
-      message: 'Bounty claimed successfully. Deliver your work to complete the transaction.',
+      escrow_id: escrowId,
+      escrow_id_bytes32: uuidToBytes32(escrowId),
+      tx_hash: createTxHash,
+      contract_version: 2,
+      amount_wei: listing.price_wei,
+      message: 'Bounty claimed. USDC locked in escrow on-chain. Deliver your work to complete the transaction.',
       deadline: deadline.toISOString(),
+      basescan_url: `https://basescan.org/tx/${createTxHash}`,
     })
   } catch (error) {
     console.error('Bounty claim error:', error)

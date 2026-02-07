@@ -2,7 +2,13 @@ import { supabaseAdmin } from '@/lib/supabase/server'
 import { verifyAuth } from '@/lib/auth/middleware'
 import { NextRequest, NextResponse } from 'next/server'
 import { getOnChainEscrow, EscrowState } from '@/lib/blockchain/escrow'
-import { agentRefundEscrow } from '@/lib/privy/server-wallet'
+import { agentRefundEscrow, signAgentTransaction } from '@/lib/privy/server-wallet'
+import { uuidToBytes32, ESCROW_V2_ABI, ESCROW_V2_ADDRESS, getEscrowV2, EscrowStateV2 } from '@/lib/blockchain/escrow-v2'
+import { createPublicClient, http, encodeFunctionData } from 'viem'
+import { base, baseSepolia } from 'viem/chains'
+
+const isTestnet = process.env.NEXT_PUBLIC_CHAIN === 'sepolia'
+const CHAIN = isTestnet ? baseSepolia : base
 
 // POST /api/transactions/[id]/refund - Refund escrow to buyer
 export async function POST(
@@ -115,35 +121,84 @@ export async function POST(
 
   let refundTxHash: string | null = txHash
 
-  // Handle on-chain refund
-  if (txHash) {
-    // Path B: External agent already refunded on-chain
-    try {
-      const onChainEscrow = await getOnChainEscrow(transaction.escrow_id || id)
-      if (onChainEscrow.state !== EscrowState.REFUNDED) {
-        console.log('On-chain escrow not yet REFUNDED, tx may be pending')
+  const publicClient = createPublicClient({
+    chain: CHAIN,
+    transport: http(process.env.ALCHEMY_BASE_URL)
+  })
+
+  // Handle on-chain refund based on contract version
+  if (transaction.contract_version === 2) {
+    // V2 contract refund
+    const escrowIdBytes32 = transaction.escrow_id?.startsWith('0x')
+      ? transaction.escrow_id as `0x${string}`
+      : uuidToBytes32(transaction.escrow_id || id)
+
+    if (txHash) {
+      // External agent already refunded on-chain, verify
+      try {
+        const v2Escrow = await getEscrowV2(transaction.escrow_id || id)
+        if (v2Escrow.state !== EscrowStateV2.REFUNDED) {
+          console.log('V2 escrow not yet REFUNDED, tx may be pending')
+        }
+      } catch (err) {
+        console.error('Failed to verify V2 on-chain refund:', err)
       }
-    } catch (err) {
-      console.error('Failed to verify on-chain refund:', err)
-    }
-  } else if (refundingAgent.is_hosted && refundingAgent.privy_wallet_id) {
-    // Path A: Hosted agent - refund via Privy
-    try {
-      const result = await agentRefundEscrow(
-        refundingAgent.privy_wallet_id,
-        transaction.escrow_id || id
-      )
-      refundTxHash = result.hash
-    } catch (privyError) {
-      console.error('Failed to refund on-chain via Privy:', privyError)
-      return NextResponse.json({ error: 'Failed to refund on-chain escrow' }, { status: 500 })
+    } else if (refundingAgent.is_hosted && refundingAgent.privy_wallet_id) {
+      // Hosted agent — refund via Privy for V2
+      try {
+        const calldata = encodeFunctionData({
+          abi: ESCROW_V2_ABI,
+          functionName: 'refund',
+          args: [escrowIdBytes32]
+        })
+
+        const result = await signAgentTransaction(
+          refundingAgent.privy_wallet_id,
+          ESCROW_V2_ADDRESS,
+          calldata
+        )
+        refundTxHash = result.hash
+
+        await publicClient.waitForTransactionReceipt({ hash: refundTxHash as `0x${string}` })
+      } catch (privyError) {
+        console.error('Failed to refund V2 on-chain via Privy:', privyError)
+        return NextResponse.json({ error: 'Failed to refund on-chain escrow' }, { status: 500 })
+      }
+    } else {
+      return NextResponse.json({
+        error: 'External agents must refund on-chain first and provide tx_hash',
+        escrow_id: transaction.escrow_id || id,
+        contract_address: ESCROW_V2_ADDRESS,
+      }, { status: 400 })
     }
   } else {
-    // External agent needs to refund on-chain first
-    return NextResponse.json({
-      error: 'External agents must refund on-chain first and provide tx_hash',
-      escrow_id: transaction.escrow_id || id,
-    }, { status: 400 })
+    // V1 contract refund (existing logic)
+    if (txHash) {
+      try {
+        const onChainEscrow = await getOnChainEscrow(transaction.escrow_id || id)
+        if (onChainEscrow.state !== EscrowState.REFUNDED) {
+          console.log('On-chain escrow not yet REFUNDED, tx may be pending')
+        }
+      } catch (err) {
+        console.error('Failed to verify on-chain refund:', err)
+      }
+    } else if (refundingAgent.is_hosted && refundingAgent.privy_wallet_id) {
+      try {
+        const result = await agentRefundEscrow(
+          refundingAgent.privy_wallet_id,
+          transaction.escrow_id || id
+        )
+        refundTxHash = result.hash
+      } catch (privyError) {
+        console.error('Failed to refund on-chain via Privy:', privyError)
+        return NextResponse.json({ error: 'Failed to refund on-chain escrow' }, { status: 500 })
+      }
+    } else {
+      return NextResponse.json({
+        error: 'External agents must refund on-chain first and provide tx_hash',
+        escrow_id: transaction.escrow_id || id,
+      }, { status: 400 })
+    }
   }
 
   // Update transaction state
