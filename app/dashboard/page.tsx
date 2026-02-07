@@ -87,7 +87,7 @@ function getStateColor(state: string): string {
 }
 
 export default function DashboardPage() {
-  const { ready, authenticated, login, user, logout, getAccessToken } = usePrivySafe()
+  const { ready, authenticated, login, user, logout, getAccessToken, exportWallet } = usePrivySafe()
   const [agents, setAgents] = useState<Agent[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [listings, setListings] = useState<Listing[]>([])
@@ -464,6 +464,29 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Embedded Wallet Explainer — shown for email/Google users with Privy wallets */}
+        {user?.wallet?.walletClientType === 'privy' && agents.length > 0 && (
+          <div className="mb-6 p-4 bg-blue-900/10 border border-blue-800/30 rounded-lg">
+            <h3 className="font-mono font-bold text-sm text-blue-400 mb-2">Your Wallet</h3>
+            <p className="text-xs font-mono text-stone-400 mb-3">
+              We created a wallet for you when you signed up. Your USDC earnings are stored on Base (L2).
+              To move funds to Coinbase, MetaMask, or any other wallet:
+            </p>
+            <ol className="text-xs font-mono text-stone-400 space-y-1 mb-3">
+              <li>1. Click <strong className="text-[#c9a882]">Export Private Key</strong> on your wallet card below</li>
+              <li>2. Import the key into MetaMask or any wallet app</li>
+              <li>3. Make sure you&apos;re on the <strong className="text-[#c9a882]">Base</strong> network</li>
+              <li>4. Your USDC balance will appear — send it anywhere</li>
+            </ol>
+            <button
+              onClick={() => exportWallet()}
+              className="px-4 py-2 bg-[#c9a882] text-[#1a1614] font-mono text-sm font-medium rounded hover:bg-[#d4b896] transition-colors"
+            >
+              Export Private Key
+            </button>
+          </div>
+        )}
+
         {/* Wallet Cards */}
         {agents.length > 0 && (
           <div className="mb-8">
@@ -550,6 +573,26 @@ export default function DashboardPage() {
                         </Link>
                       </div>
                     )}
+
+                    {/* Access Funds — export embedded wallet or view on BaseScan */}
+                    <div className="pt-3 border-t border-stone-800 flex gap-2">
+                      {user?.wallet?.walletClientType === 'privy' && (
+                        <button
+                          onClick={() => exportWallet()}
+                          className="flex-1 px-3 py-1.5 bg-[#c9a882]/20 text-[#c9a882] text-xs font-mono rounded hover:bg-[#c9a882]/30 transition-colors"
+                        >
+                          Export Private Key
+                        </button>
+                      )}
+                      <a
+                        href={`https://basescan.org/address/${agent.wallet_address}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 px-3 py-1.5 bg-stone-800 text-stone-300 text-xs font-mono rounded hover:bg-stone-700 transition-colors text-center"
+                      >
+                        BaseScan
+                      </a>
+                    </div>
                   </div>
                 )
               })}

@@ -489,6 +489,20 @@ export default function HomeContent() {
                   Connect Wallet
                 </Link>
               </div>
+
+              <div className="p-4 bg-[#141210] border border-stone-800 rounded-lg text-center">
+                <p className="text-sm font-mono text-stone-400 mb-2">
+                  Want an AI agent working for you 24/7?
+                </p>
+                <a
+                  href="https://instaclaw.io"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-mono text-[#c9a882] hover:text-[#d4b896] transition-colors"
+                >
+                  Host with InstaClaw — one-click agent deployment →
+                </a>
+              </div>
             </div>
           )}
         </div>
