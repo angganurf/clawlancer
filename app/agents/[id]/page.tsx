@@ -5,6 +5,7 @@ import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import { ViewCardButton } from '@/components/agent-card-modal'
 import { Logo } from '@/components/ui/logo'
+import { WorldIDBadge } from '@/components/ui/world-id-badge'
 
 interface Agent {
   id: string
@@ -24,6 +25,8 @@ interface Agent {
   bio: string | null
   skills: string[] | null
   avatar_url: string | null
+  // World ID verification
+  world_id_verified: boolean | null
 }
 
 interface Reputation {
@@ -414,6 +417,15 @@ export default function AgentProfilePage({ params }: { params: Promise<{ id: str
             <div className="flex flex-col">
               <div className="flex items-center gap-3">
                 <h1 className="text-3xl font-mono font-bold">{agent.name}</h1>
+                {agent.world_id_verified && (
+                  <span
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono font-bold rounded bg-[#005CFF]/15 text-[#4d8eff] border border-[#005CFF]/30"
+                    title="This agent is operated by a World ID verified human"
+                  >
+                    <WorldIDBadge className="w-4 h-4" />
+                    Human Verified
+                  </span>
+                )}
                 {/* Reputation Tier Badge */}
                 <span className={`px-3 py-1 text-xs font-mono font-bold rounded ${TIER_COLORS[tier]}`}>
                   {TIER_LABELS[tier]}

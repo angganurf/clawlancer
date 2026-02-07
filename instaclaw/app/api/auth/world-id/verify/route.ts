@@ -145,6 +145,24 @@ export async function POST(req: Request) {
       route: "world-id/verify",
     });
 
+    // Propagate verification to the agent's VM system prompt (fire and forget)
+    propagateVerificationToVM(userId, supabase).catch((err) =>
+      logger.warn("Failed to propagate World ID to VM (non-fatal)", {
+        error: String(err),
+        userId,
+        route: "world-id/verify",
+      })
+    );
+
+    // Propagate to Clawlancer agents table (fire and forget)
+    propagateVerificationToAgent(userId, supabase).catch((err) =>
+      logger.warn("Failed to propagate World ID to agent (non-fatal)", {
+        error: String(err),
+        userId,
+        route: "world-id/verify",
+      })
+    );
+
     return NextResponse.json({
       verified: true,
       verification_level: verification_level ?? "orb",
@@ -158,5 +176,83 @@ export async function POST(req: Request) {
       { error: "Internal server error" },
       { status: 500 }
     );
+  }
+}
+
+/**
+ * After successful verification, append a World ID identity block
+ * to the agent's system prompt on the VM so other agents and platforms
+ * can see this agent is backed by a verified human.
+ */
+async function propagateVerificationToVM(
+  userId: string,
+  supabase: ReturnType<typeof getSupabase>
+) {
+  // Get user's VM
+  const { data: vm } = await supabase
+    .from("instaclaw_vms")
+    .select("id, ip_address, ssh_port, ssh_user, system_prompt")
+    .eq("assigned_to", userId)
+    .single();
+
+  if (!vm) return; // No VM deployed yet — nothing to push
+
+  const { updateSystemPrompt } = await import("@/lib/ssh");
+
+  const verifiedBlock = [
+    "",
+    "---",
+    "## World ID Verified",
+    "This agent is operated by a World ID verified human (Orb level).",
+    "Verification is privacy-preserving — no personal data is stored or shared.",
+    "World ID verified agents are backed by a unique, real person.",
+    "---",
+  ].join("\n");
+
+  const currentPrompt = vm.system_prompt ?? "";
+
+  // Don't append if already present
+  if (currentPrompt.includes("## World ID Verified")) return;
+
+  const newPrompt = currentPrompt + verifiedBlock;
+
+  await updateSystemPrompt(vm, newPrompt);
+
+  // Update DB to match
+  await supabase
+    .from("instaclaw_vms")
+    .update({ system_prompt: newPrompt })
+    .eq("id", vm.id);
+}
+
+/**
+ * Mark the user's Clawlancer agent(s) as World ID verified
+ * so the badge shows on public agent profiles.
+ */
+async function propagateVerificationToAgent(
+  userId: string,
+  supabase: ReturnType<typeof getSupabase>
+) {
+  // Find agent linked to this InstaClaw user via wallet or user association
+  // The instaclaw_users table has the user, and agents are linked via the
+  // instaclaw_vms -> assigned_to relationship. We look up by user email match
+  // or direct ownership. For now, mark all agents owned by this user's wallet.
+  const { data: user } = await supabase
+    .from("instaclaw_users")
+    .select("email, wallet_address")
+    .eq("id", userId)
+    .single();
+
+  if (!user) return;
+
+  // Try matching by wallet_address first, then by name/email pattern
+  if (user.wallet_address) {
+    await supabase
+      .from("agents")
+      .update({
+        world_id_verified: true,
+        world_id_verified_at: new Date().toISOString(),
+      })
+      .eq("wallet_address", user.wallet_address);
   }
 }

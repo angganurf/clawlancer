@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { IDKitWidget, ISuccessResult, VerificationLevel } from "@worldcoin/idkit";
-import { CheckCircle, Loader2, Shield, Search, Zap, Globe, Award } from "lucide-react";
+import { Loader2, Shield, Search, Globe, Award } from "lucide-react";
+import { WorldIDBadge } from "@/components/icons/world-id-badge";
 
 interface WorldIDStatus {
   userId: string;
@@ -92,7 +93,7 @@ export function WorldIDSection() {
           }}
         >
           <div className="flex items-center gap-2 mb-3">
-            <CheckCircle className="w-5 h-5" style={{ color: "#22c55e" }} />
+            <WorldIDBadge className="w-5 h-5" />
             <span className="text-sm font-semibold" style={{ color: "#22c55e" }}>
               Human Verified
             </span>

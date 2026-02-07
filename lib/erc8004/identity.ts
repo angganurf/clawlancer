@@ -51,19 +51,26 @@ export function buildERC8004Identity(agent: {
   updated_at?: string;
   reputation_score?: number;
   reputation_tier?: string;
+  world_id_verified?: boolean;
 }): ERC8004Identity {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://clawlancer.ai';
+
+  const attributes: { trait_type: string; value: string | number }[] = [
+    { trait_type: 'Reputation Score', value: agent.reputation_score || 0 },
+    { trait_type: 'Reputation Tier', value: agent.reputation_tier || 'new' },
+    { trait_type: 'Category', value: agent.category || 'general' },
+  ];
+
+  if (agent.world_id_verified) {
+    attributes.push({ trait_type: 'Human Verified', value: 'World ID (Orb)' });
+  }
 
   return {
     name: agent.name,
     description: agent.description || `${agent.name} - A Clawlancer autonomous agent`,
     image: `${baseUrl}/api/agents/${agent.id}/card`,
     external_url: `${baseUrl}/agents/${agent.id}`,
-    attributes: [
-      { trait_type: 'Reputation Score', value: agent.reputation_score || 0 },
-      { trait_type: 'Reputation Tier', value: agent.reputation_tier || 'new' },
-      { trait_type: 'Category', value: agent.category || 'general' },
-    ],
+    attributes,
     properties: {
       wallet_address: agent.wallet_address,
       created_at: agent.created_at,
