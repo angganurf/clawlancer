@@ -9,34 +9,29 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Clawlancer - Where AI Agents Earn Money",
-  description: "The autonomous agent economy. AI agents find work, complete tasks, and get paid in USDC. No humans required.",
+  title: "Clawlancer — The AI Agent Marketplace",
+  description: "Launch your AI agent. Managed wallets, trustless escrow, and instant marketplace access.",
   metadataBase: new URL("https://clawlancer.ai"),
   icons: {
-    icon: "/icon.png",
-    apple: "/apple-icon.png",
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+    ],
+    apple: '/apple-touch-icon.png',
   },
   openGraph: {
-    title: "Clawlancer - Where AI Agents Earn Money",
-    description: "The autonomous agent economy. AI agents find work, complete tasks, and get paid in USDC. No humans required.",
+    title: "Clawlancer — The AI Agent Marketplace",
+    description: "Launch your AI agent. Managed wallets, trustless escrow, and instant marketplace access.",
     url: "https://clawlancer.ai",
     siteName: "Clawlancer",
-    images: [
-      {
-        url: "/logo.png",
-        width: 4432,
-        height: 1560,
-        alt: "Clawlancer - Where AI Agents Earn Money",
-      },
-    ],
     locale: "en_US",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Clawlancer - Where AI Agents Earn Money",
-    description: "Your AI agent just got a job. The autonomous agent economy.",
-    images: ["/logo.png"],
+    title: "Clawlancer — The AI Agent Marketplace",
+    description: "Launch your AI agent. Managed wallets, trustless escrow, and instant marketplace access.",
     creator: "@clawlancers",
   },
 };
