@@ -1,17 +1,20 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { usePrivySafe } from '@/hooks/usePrivySafe'
 import { FeedList } from '@/components/feed'
 import { useStats } from '@/hooks/useStats'
 import { TogglePill } from '@/components/ui/toggle-pill'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Logo } from '@/components/ui/logo'
 import { NotificationBell } from '@/components/notification-bell'
 import { TokenTicker } from '@/components/token-ticker'
 
 export default function HomeContent() {
   const { ready, authenticated, login } = usePrivySafe()
+  const router = useRouter()
+  const pendingRedirect = useRef<string | null>(null)
   const { stats, isLoading: statsLoading } = useStats()
   const [agentFlow, setAgentFlow] = useState<0 | 1>(1) // 0 = Host my agent, 1 = Bring my bot (default to BYOB)
   const [featuredAgents, setFeaturedAgents] = useState<Array<{
@@ -30,6 +33,24 @@ export default function HomeContent() {
     agent: { name: string } | null;
   }>>([])
 
+  // After Privy login completes, redirect to the intended page
+  useEffect(() => {
+    if (authenticated && pendingRedirect.current) {
+      const dest = pendingRedirect.current
+      pendingRedirect.current = null
+      router.push(dest)
+    }
+  }, [authenticated, router])
+
+  // Login first, then redirect — for unauthenticated users clicking action buttons
+  const loginAndRedirect = useCallback((destination: string) => {
+    if (authenticated) {
+      router.push(destination)
+    } else {
+      pendingRedirect.current = destination
+      login()
+    }
+  }, [authenticated, login, router])
 
   useEffect(() => {
     fetch('/api/activity?limit=1')
@@ -108,7 +129,7 @@ export default function HomeContent() {
                 onClick={login}
                 className="px-4 py-2 bg-[#c9a882] text-[#1a1614] font-mono text-sm rounded hover:bg-[#d4b896] transition-colors"
               >
-                connect
+                Sign In
               </button>
             )}
           </nav>
@@ -156,12 +177,12 @@ export default function HomeContent() {
                   backed by on-chain reputation so you only trade with trusted bots.
                 </p>
                 <div className="flex flex-wrap gap-4 mb-12">
-                  <Link
-                    href="/agents/create"
+                  <button
+                    onClick={() => loginAndRedirect('/agents/create')}
                     className="px-6 py-3 bg-[#c9a882] text-[#1a1614] font-mono font-medium rounded hover:bg-[#d4b896] transition-colors"
                   >
                     Join Waitlist
-                  </Link>
+                  </button>
                   <button
                     onClick={() => setAgentFlow(1)}
                     className="px-6 py-3 border border-stone-700 text-stone-300 font-mono rounded hover:border-stone-500 hover:text-white transition-colors"
@@ -204,12 +225,12 @@ export default function HomeContent() {
                 </div>
 
                 <div className="flex items-center gap-6 mb-12">
-                  <Link
-                    href="/onboard"
+                  <button
+                    onClick={() => loginAndRedirect('/onboard')}
                     className="px-6 py-3 bg-[#c9a882] text-[#1a1614] font-mono font-medium rounded hover:bg-[#d4b896] transition-colors"
                   >
                     Register Your Agent
-                  </Link>
+                  </button>
                   <Link
                     href="/marketplace"
                     className="text-sm font-mono text-stone-500 hover:text-stone-300 transition-colors"
@@ -287,9 +308,9 @@ export default function HomeContent() {
             {/* Gas Promo Banner */}
             {gasPromo?.active && gasPromo.remaining_slots > 0 && (
               <div className="mt-6">
-                <Link
-                  href="/onboard"
-                  className="block p-4 bg-green-900/20 border border-green-700/50 rounded-lg hover:bg-green-900/30 transition-colors"
+                <button
+                  onClick={() => loginAndRedirect('/onboard')}
+                  className="block w-full text-left p-4 bg-green-900/20 border border-green-700/50 rounded-lg hover:bg-green-900/30 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-green-400 text-lg">&#9889;</span>
@@ -302,7 +323,7 @@ export default function HomeContent() {
                       </p>
                     </div>
                   </div>
-                </Link>
+                </button>
               </div>
             )}
           </div>
@@ -482,12 +503,12 @@ export default function HomeContent() {
                 >
                   Browse Marketplace
                 </Link>
-                <Link
-                  href="/dashboard"
+                <button
+                  onClick={() => loginAndRedirect('/dashboard')}
                   className="flex-1 px-6 py-3 border border-stone-700 text-stone-300 font-mono rounded hover:border-stone-500 hover:text-white transition-colors text-center"
                 >
-                  Connect Wallet
-                </Link>
+                  Sign In
+                </button>
               </div>
 
               <div className="p-4 bg-[#141210] border border-stone-800 rounded-lg text-center">
@@ -950,12 +971,12 @@ export default function HomeContent() {
           <p className="text-stone-500 font-mono text-sm mb-8">
             Join the autonomous agent economy. Registration is free.
           </p>
-          <Link
-            href="/agents/create"
+          <button
+            onClick={() => loginAndRedirect('/onboard')}
             className="inline-block px-8 py-4 bg-[#c9a882] text-[#1a1614] font-mono font-bold text-lg rounded hover:bg-[#d4b896] transition-colors"
           >
             Register Now — It&apos;s Free
-          </Link>
+          </button>
         </div>
       </section>
 

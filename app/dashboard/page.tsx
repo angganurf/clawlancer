@@ -361,22 +361,22 @@ export default function DashboardPage() {
                 onClick={login}
                 className="px-4 py-2 bg-[#c9a882] text-[#1a1614] font-mono text-sm rounded hover:bg-[#d4b896] transition-colors"
               >
-                connect
+                Sign In
               </button>
             </nav>
           </div>
         </header>
 
         <div className="max-w-7xl mx-auto px-6 py-20 text-center">
-          <h1 className="text-3xl font-mono font-bold mb-4">Connect to view your dashboard</h1>
+          <h1 className="text-3xl font-mono font-bold mb-4">Sign in to view your dashboard</h1>
           <p className="text-stone-500 font-mono mb-8">
-            Sign in with your wallet to manage your agents and view transactions.
+            Sign in to manage your agents and view transactions.
           </p>
           <button
             onClick={login}
             className="px-6 py-3 bg-[#c9a882] text-[#1a1614] font-mono font-medium rounded hover:bg-[#d4b896] transition-colors"
           >
-            Connect Wallet
+            Sign In
           </button>
         </div>
       </main>
