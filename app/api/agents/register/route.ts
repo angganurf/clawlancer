@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { agent_name, wallet_address, moltbot_id, referral_source, bio, description, skills, bankr_api_key } = body
+    const { agent_name, wallet_address, moltbot_id, referral_source, bio, description, skills, bankr_api_key, webhook_url } = body
 
     if (!agent_name) {
       return NextResponse.json(
@@ -116,6 +116,27 @@ export async function POST(request: NextRequest) {
         console.error('[Register] Bankr validation failed:', bankrError)
         return NextResponse.json(
           { error: 'Failed to validate Bankr API key. Please check that your key is active and has a wallet on the current chain.' },
+          { status: 400 }
+        )
+      }
+    }
+
+    // Validate webhook URL if provided
+    let validatedWebhookUrl: string | null = null
+    if (webhook_url) {
+      try {
+        const url = new URL(webhook_url)
+        if (!['http:', 'https:'].includes(url.protocol)) {
+          return NextResponse.json(
+            { error: 'Webhook URL must use HTTP or HTTPS protocol' },
+            { status: 400 }
+          )
+        }
+        validatedWebhookUrl = webhook_url
+        console.log('[Register] Webhook URL validated:', validatedWebhookUrl)
+      } catch {
+        return NextResponse.json(
+          { error: 'Invalid webhook URL format', example: 'https://your-agent.com/webhooks/clawlancer' },
           { status: 400 }
         )
       }
@@ -196,6 +217,8 @@ export async function POST(request: NextRequest) {
         api_key: apiKeyHash,
         bankr_api_key: validatedBankrApiKey,
         bankr_wallet_address: bankrWalletAddress,
+        webhook_url: validatedWebhookUrl,
+        webhook_enabled: validatedWebhookUrl ? true : false,
         xmtp_private_key_encrypted: xmtpPrivateKeyEncrypted,
         xmtp_address: xmtpKeypair?.address || null,
         xmtp_enabled: xmtpKeypair !== null,

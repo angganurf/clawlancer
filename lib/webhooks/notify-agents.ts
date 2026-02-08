@@ -1,9 +1,87 @@
 /**
  * Agent Webhook Notifications
  * Sends push notifications to agents when bounties matching their skills are posted
+ * Includes basic retry logic: retries once after 30 seconds on failure
  */
 
 import { supabaseAdmin } from '@/lib/supabase/server'
+
+/**
+ * Send webhook with retry logic
+ * Retries once after 30 seconds on failure
+ */
+async function sendWebhookWithRetry(
+  agentId: string,
+  agentName: string,
+  webhookUrl: string,
+  payload: BountyWebhookPayload
+): Promise<void> {
+  const sendWebhook = async (isRetry: boolean = false): Promise<boolean> => {
+    try {
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Clawlancer-Webhook/1.0',
+          'X-Clawlancer-Event': 'bounty.posted',
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(5000), // 5 second timeout
+      })
+
+      if (response.ok) {
+        // Success - update database
+        await supabaseAdmin
+          .from('agents')
+          .update({
+            last_webhook_success_at: new Date().toISOString(),
+            last_webhook_error: null,
+          })
+          .eq('id', agentId)
+
+        console.log(`[Webhooks] ✓ Notified ${agentName} (${agentId})${isRetry ? ' (retry succeeded)' : ''}`)
+        return true
+      } else {
+        const errorText = await response.text().catch(() => 'Unknown error')
+        console.error(`[Webhooks] ✗ Failed to notify ${agentName}: HTTP ${response.status} - ${errorText}${isRetry ? ' (retry failed)' : ''}`)
+
+        // Log error
+        await supabaseAdmin
+          .from('agents')
+          .update({
+            last_webhook_error: `HTTP ${response.status}: ${errorText.slice(0, 200)}${isRetry ? ' (retry failed)' : ''}`,
+          })
+          .eq('id', agentId)
+
+        return false
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      console.error(`[Webhooks] ✗ Failed to notify ${agentName}:`, errorMsg, isRetry ? '(retry failed)' : '')
+
+      // Log error
+      await supabaseAdmin
+        .from('agents')
+        .update({
+          last_webhook_error: `${errorMsg.slice(0, 200)}${isRetry ? ' (retry failed)' : ''}`,
+        })
+        .eq('id', agentId)
+
+      return false
+    }
+  }
+
+  // First attempt
+  const success = await sendWebhook(false)
+
+  // If failed, retry after 30 seconds
+  if (!success) {
+    console.log(`[Webhooks] Scheduling retry for ${agentName} in 30 seconds...`)
+    setTimeout(async () => {
+      await sendWebhook(true)
+    }, 30000) // 30 seconds
+  }
+}
 
 interface BountyWebhookPayload {
   event: 'bounty.posted'
@@ -91,53 +169,8 @@ export async function notifyAgentsOfBounty(
         matched_skills: matchedSkills,
       }
 
-      try {
-        const response = await fetch(agent.webhook_url!, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'User-Agent': 'Clawlancer-Webhook/1.0',
-            'X-Clawlancer-Event': 'bounty.posted',
-          },
-          body: JSON.stringify(payload),
-          signal: AbortSignal.timeout(5000), // 5 second timeout
-        })
-
-        if (response.ok) {
-          // Update last success timestamp
-          await supabaseAdmin
-            .from('agents')
-            .update({
-              last_webhook_success_at: new Date().toISOString(),
-              last_webhook_error: null,
-            })
-            .eq('id', agent.id)
-
-          console.log(`[Webhooks] ✓ Notified ${agent.name} (${agent.id})`)
-        } else {
-          const errorText = await response.text().catch(() => 'Unknown error')
-          console.error(`[Webhooks] ✗ Failed to notify ${agent.name}: HTTP ${response.status} - ${errorText}`)
-
-          // Log error but don't disable webhook (temporary failures are ok)
-          await supabaseAdmin
-            .from('agents')
-            .update({
-              last_webhook_error: `HTTP ${response.status}: ${errorText.slice(0, 200)}`,
-            })
-            .eq('id', agent.id)
-        }
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : 'Unknown error'
-        console.error(`[Webhooks] ✗ Failed to notify ${agent.name}:`, errorMsg)
-
-        // Log error
-        await supabaseAdmin
-          .from('agents')
-          .update({
-            last_webhook_error: errorMsg.slice(0, 200),
-          })
-          .eq('id', agent.id)
-      }
+      // Send webhook with automatic retry
+      await sendWebhookWithRetry(agent.id, agent.name || 'Agent', agent.webhook_url!, payload)
     })
 
     // Fire and forget - don't block the response
