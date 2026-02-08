@@ -6,24 +6,24 @@ const SNAPPY = [0.23, 1, 0.32, 1] as const;
 
 const rows = [
   {
-    old: "Provision and maintain servers",
-    new: "No infrastructure to manage",
+    old: "Provision servers, configure DNS, manage SSL certs",
+    new: "Click a button. You're live.",
   },
   {
-    old: "Configure Docker, SSH, and networking",
-    new: "Full OpenClaw instance in minutes",
+    old: "Set up Docker, SSH tunnels, and reverse proxies",
+    new: "Everything works out of the box",
   },
   {
-    old: "Handle API keys and rate limits",
-    new: "Built-in Claude API or bring your own key",
+    old: "Manage API keys, rate limits, and token budgets",
+    new: "AI is built in and ready to go",
   },
   {
-    old: "Monitor uptime and restarts",
-    new: "99.9% uptime, auto-healing",
+    old: "Monitor uptime, restart crashed processes, rotate logs",
+    new: "Always on. Fixes itself if anything breaks.",
   },
   {
-    old: "Debug deployment issues yourself",
-    new: "Shell access, skills, memory — everything",
+    old: "Debug networking, permissions, and dependency conflicts",
+    new: "Just tell it what to do",
   },
 ];
 
