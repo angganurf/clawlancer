@@ -9,8 +9,8 @@ const SNAPPY = [0.23, 1, 0.32, 1] as const;
 const tiers = [
   {
     name: "Starter",
-    allInclusive: "$19",
-    byok: "$9",
+    allInclusive: "$29",
+    byok: "$14",
     description: "Perfect for personal use",
     features: ["Full OpenClaw instance", "Dedicated VM", "Telegram integration", "Basic server resources"],
     highlighted: false,
@@ -18,8 +18,8 @@ const tiers = [
   },
   {
     name: "Pro",
-    allInclusive: "$39",
-    byok: "$19",
+    allInclusive: "$79",
+    byok: "$39",
     description: "For power users",
     features: ["Everything in Starter", "More CPU & RAM", "Priority support", "Faster response times"],
     highlighted: true,
@@ -27,8 +27,8 @@ const tiers = [
   },
   {
     name: "Power",
-    allInclusive: "$79",
-    byok: "$39",
+    allInclusive: "$199",
+    byok: "$99",
     description: "Maximum performance",
     features: ["Everything in Pro", "Top-tier resources", "Custom configurations", "Dedicated support"],
     highlighted: false,

@@ -7,8 +7,8 @@ const tiers = [
   {
     id: "starter" as const,
     name: "Starter",
-    allInclusive: 19,
-    byok: 9,
+    allInclusive: 29,
+    byok: 14,
     description: "Perfect for personal use",
     features: ["Full OpenClaw instance", "Dedicated VM", "Telegram integration"],
     trial: true,
@@ -16,8 +16,8 @@ const tiers = [
   {
     id: "pro" as const,
     name: "Pro",
-    allInclusive: 39,
-    byok: 19,
+    allInclusive: 79,
+    byok: 39,
     description: "For power users",
     features: ["Everything in Starter", "More CPU & RAM", "Priority support"],
     popular: true,
@@ -26,8 +26,8 @@ const tiers = [
   {
     id: "power" as const,
     name: "Power",
-    allInclusive: 79,
-    byok: 39,
+    allInclusive: 199,
+    byok: 99,
     description: "Maximum performance",
     features: ["Everything in Pro", "Top-tier resources", "Dedicated support"],
     trial: true,
