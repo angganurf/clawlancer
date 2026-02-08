@@ -190,17 +190,17 @@ html.lenis body {
 }
 
 @keyframes glow-pulse-orange {
-  0%, 100% { box-shadow: 0 0 8px rgba(220, 103, 67, 0.15); }
-  50% { box-shadow: 0 0 20px rgba(220, 103, 67, 0.3), 0 0 40px rgba(220, 103, 67, 0.08); }
+  0%, 100% { box-shadow: 0 0 12px rgba(220, 103, 67, 0.2), 0 0 4px rgba(220, 103, 67, 0.1); }
+  50% { box-shadow: 0 0 24px rgba(220, 103, 67, 0.4), 0 0 48px rgba(220, 103, 67, 0.12); }
 }
 
 .glow-border {
   position: relative;
-  padding: 1.5px;
+  padding: 2px;
   border-radius: 0.5rem;
   overflow: hidden;
   animation: glow-pulse-orange 3s ease-in-out infinite;
-  display: inline-flex;
+  width: 100%;
 }
 
 .glow-border > .glow-spinner {
@@ -212,10 +212,12 @@ html.lenis body {
   background: conic-gradient(
     from 0deg,
     transparent 0%,
-    transparent 55%,
-    #DC6743 72%,
-    #e8845f 80%,
+    transparent 50%,
+    #c8522e 68%,
+    #DC6743 76%,
+    #e8845f 82%,
     #DC6743 88%,
+    #c8522e 94%,
     transparent 100%
   );
   animation: glow-spin 3s linear infinite;
@@ -224,7 +226,7 @@ html.lenis body {
 .glow-border > .glow-content {
   position: relative;
   z-index: 1;
-  border-radius: calc(0.5rem - 1.5px);
+  border-radius: calc(0.5rem - 2px);
   background: #ffffff;
   width: 100%;
 }
