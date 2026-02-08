@@ -68,21 +68,13 @@ export function Hero() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: SNAPPY }}
       >
-        {/* Coming Soon badge */}
+        {/* Live spots counter */}
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2, duration: 0.5, ease: SNAPPY }}
         >
-          <span
-            className="inline-block px-4 py-1.5 rounded-full text-xs font-medium tracking-wide uppercase"
-            style={{
-              border: "1px solid var(--border)",
-              color: "var(--foreground)",
-            }}
-          >
-            Coming Soon
-          </span>
+          <SpotsCounter />
         </motion.div>
 
         {/* Headline */}
@@ -137,14 +129,6 @@ export function Hero() {
           </Link>
         </motion.p>
 
-        {/* Live spots counter */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.2, duration: 0.7, ease: SNAPPY }}
-        >
-          <SpotsCounter />
-        </motion.div>
 
       </motion.div>
     </section>
