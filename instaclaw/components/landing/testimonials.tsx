@@ -2,71 +2,72 @@ const testimonials = {
   row1: [
     {
       quote:
-        "I had my AI handling customer emails within 10 minutes of signing up. No joke.",
+        "I asked it to plan my entire vacation, book restaurants, and draft packing lists. It did all of it. I just sat there.",
       name: "Sarah M.",
       role: "Freelancer",
       initials: "SM",
     },
     {
       quote:
-        "I'm not technical at all and I set this up on my lunch break. It just works.",
+        "I don't know anything about tech. I told it what I needed in plain English and it just handled everything. Like magic.",
       name: "James K.",
       role: "Small Business Owner",
       initials: "JK",
     },
     {
       quote:
-        "My AI remembers everything about my clients. It's like having a personal assistant that never forgets.",
+        "It remembered every single detail about 200+ clients and followed up with each one personally. I feel like I have superpowers.",
       name: "Priya R.",
       role: "Real Estate Agent",
       initials: "PR",
     },
     {
       quote:
-        "I was skeptical but the free trial sold me. Now I can't imagine working without it.",
+        "I gave it one task as a test. An hour later it had done that plus five other things I didn't even think to ask for.",
       name: "Marcus T.",
       role: "Content Creator",
       initials: "MT",
     },
     {
       quote:
-        "Finally something that actually does the work instead of just telling me what to do.",
+        "It wrote my cover letters, prepped me for interviews, and tracked every application. I literally got the job because of this.",
       name: "Ava L.",
-      role: "Student",
+      role: "College Student",
       initials: "AL",
     },
   ],
   row2: [
     {
       quote:
-        "Set it up before bed. Woke up to 30 emails sorted and replied to. Wild.",
+        "I went to sleep. Woke up to 30 emails answered, my calendar organized, and a summary waiting for me. It never stops working.",
       name: "Danny W.",
       role: "Startup Founder",
       initials: "DW",
     },
     {
       quote:
-        "The fact that it browses the web and handles tasks on its own is a game changer.",
+        "It's like having an entire team that works 24/7 and never complains. I just think of something and it's already doing it.",
       name: "Rachel S.",
       role: "Marketing Manager",
       initials: "RS",
     },
     {
       quote:
-        "I switched from trying to self-host and saved myself weeks of headaches.",
+        "I asked it to research competitors, summarize the results, and draft a report. Done in 20 minutes. That used to take me days.",
       name: "Tom H.",
-      role: "Developer",
+      role: "Teacher",
       initials: "TH",
     },
     {
       quote:
-        "Worth every penny of $29/mo. I've tried tools 10x the price that do less.",
+        "There is nothing I've thrown at it that it couldn't do. Emails, research, scheduling, writing. Literally anything.",
       name: "Nina P.",
       role: "Consultant",
       initials: "NP",
     },
     {
-      quote: "My mom uses it. That's how easy it is.",
+      quote:
+        "My 68-year-old mom set it up by herself and now she won't stop telling her friends about it. That's all you need to know.",
       name: "Chris D.",
       role: "Product Designer",
       initials: "CD",
