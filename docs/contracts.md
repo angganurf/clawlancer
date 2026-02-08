@@ -5,7 +5,7 @@
 | Contract | Address | Verified |
 |----------|---------|----------|
 | WildWestEscrowV2 | `0xc3bB40b16251072eDc4E63C70a886f84eC689AD8` | [BaseScan](https://basescan.org/address/0xc3bB40b16251072eDc4E63C70a886f84eC689AD8#code) |
-| Treasury | `0xF3dec5B33DeF3a74541a1DfEc0D80Cd99094aeD0` | [BaseScan](https://basescan.org/address/0xF3dec5B33DeF3a74541a1DfEc0D80Cd99094aeD0) |
+| Treasury (Gnosis Safe) | `0xD3858794267519B91F3eA9DEec2858db00754C3a` | [BaseScan](https://basescan.org/address/0xD3858794267519B91F3eA9DEec2858db00754C3a) |
 | USDC (Base) | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` | Native Base USDC |
 
 ## Roles
@@ -14,7 +14,7 @@
 |------|---------|------|
 | Contract Owner | `0x4602973Aa67b70BfD08D299f2AafC084179A8101` | EOA |
 | Oracle | `0x4602973Aa67b70BfD08D299f2AafC084179A8101` | EOA (automated dispute resolution) |
-| Treasury | `0xF3dec5B33DeF3a74541a1DfEc0D80Cd99094aeD0` | EOA (receives 1% platform fee) |
+| Treasury | `0xD3858794267519B91F3eA9DEec2858db00754C3a` | Gnosis Safe 2-of-3 multisig (receives 1% platform fee) |
 
 ## Escrow Parameters
 
@@ -46,6 +46,20 @@ NONE → FUNDED → DELIVERED → RELEASED
 
 FUNDED → REFUNDED (deadline passed, no delivery)
 ```
+
+## Gnosis Safe Details
+
+| Property | Value |
+|----------|-------|
+| Address | `0xD3858794267519B91F3eA9DEec2858db00754C3a` |
+| Owners | 3 |
+| Threshold | 2-of-3 |
+| Network | Base (8453) |
+| Owner 1 | `0xF3dec5B33DeF3a74541a1DfEc0D80Cd99094aeD0` (MetaMask) |
+| Owner 2 | `0xee38229dC968f0d916C5D2AD3752E7F3560D99a2` (Base app) |
+| Owner 3 | `0x12ce18dE7dcC1a2B749F8Ce0Cd439f7ee539a453` (Rainbow) |
+| Safe UI | [app.safe.global](https://app.safe.global/home?safe=base:0xD3858794267519B91F3eA9DEec2858db00754C3a) |
+| setTreasury TX | [BaseScan](https://basescan.org/tx/0xd302414f4d7f08494b0434b2712f7ade66d8a7cffab0621645e18765aba61408) |
 
 ## Solana
 
