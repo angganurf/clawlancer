@@ -127,10 +127,12 @@ export default function DashboardPage() {
     : null;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <div>
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
+        <h1 className="text-3xl sm:text-4xl font-normal tracking-[-0.5px]" style={{ fontFamily: "var(--font-serif)" }}>
+          Dashboard
+        </h1>
+        <p className="text-base mt-2" style={{ color: "var(--muted)" }}>
           Manage your OpenClaw instance.
         </p>
       </div>
@@ -138,10 +140,10 @@ export default function DashboardPage() {
       {/* Payment past_due banner */}
       {billing?.paymentStatus === "past_due" && (
         <div
-          className="rounded-xl p-4 flex items-center gap-3"
+          className="rounded-xl p-5 flex items-center gap-4 transition-snappy"
           style={{
-            background: "rgba(239,68,68,0.1)",
-            border: "1px solid rgba(239,68,68,0.3)",
+            background: "rgba(220,38,38,0.08)",
+            border: "1px solid rgba(220,38,38,0.2)",
           }}
         >
           <AlertTriangle className="w-5 h-5 shrink-0" style={{ color: "#ef4444" }} />
@@ -166,10 +168,10 @@ export default function DashboardPage() {
       {/* Trial banner */}
       {trialDaysLeft !== null && billing?.status === "trialing" && (
         <div
-          className="rounded-xl p-4 flex items-center gap-3"
+          className="rounded-xl p-5 flex items-center gap-4 transition-snappy"
           style={{
-            background: "rgba(59,130,246,0.1)",
-            border: "1px solid rgba(59,130,246,0.3)",
+            background: "rgba(59,130,246,0.08)",
+            border: "1px solid rgba(59,130,246,0.2)",
           }}
         >
           <CreditCard className="w-5 h-5 shrink-0" style={{ color: "#3b82f6" }} />
@@ -197,8 +199,8 @@ export default function DashboardPage() {
       {vmStatus?.status === "assigned" && vm ? (
         <>
           {/* Status + Stats */}
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="glass rounded-xl p-5">
+          <div className="grid gap-5 sm:grid-cols-3">
+            <div className="glass rounded-xl p-6">
               <div className="flex items-center gap-2 mb-2">
                 <Activity className="w-4 h-4" style={{ color: healthColor }} />
                 <span className="text-sm font-medium">Status</span>
@@ -214,7 +216,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="glass rounded-xl p-5">
+            <div className="glass rounded-xl p-6">
               <div className="flex items-center gap-2 mb-2">
                 <Server className="w-4 h-4" style={{ color: "var(--muted)" }} />
                 <span className="text-sm font-medium">Instance</span>
@@ -227,7 +229,7 @@ export default function DashboardPage() {
               </span>
             </div>
 
-            <div className="glass rounded-xl p-5">
+            <div className="glass rounded-xl p-6">
               <div className="flex items-center gap-2 mb-2">
                 <Calendar
                   className="w-4 h-4"
@@ -248,8 +250,8 @@ export default function DashboardPage() {
 
           {/* Usage Stats */}
           {usage && (
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="glass rounded-xl p-5">
+            <div className="grid gap-5 sm:grid-cols-3">
+              <div className="glass rounded-xl p-6">
                 <p
                   className="text-xs uppercase tracking-wide mb-1"
                   style={{ color: "var(--muted)" }}
@@ -274,7 +276,7 @@ export default function DashboardPage() {
                   />
                 </div>
               </div>
-              <div className="glass rounded-xl p-5">
+              <div className="glass rounded-xl p-6">
                 <p
                   className="text-xs uppercase tracking-wide mb-1"
                   style={{ color: "var(--muted)" }}
@@ -286,7 +288,7 @@ export default function DashboardPage() {
                   conversations
                 </p>
               </div>
-              <div className="glass rounded-xl p-5">
+              <div className="glass rounded-xl p-6">
                 <p
                   className="text-xs uppercase tracking-wide mb-1"
                   style={{ color: "var(--muted)" }}
@@ -342,8 +344,10 @@ export default function DashboardPage() {
 
           {/* Quick Actions */}
           <div>
-            <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <h2 className="text-2xl font-normal tracking-[-0.5px] mb-5" style={{ fontFamily: "var(--font-serif)" }}>
+              Quick Actions
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-3">
               {vm.controlUiUrl && (
                 <a
                   href={vm.controlUiUrl}
@@ -411,7 +415,9 @@ export default function DashboardPage() {
           {/* Model Selector (all-inclusive only) */}
           {vm.apiMode === "all_inclusive" && (
             <div>
-              <h2 className="text-lg font-semibold mb-4">Model</h2>
+              <h2 className="text-2xl font-normal tracking-[-0.5px] mb-5" style={{ fontFamily: "var(--font-serif)" }}>
+                Model
+              </h2>
               <div
                 className="glass rounded-xl p-5"
                 style={{ border: "1px solid var(--border)" }}
