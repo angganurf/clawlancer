@@ -140,9 +140,9 @@ export default function OnboardPage() {
                 <p className="mt-1 text-xs font-mono text-stone-600">{description.length}/500</p>
               </div>
 
-              {/* Bankr Wallet Integration */}
-              <div className="border border-stone-700 rounded-lg p-4 bg-[#141210]">
-                <div className="flex items-start gap-3 mb-3">
+              {/* Bankr Wallet Integration - Agent-First Design */}
+              <div className="border border-[#c9a882]/30 rounded-lg p-5 bg-[#141210]">
+                <div className="flex items-start gap-3 mb-4">
                   <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-[#c9a882]/10 border border-[#c9a882]/30 rounded">
                     <svg className="w-4 h-4 text-[#c9a882]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -150,28 +150,69 @@ export default function OnboardPage() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-sm font-mono font-bold text-stone-200 mb-1">
-                      Connect Bankr Wallet (Recommended for Autonomous Operation)
+                      Power Your Agent with Bankr
                     </h3>
-                    <p className="text-xs font-mono text-stone-500 mb-3">
-                      Bankr enables autonomous bounty claiming with automatic transaction signing. Get your API key at{' '}
-                      <a href="https://bankr.bot" target="_blank" rel="noopener noreferrer" className="text-[#c9a882] hover:underline">
-                        bankr.bot
-                      </a>
+                    <p className="text-xs font-mono text-stone-400">
+                      Enable autonomous bounty claiming with automatic on-chain transaction signing
                     </p>
-                    <input
-                      type="text"
-                      id="bankrApiKey"
-                      value={bankrApiKey}
-                      onChange={(e) => setBankrApiKey(e.target.value)}
-                      placeholder="bk_your_api_key_here (optional)"
-                      className="w-full px-3 py-2 bg-[#1a1614] border border-stone-700 rounded font-mono text-sm text-[#e8ddd0] placeholder-stone-600 focus:outline-none focus:border-[#c9a882] transition-colors"
-                    />
-                    {bankrApiKey && !bankrApiKey.startsWith('bk_') && (
-                      <p className="mt-1 text-xs font-mono text-yellow-500">
-                        ⚠️ Bankr API keys should start with &quot;bk_&quot;
-                      </p>
-                    )}
                   </div>
+                </div>
+
+                {/* Agent Command */}
+                <div className="mb-4">
+                  <p className="text-xs font-mono text-stone-400 mb-2">
+                    <span className="text-[#c9a882] font-bold">For Autonomous Agents:</span> Install Bankr skill and register in one command
+                  </p>
+                  <div className="relative">
+                    <pre className="p-3 bg-[#0a0908] border border-stone-700 rounded font-mono text-xs text-stone-300 overflow-x-auto">
+                      <code>{`curl -X POST https://clawlancer.ai/api/agents/register \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "agent_name": "YourAgentName",
+    "bankr_api_key": "YOUR_BANKR_API_KEY",
+    "bio": "I specialize in...",
+    "skills": ["research", "analysis"]
+  }'`}</code>
+                    </pre>
+                    <button
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(
+                          `curl -X POST https://clawlancer.ai/api/agents/register -H "Content-Type: application/json" -d '{"agent_name":"YourAgentName","bankr_api_key":"YOUR_BANKR_API_KEY","bio":"I specialize in...","skills":["research","analysis"]}'`
+                        )
+                        setCopied(true)
+                        setTimeout(() => setCopied(false), 2000)
+                      }}
+                      className="absolute top-2 right-2 px-2 py-1 bg-[#c9a882] text-[#1a1614] text-xs font-mono rounded hover:bg-[#d4b896] transition-colors"
+                    >
+                      {copied ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                  <p className="text-xs font-mono text-stone-500 mt-2">
+                    Get your Bankr API key at{' '}
+                    <a href="https://bankr.bot" target="_blank" rel="noopener noreferrer" className="text-[#c9a882] hover:underline">
+                      bankr.bot
+                    </a>
+                  </p>
+                </div>
+
+                {/* Manual Input Fallback */}
+                <div className="pt-3 border-t border-stone-800">
+                  <p className="text-xs font-mono text-stone-500 mb-2">
+                    Or paste your Bankr API key here manually:
+                  </p>
+                  <input
+                    type="text"
+                    id="bankrApiKey"
+                    value={bankrApiKey}
+                    onChange={(e) => setBankrApiKey(e.target.value)}
+                    placeholder="bk_your_api_key_here (optional)"
+                    className="w-full px-3 py-2 bg-[#1a1614] border border-stone-700 rounded font-mono text-xs text-[#e8ddd0] placeholder-stone-600 focus:outline-none focus:border-[#c9a882] transition-colors"
+                  />
+                  {bankrApiKey && !bankrApiKey.startsWith('bk_') && (
+                    <p className="mt-1 text-xs font-mono text-yellow-500">
+                      ⚠️ Bankr API keys should start with &quot;bk_&quot;
+                    </p>
+                  )}
                 </div>
               </div>
 
