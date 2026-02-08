@@ -99,6 +99,34 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
 }
 
+/* Light theme for dashboard - matches landing aesthetic */
+[data-theme="dashboard"] {
+  --background: #f8f7f4;
+  --foreground: #333334;
+  --muted: #6b6b6b;
+  --card: #ffffff;
+  --border: rgba(0, 0, 0, 0.1);
+  --accent: #DC6743;
+  --success: #16a34a;
+  --error: #dc2626;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+[data-theme="dashboard"] .glass {
+  background: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02) !important;
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1) !important;
+}
+
+[data-theme="dashboard"] .glass:hover {
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.04) !important;
+}
+
 /* Glassmorphism utility */
 .glass {
   background: rgba(10, 10, 10, 0.6);

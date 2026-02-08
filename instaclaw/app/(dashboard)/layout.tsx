@@ -33,16 +33,16 @@ export default function DashboardLayout({
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" data-theme="dashboard">
       {/* Top nav */}
       <nav
-        className="border-b"
-        style={{ borderColor: "var(--border)" }}
+        className="border-b transition-colors"
+        style={{ borderColor: "var(--border)", background: "var(--background)" }}
       >
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2 text-lg font-bold tracking-tight">
-            <Image src="/logo.png" alt="InstaClaw" width={24} height={24} className="invert" unoptimized style={{ imageRendering: "pixelated" }} />
-            Insta<span className="text-white">Claw</span>
+          <Link href="/dashboard" className="flex items-center gap-2 text-lg font-bold tracking-tight transition-opacity hover:opacity-70" style={{ fontFamily: "var(--font-serif)" }}>
+            <Image src="/logo.png" alt="InstaClaw" width={24} height={24} unoptimized style={{ imageRendering: "pixelated" }} />
+            Insta<span style={{ color: "var(--accent)" }}>Claw</span>
           </Link>
 
           <div className="flex items-center gap-1">
@@ -50,12 +50,12 @@ export default function DashboardLayout({
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-snappy transition-colors"
                 style={{
-                  color: pathname === item.href ? "#ffffff" : "var(--muted)",
+                  color: pathname === item.href ? "var(--foreground)" : "var(--muted)",
                   background:
                     pathname === item.href
-                      ? "rgba(255,255,255,0.08)"
+                      ? "rgba(0,0,0,0.06)"
                       : "transparent",
                 }}
               >
@@ -65,7 +65,7 @@ export default function DashboardLayout({
             ))}
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors cursor-pointer ml-2"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-snappy transition-colors cursor-pointer ml-2 hover:bg-[rgba(0,0,0,0.04)]"
               style={{ color: "var(--muted)" }}
             >
               <LogOut className="w-4 h-4" />
@@ -76,7 +76,7 @@ export default function DashboardLayout({
       </nav>
 
       {/* Content */}
-      <main className="max-w-6xl mx-auto px-4 py-8">{children}</main>
+      <main className="max-w-6xl mx-auto px-4 py-12 sm:py-16">{children}</main>
     </div>
   );
 }
