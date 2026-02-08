@@ -19,11 +19,14 @@ interface RegistrationResult {
 }
 
 export default function OnboardPage() {
-  const { user, authenticated, ready } = usePrivy()
+  const { user, authenticated, ready, login } = usePrivy()
   const [step, setStep] = useState(1)
   const [agentName, setAgentName] = useState('')
   const [description, setDescription] = useState('')
   const [bankrApiKey, setBankrApiKey] = useState('')
+  const [customWallet, setCustomWallet] = useState('')
+  const [showMoreWalletOptions, setShowMoreWalletOptions] = useState(false)
+  const [selectedWalletOption, setSelectedWalletOption] = useState<'privy' | 'custom' | null>(null)
 
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -36,18 +39,26 @@ export default function OnboardPage() {
     setError(null)
 
     try {
-      // Build registration payload — include Privy wallet if connected
+      // Build registration payload based on wallet selection priority
       const payload: Record<string, unknown> = {
         agent_name: agentName,
         description: description || undefined,
       }
 
-      // If Bankr API key provided, include it
+      // Priority 1: Bankr API key
       if (bankrApiKey.trim()) {
         payload.bankr_api_key = bankrApiKey.trim()
       }
-      // If user is authenticated with Privy, include their wallet
-      else if (authenticated && user?.wallet?.address) {
+      // Priority 2: Custom wallet address
+      else if (selectedWalletOption === 'custom' && customWallet.trim()) {
+        payload.wallet_address = customWallet.trim()
+      }
+      // Priority 3: Privy wallet (if user selected it explicitly or is authenticated)
+      else if (selectedWalletOption === 'privy' && authenticated && user?.wallet?.address) {
+        payload.wallet_address = user.wallet.address
+      }
+      // Auto-fallback: if no explicit selection but Privy is connected
+      else if (!selectedWalletOption && authenticated && user?.wallet?.address) {
         payload.wallet_address = user.wallet.address
       }
 
@@ -216,23 +227,95 @@ export default function OnboardPage() {
                 </div>
               </div>
 
-              {/* Wallet Status Indicators */}
-              {bankrApiKey && bankrApiKey.startsWith('bk_') && (
-                <div className="p-3 bg-purple-900/10 border border-purple-800/30 rounded text-xs font-mono text-purple-400">
-                  🤖 Bankr wallet will be used for autonomous operation
-                  {authenticated && user?.wallet?.address && (
-                    <span className="block mt-1 text-purple-500">
-                      (Privy wallet {user.wallet.address.slice(0, 10)}...{user.wallet.address.slice(-8)} will be ignored)
-                    </span>
-                  )}
-                </div>
-              )}
+              {/* More Wallet Options Dropdown */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowMoreWalletOptions(!showMoreWalletOptions)}
+                  className="w-full px-4 py-3 bg-[#141210] border border-stone-700 rounded font-mono text-sm text-stone-400 hover:text-stone-200 hover:border-stone-500 transition-colors flex items-center justify-center gap-2"
+                >
+                  <span>More Wallet Options</span>
+                  <svg
+                    className={`w-4 h-4 transition-transform ${showMoreWalletOptions ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
 
-              {authenticated && user?.wallet?.address && !bankrApiKey && (
-                <div className="p-3 bg-green-900/10 border border-green-800/30 rounded text-xs font-mono text-green-400">
-                  Privy wallet detected: {user.wallet.address.slice(0, 10)}...{user.wallet.address.slice(-8)} — will be linked automatically
-                </div>
-              )}
+                {showMoreWalletOptions && (
+                  <div className="mt-3 p-4 bg-[#141210] border border-stone-700 rounded space-y-3">
+                    {/* Privy Wallet Option */}
+                    <label className="flex items-start gap-3 cursor-pointer group">
+                      <input
+                        type="radio"
+                        name="walletOption"
+                        checked={selectedWalletOption === 'privy'}
+                        onChange={() => setSelectedWalletOption('privy')}
+                        className="mt-1 w-4 h-4 text-[#c9a882] bg-[#1a1614] border-stone-600 focus:ring-[#c9a882] focus:ring-2"
+                      />
+                      <div className="flex-1">
+                        <div className="text-sm font-mono text-stone-200 group-hover:text-[#c9a882] transition-colors">
+                          {authenticated && user?.wallet?.address ? 'Use Privy Wallet' : 'Connect with Privy'}
+                        </div>
+                        {authenticated && user?.wallet?.address ? (
+                          <div className="text-xs font-mono text-stone-500 mt-1">
+                            {user.wallet.address.slice(0, 10)}...{user.wallet.address.slice(-8)}
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              login()
+                            }}
+                            className="text-xs font-mono text-[#c9a882] hover:underline mt-1"
+                          >
+                            Click to connect →
+                          </button>
+                        )}
+                      </div>
+                    </label>
+
+                    {/* Custom Wallet Address Option */}
+                    <label className="flex items-start gap-3 cursor-pointer group">
+                      <input
+                        type="radio"
+                        name="walletOption"
+                        checked={selectedWalletOption === 'custom'}
+                        onChange={() => setSelectedWalletOption('custom')}
+                        className="mt-1 w-4 h-4 text-[#c9a882] bg-[#1a1614] border-stone-600 focus:ring-[#c9a882] focus:ring-2"
+                      />
+                      <div className="flex-1">
+                        <div className="text-sm font-mono text-stone-200 group-hover:text-[#c9a882] transition-colors mb-2">
+                          Paste Custom Wallet Address
+                        </div>
+                        <input
+                          type="text"
+                          value={customWallet}
+                          onChange={(e) => {
+                            setCustomWallet(e.target.value)
+                            setSelectedWalletOption('custom')
+                          }}
+                          placeholder="0x..."
+                          className="w-full px-3 py-2 bg-[#1a1614] border border-stone-700 rounded font-mono text-xs text-[#e8ddd0] placeholder-stone-600 focus:outline-none focus:border-[#c9a882] transition-colors"
+                        />
+                        {customWallet && !/^0x[a-fA-F0-9]{40}$/.test(customWallet) && (
+                          <p className="mt-1 text-xs font-mono text-yellow-500">
+                            ⚠️ Invalid address format
+                          </p>
+                        )}
+                      </div>
+                    </label>
+
+                    <p className="text-xs font-mono text-stone-600 pt-2 border-t border-stone-800">
+                      Note: Bankr (above) is recommended for autonomous agents. These options are for manual wallet management.
+                    </p>
+                  </div>
+                )}
+              </div>
 
               {error && (
                 <div className="p-4 bg-red-900/20 border border-red-800 rounded">
