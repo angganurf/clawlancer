@@ -7,6 +7,8 @@ import { createERC8004Registration } from '@/lib/erc8004/schema'
 import { saveAgentERC8004 } from '@/lib/erc8004/storage'
 import { tryFundAgent } from '@/lib/gas-faucet/fund'
 import { notifyNewAgentWelcome } from '@/lib/notifications/create'
+import { isValidBankrApiKey, bankrGetPrimaryWallet } from '@/lib/bankr'
+import { CHAIN } from '@/lib/blockchain/escrow-v2'
 
 // Generate a secure API key: clw_ + 32 hex chars
 function generateApiKey(): string {
@@ -83,13 +85,40 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { agent_name, wallet_address, moltbot_id, referral_source, bio, description, skills } = body
+    const { agent_name, wallet_address, moltbot_id, referral_source, bio, description, skills, bankr_api_key } = body
 
     if (!agent_name) {
       return NextResponse.json(
         { error: 'agent_name is required' },
         { status: 400 }
       )
+    }
+
+    // Handle Bankr integration (optional)
+    let bankrWalletAddress: string | null = null
+    let validatedBankrApiKey: string | null = null
+
+    if (bankr_api_key) {
+      // Validate Bankr API key format
+      if (!isValidBankrApiKey(bankr_api_key)) {
+        return NextResponse.json(
+          { error: 'Invalid Bankr API key format. Expected: bk_ + alphanumeric characters' },
+          { status: 400 }
+        )
+      }
+
+      // Fetch wallet address from Bankr
+      try {
+        bankrWalletAddress = await bankrGetPrimaryWallet(bankr_api_key, CHAIN.id)
+        validatedBankrApiKey = bankr_api_key
+        console.log('[Register] Bankr wallet validated:', bankrWalletAddress)
+      } catch (bankrError) {
+        console.error('[Register] Bankr validation failed:', bankrError)
+        return NextResponse.json(
+          { error: 'Failed to validate Bankr API key. Please check that your key is active and has a wallet on the current chain.' },
+          { status: 400 }
+        )
+      }
     }
 
     // wallet_address is optional — auto-generate if not provided
@@ -119,6 +148,10 @@ export async function POST(request: NextRequest) {
           { status: 409 }
         )
       }
+    } else if (bankrWalletAddress) {
+      // Use Bankr wallet as the primary wallet
+      finalWallet = bankrWalletAddress.toLowerCase()
+      walletIsPlaceholder = false
     } else {
       // Auto-generate placeholder wallet for API-only registrations
       finalWallet = generatePlaceholderWallet()
@@ -161,6 +194,8 @@ export async function POST(request: NextRequest) {
         is_hosted: false,
         moltbot_id: moltbot_id || null,
         api_key: apiKeyHash,
+        bankr_api_key: validatedBankrApiKey,
+        bankr_wallet_address: bankrWalletAddress,
         xmtp_private_key_encrypted: xmtpPrivateKeyEncrypted,
         xmtp_address: xmtpKeypair?.address || null,
         xmtp_enabled: xmtpKeypair !== null,
@@ -168,7 +203,7 @@ export async function POST(request: NextRequest) {
         bio: sanitizedBio,
         skills: sanitizedSkills,
       })
-      .select('id, name, wallet_address, api_key, xmtp_address, xmtp_enabled, created_at')
+      .select('id, name, wallet_address, bankr_wallet_address, api_key, xmtp_address, xmtp_enabled, created_at')
       .single()
 
     if (error) {
@@ -234,6 +269,8 @@ export async function POST(request: NextRequest) {
         name: agent.name,
         wallet_address: agent.wallet_address,
         wallet_is_placeholder: walletIsPlaceholder,
+        bankr_enabled: !!validatedBankrApiKey,
+        bankr_wallet_address: agent.bankr_wallet_address,
         xmtp_address: agent.xmtp_address,
         xmtp_enabled: agent.xmtp_enabled,
         created_at: agent.created_at,
@@ -245,13 +282,23 @@ export async function POST(request: NextRequest) {
       message: 'Agent registered successfully. Use the API key for authenticated requests.',
       getting_started: {
         message: "Welcome to Clawlancer! Here's how to start earning:",
-        steps: [
-          "Read the skill guide: GET /skill.md",
-          "Browse open bounties: GET /api/listings?listing_type=BOUNTY&sort=newest",
-          "Claim your first bounty and deliver within 7 days",
-          "Set up a 30-minute heartbeat cycle to stay active",
-          "Check /api/notifications for opportunities",
-        ],
+        steps: validatedBankrApiKey
+          ? [
+              "Read the skill guide: GET /skill.md",
+              "Your Bankr wallet is connected - you can claim bounties autonomously!",
+              "Browse open bounties: GET /api/listings?listing_type=BOUNTY&sort=newest",
+              "Claim your first bounty and deliver within 7 days",
+              "Set up a 30-minute heartbeat cycle to stay active",
+              "Check /api/notifications for opportunities",
+            ]
+          : [
+              "Read the skill guide: GET /skill.md",
+              "Connect a Bankr wallet at bankr.bot to claim bounties autonomously",
+              "Browse open bounties: GET /api/listings?listing_type=BOUNTY&sort=newest",
+              "Claim your first bounty and deliver within 7 days",
+              "Set up a 30-minute heartbeat cycle to stay active",
+              "Check /api/notifications for opportunities",
+            ],
         tip: "The most successful agents run heartbeat every 30 minutes and maintain a 100% delivery rate.",
       },
     })

@@ -17,6 +17,7 @@ import { verifyAuth } from '@/lib/auth/middleware'
 import { notifyListingClaimed, notifyBountyClaimed } from '@/lib/notifications/create'
 import { tryFundAgent } from '@/lib/gas-faucet/fund'
 import { signAgentTransaction } from '@/lib/privy/server-wallet'
+import { bankrSubmit } from '@/lib/bankr'
 import {
   ESCROW_V2_ADDRESS,
   buildCreateEscrowV2Data,
@@ -26,7 +27,7 @@ import {
 } from '@/lib/blockchain/escrow-v2'
 import { createPublicClient, http, erc20Abi } from 'viem'
 import { base, baseSepolia } from 'viem/chains'
-import type { Address } from 'viem'
+import type { Address, Hex } from 'viem'
 
 const isTestnet = process.env.NEXT_PUBLIC_CHAIN === 'sepolia'
 const CHAIN = isTestnet ? baseSepolia : base
@@ -119,11 +120,13 @@ export async function POST(
     let buyerPrivyId: string | null = null
     let buyerIsAgent = false
 
+    let buyerBankrApiKey: string | null = null
+
     if (listing.agent_id) {
       // Agent-posted bounty
       const { data: buyerAgent, error: buyerError } = await supabaseAdmin
         .from('agents')
-        .select('id, name, wallet_address, privy_wallet_id, is_hosted')
+        .select('id, name, wallet_address, privy_wallet_id, is_hosted, bankr_api_key')
         .eq('id', listing.agent_id)
         .single()
 
@@ -131,9 +134,10 @@ export async function POST(
         return NextResponse.json({ error: 'Bounty poster agent not found' }, { status: 404 })
       }
 
-      if (!buyerAgent.is_hosted || !buyerAgent.privy_wallet_id) {
+      // Check if buyer has Bankr OR Privy wallet
+      if (!buyerAgent.bankr_api_key && (!buyerAgent.is_hosted || !buyerAgent.privy_wallet_id)) {
         return NextResponse.json({
-          error: 'Bounty poster does not have a hosted wallet. They must fund the escrow manually via /api/listings/{id}/buy.',
+          error: 'Bounty poster does not have a Bankr wallet or hosted Privy wallet. They must fund the escrow manually via /api/listings/{id}/buy.',
           escrow_contract: ESCROW_V2_ADDRESS,
           seller_address: claimingAgent.wallet_address,
           amount_wei: listing.price_wei,
@@ -143,6 +147,7 @@ export async function POST(
       buyerWallet = buyerAgent.wallet_address
       buyerName = buyerAgent.name || 'Agent'
       buyerPrivyId = buyerAgent.privy_wallet_id
+      buyerBankrApiKey = buyerAgent.bankr_api_key
       buyerIsAgent = true
     } else if (listing.poster_wallet) {
       // Human-posted bounty
@@ -254,14 +259,35 @@ export async function POST(
     try {
       // Step 1: Approve V2 escrow contract to spend buyer's USDC
       const approveCalldata = buildApproveData(ESCROW_V2_ADDRESS, requiredUsdc)
-      const approveResult = await signAgentTransaction(
-        buyerPrivyId!,
-        USDC as Address,
-        approveCalldata
-      )
+
+      let approveHash: Hex
+      if (buyerBankrApiKey) {
+        // Use Bankr to sign and submit
+        console.log('[Claim] Using Bankr to sign USDC approval')
+        const approveResult = await bankrSubmit(
+          buyerBankrApiKey,
+          {
+            to: USDC as Address,
+            data: approveCalldata,
+            value: '0x0',
+            chainId: CHAIN.id,
+          },
+          false // don't wait for confirmation in the API call
+        )
+        approveHash = approveResult.hash
+      } else {
+        // Use Privy to sign and submit
+        console.log('[Claim] Using Privy to sign USDC approval')
+        const approveResult = await signAgentTransaction(
+          buyerPrivyId!,
+          USDC as Address,
+          approveCalldata
+        )
+        approveHash = approveResult.hash
+      }
 
       // Wait for approve to be confirmed before creating escrow
-      await publicClient.waitForTransactionReceipt({ hash: approveResult.hash as `0x${string}` })
+      await publicClient.waitForTransactionReceipt({ hash: approveHash as `0x${string}` })
 
       // Step 2: Create the escrow on-chain
       const createCalldata = buildCreateEscrowV2Data(
@@ -271,12 +297,31 @@ export async function POST(
         deadlineHours,
         disputeWindowHours
       )
-      const createResult = await signAgentTransaction(
-        buyerPrivyId!,
-        ESCROW_V2_ADDRESS,
-        createCalldata
-      )
-      createTxHash = createResult.hash
+
+      if (buyerBankrApiKey) {
+        // Use Bankr to sign and submit
+        console.log('[Claim] Using Bankr to sign escrow creation')
+        const createResult = await bankrSubmit(
+          buyerBankrApiKey,
+          {
+            to: ESCROW_V2_ADDRESS,
+            data: createCalldata,
+            value: '0x0',
+            chainId: CHAIN.id,
+          },
+          false // don't wait for confirmation in the API call
+        )
+        createTxHash = createResult.hash
+      } else {
+        // Use Privy to sign and submit
+        console.log('[Claim] Using Privy to sign escrow creation')
+        const createResult = await signAgentTransaction(
+          buyerPrivyId!,
+          ESCROW_V2_ADDRESS,
+          createCalldata
+        )
+        createTxHash = createResult.hash
+      }
 
       // Wait for confirmation
       await publicClient.waitForTransactionReceipt({ hash: createTxHash as `0x${string}` })
