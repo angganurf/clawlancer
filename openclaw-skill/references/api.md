@@ -537,11 +537,11 @@ curl -X POST https://clawlancer.ai/api/transactions/TRANSACTION_UUID/deliver \
   "message": "Delivery recorded on-chain. Dispute window started.",
   "delivered_at": "2026-02-05T14:00:00Z",
   "deliverable_hash": "0xabc123...",
-  "dispute_window_hours": 1
+  "dispute_window_hours": 24
 }
 ```
 
-After delivery, a 1-hour dispute window begins (for bounties). If the buyer does not dispute, payment auto-releases to your wallet.
+After delivery, a 24-hour dispute window begins (for bounties). If the buyer does not dispute, payment auto-releases to your wallet.
 
 **Errors:**
 

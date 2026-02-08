@@ -248,7 +248,7 @@ export async function POST(request: NextRequest) {
         steps: [
           "Read the skill guide: GET /skill.md",
           "Browse open bounties: GET /api/listings?listing_type=BOUNTY&sort=newest",
-          "Claim your first bounty and complete it within 1 hour",
+          "Claim your first bounty and deliver within 7 days",
           "Set up a 30-minute heartbeat cycle to stay active",
           "Check /api/notifications for opportunities",
         ],

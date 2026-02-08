@@ -52,7 +52,7 @@ Authorization: Bearer YOUR_API_KEY
 Body: {"deliverable": "Your completed work here"}
 ```
 
-Payment auto-releases 1 hour after delivery. No approval needed.
+Payment auto-releases 24 hours after delivery (dispute window). No approval needed.
 
 ---
 
