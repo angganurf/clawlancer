@@ -100,7 +100,7 @@ function getTierBadge(tier: string | null): { label: string; className: string }
 }
 
 export function MarketplaceContent({ initialListings }: { initialListings: Listing[] }) {
-  const { ready, authenticated, login } = usePrivySafe()
+  const { ready, authenticated, login, user } = usePrivySafe()
   const [listings, setListings] = useState<Listing[]>(initialListings)
   const [isLoading, setIsLoading] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
@@ -114,6 +114,8 @@ export function MarketplaceContent({ initialListings }: { initialListings: Listi
   const [showPostBounty, setShowPostBounty] = useState(false)
   const [showCompleted, setShowCompleted] = useState(false)
   const [hasInteracted, setHasInteracted] = useState(false)
+  const [myBountiesFilter, setMyBountiesFilter] = useState(false)
+  const [successToast, setSuccessToast] = useState('')
 
   // Debounce search input
   useEffect(() => {
@@ -133,6 +135,9 @@ export function MarketplaceContent({ initialListings }: { initialListings: Listi
         if (debouncedSearch) params.set('keyword', debouncedSearch)
         if (skillFilter !== 'all') params.set('skill', skillFilter)
         if (showCompleted) params.set('include_completed', 'true')
+        if (myBountiesFilter && user?.wallet?.address) {
+          params.set('owner', user.wallet.address)
+        }
         params.set('sort', sortBy)
         const res = await fetch(`/api/listings?${params.toString()}`)
         if (res.ok) {
@@ -146,7 +151,7 @@ export function MarketplaceContent({ initialListings }: { initialListings: Listi
       }
     }
     fetchListings()
-  }, [debouncedSearch, skillFilter, sortBy, showCompleted, hasInteracted])
+  }, [debouncedSearch, skillFilter, sortBy, showCompleted, myBountiesFilter, user?.wallet?.address, hasInteracted])
 
   // Track when user starts interacting with filters
   function handleFilterChange<T>(setter: (v: T) => void, value: T) {
@@ -209,12 +214,34 @@ export function MarketplaceContent({ initialListings }: { initialListings: Listi
       </header>
 
       <div className="max-w-7xl mx-auto px-6 py-12">
+        {/* Success Toast */}
+        {successToast && (
+          <div className="fixed top-4 right-4 z-50 bg-green-700 text-white px-6 py-3 rounded-lg shadow-lg font-mono text-sm animate-fade-in">
+            {successToast}
+          </div>
+        )}
+
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-mono font-bold">Marketplace</h1>
           <div className="flex items-center gap-4">
             <p className="text-sm font-mono text-stone-500">
               {sortedListings.length} listing{sortedListings.length !== 1 ? 's' : ''}
             </p>
+            {authenticated && (
+              <button
+                onClick={() => {
+                  setHasInteracted(true)
+                  setMyBountiesFilter(prev => !prev)
+                }}
+                className={`px-4 py-2 font-mono text-sm rounded border transition-colors ${
+                  myBountiesFilter
+                    ? 'bg-[#c9a882]/20 border-[#c9a882] text-[#c9a882]'
+                    : 'border-stone-600 text-stone-300 hover:border-stone-500'
+                }`}
+              >
+                My Bounties
+              </button>
+            )}
             <button
               onClick={() => setShowPostBounty(true)}
               className="px-4 py-2 bg-green-700 text-white font-mono text-sm rounded hover:bg-green-600 transition-colors"
@@ -523,7 +550,10 @@ export function MarketplaceContent({ initialListings }: { initialListings: Listi
         <PostBountyModal onClose={() => setShowPostBounty(false)} onPosted={() => {
           setShowPostBounty(false)
           setHasInteracted(true)
-          setSortBy(s => s)
+          setMyBountiesFilter(true)
+          setSortBy('newest')
+          setSuccessToast('Bounty posted! Agents will start competing for your task.')
+          setTimeout(() => setSuccessToast(''), 5000)
         }} />
       )}
     </main>
