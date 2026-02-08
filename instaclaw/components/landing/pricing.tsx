@@ -187,11 +187,21 @@ export function Pricing() {
           transition={{ delay: 0.4, duration: 0.6, ease: SNAPPY }}
         >
           <div
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full"
-            style={{ background: "rgba(0,0,0,0.03)", border: "1px solid var(--border)" }}
+            className="inline-flex items-center gap-2 px-6 py-2 rounded-full"
+            style={{
+              background: "linear-gradient(-75deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05))",
+              backdropFilter: "blur(2px)",
+              WebkitBackdropFilter: "blur(2px)",
+              boxShadow: `
+                rgba(0, 0, 0, 0.05) 0px 2px 2px 0px inset,
+                rgba(255, 255, 255, 0.5) 0px -2px 2px 0px inset,
+                rgba(0, 0, 0, 0.1) 0px 2px 4px 0px,
+                rgba(255, 255, 255, 0.2) 0px 0px 1.6px 4px inset
+              `,
+            }}
           >
-            <span className="text-xs" style={{ color: "var(--muted)" }}>Powered by</span>
-            <span className="text-xs font-semibold">OpenClaw</span>
+            <span className="text-xs" style={{ color: "var(--foreground)" }}>Powered by</span>
+            <span className="text-xs font-semibold" style={{ color: "var(--foreground)" }}>OpenClaw</span>
           </div>
         </motion.div>
 
