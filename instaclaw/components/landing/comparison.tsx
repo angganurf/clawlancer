@@ -1,30 +1,36 @@
 "use client";
 
 import { motion } from "motion/react";
-import { X, Check } from "lucide-react";
 
 const SNAPPY = [0.23, 1, 0.32, 1] as const;
 
-const painPoints = [
-  "Provision and maintain servers",
-  "Configure Docker, SSH, and networking",
-  "Handle API keys and rate limits",
-  "Monitor uptime and restarts",
-  "Debug deployment issues yourself",
-];
-
-const benefits = [
-  "No infrastructure to manage",
-  "Full OpenClaw instance in minutes",
-  "Built-in Claude API or bring your own key",
-  "99.9% uptime, auto-healing",
-  "Shell access, skills, memory — everything",
+const rows = [
+  {
+    old: "Provision and maintain servers",
+    new: "No infrastructure to manage",
+  },
+  {
+    old: "Configure Docker, SSH, and networking",
+    new: "Full OpenClaw instance in minutes",
+  },
+  {
+    old: "Handle API keys and rate limits",
+    new: "Built-in Claude API or bring your own key",
+  },
+  {
+    old: "Monitor uptime and restarts",
+    new: "99.9% uptime, auto-healing",
+  },
+  {
+    old: "Debug deployment issues yourself",
+    new: "Shell access, skills, memory — everything",
+  },
 ];
 
 export function Comparison() {
   return (
     <section className="py-16 sm:py-[12vh] px-4">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-3xl mx-auto">
         <motion.div
           className="text-center mb-16"
           initial={{ opacity: 0, y: 20 }}
@@ -38,67 +44,79 @@ export function Comparison() {
           >
             The Old Way vs. InstaClaw
           </h2>
-          <p style={{ color: "var(--muted)" }}>
-            Stop fighting infrastructure. Start using OpenClaw.
-          </p>
         </motion.div>
 
-        <div className="grid gap-6 sm:grid-cols-2">
-          {/* Traditional */}
-          <motion.div
-            className="glass rounded-xl p-8"
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.6, ease: SNAPPY }}
-          >
-            <h3
-              className="text-lg font-semibold mb-6"
+        {/* Column headers */}
+        <motion.div
+          className="flex"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6, ease: SNAPPY }}
+        >
+          <div className="flex-1 pb-4">
+            <span
+              className="text-xs sm:text-sm uppercase tracking-[2px]"
               style={{ color: "var(--muted)" }}
             >
-              Self-Hosting OpenClaw
-            </h3>
-            <ul className="space-y-4">
-              {painPoints.map((point) => (
-                <li
-                  key={point}
-                  className="flex items-start gap-3 text-sm line-through"
-                  style={{ color: "var(--muted)" }}
-                >
-                  <X className="w-4 h-4 mt-0.5 shrink-0 text-red-400" />
-                  {point}
-                </li>
-              ))}
-            </ul>
-          </motion.div>
+              Self-Hosting
+            </span>
+          </div>
+          <div className="flex-1 pb-4 pl-6 sm:pl-10">
+            <span
+              className="text-xs sm:text-sm uppercase tracking-[2px]"
+              style={{ color: "var(--accent)" }}
+            >
+              InstaClaw
+            </span>
+          </div>
+        </motion.div>
 
-          {/* InstaClaw */}
-          <motion.div
-            className="glass rounded-xl p-8"
-            style={{
-              border: "2px solid var(--accent)",
-            }}
-            initial={{ opacity: 0, x: 30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.6, delay: 0.15, ease: SNAPPY }}
-          >
-            <h3 className="text-lg font-semibold mb-6">With InstaClaw</h3>
-            <ul className="space-y-4">
-              {benefits.map((benefit) => (
-                <li
-                  key={benefit}
-                  className="flex items-start gap-3 text-sm"
-                >
-                  <Check
-                    className="w-4 h-4 mt-0.5 shrink-0"
-                    style={{ color: "var(--accent)" }}
-                  />
-                  {benefit}
-                </li>
-              ))}
-            </ul>
-          </motion.div>
+        {/* Rows */}
+        <div className="space-y-0">
+          {rows.map((row, i) => (
+            <motion.div
+              key={i}
+              className="relative"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ delay: i * 0.08, duration: 0.6, ease: SNAPPY }}
+            >
+              {/* Top border */}
+              <div
+                className="h-px w-full"
+                style={{ background: "var(--border)" }}
+              />
+
+              <div className="flex py-6 sm:py-8">
+                {/* Old way */}
+                <div className="flex-1 pr-4 sm:pr-6">
+                  <p
+                    className="text-sm sm:text-base leading-relaxed line-through decoration-1"
+                    style={{ color: "var(--muted)" }}
+                  >
+                    {row.old}
+                  </p>
+                </div>
+
+                {/* New way */}
+                <div className="flex-1 pl-6 sm:pl-10 border-l" style={{ borderColor: "var(--border)" }}>
+                  <p className="text-sm sm:text-base leading-relaxed">
+                    {row.new}
+                  </p>
+                </div>
+              </div>
+
+              {/* Bottom border on last item */}
+              {i === rows.length - 1 && (
+                <div
+                  className="h-px w-full"
+                  style={{ background: "var(--border)" }}
+                />
+              )}
+            </motion.div>
+          ))}
         </div>
       </div>
     </section>
