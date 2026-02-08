@@ -197,28 +197,26 @@ html.lenis body {
   }
   50% {
     box-shadow:
-      0 0 16px 4px rgba(220, 103, 67, 0.45),
-      0 0 40px 8px rgba(220, 103, 67, 0.15),
-      0 0 60px 12px rgba(220, 103, 67, 0.05);
+      0 0 16px 4px rgba(220, 103, 67, 0.4),
+      0 0 36px 8px rgba(220, 103, 67, 0.12);
   }
 }
 
-.glow-border {
+/* Outer wrapper: carries the pulsing shadow halo (not clipped) */
+.glow-wrap {
   position: relative;
-  padding: 2px;
   border-radius: 0.5rem;
-  overflow: visible;
   animation: glow-pulse-orange 3s ease-in-out infinite;
   width: 100%;
 }
 
-.glow-border::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
+/* Inner wrapper: clips the spinning gradient to the border area */
+.glow-border {
+  position: relative;
+  padding: 2px;
+  border-radius: 0.5rem;
   overflow: hidden;
-  z-index: 0;
+  width: 100%;
 }
 
 .glow-border > .glow-spinner {

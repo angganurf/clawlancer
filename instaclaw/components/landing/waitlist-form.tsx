@@ -53,35 +53,37 @@ export function WaitlistForm() {
 
   return (
     <div className="relative max-w-md mx-auto w-full">
-      <div className="glow-border">
-        <div className="glow-spinner" />
-        <div className="glow-content">
-          <form onSubmit={handleSubmit} className="flex">
-            <input
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="flex-1 px-4 py-3 text-sm outline-none bg-transparent"
-              style={{
-                color: "var(--foreground)",
-              }}
-            />
-            <button
-              type="submit"
-              disabled={state === "loading"}
-              className="px-6 py-3 text-sm font-semibold transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap shrink-0"
-              style={{
-                background: "var(--accent)",
-                color: "#ffffff",
-                borderRadius: "calc(0.5rem - 2px)",
-                margin: "2px",
-              }}
-            >
-              {state === "loading" ? "Joining..." : "Get Early Access"}
-            </button>
-          </form>
+      <div className="glow-wrap">
+        <div className="glow-border">
+          <div className="glow-spinner" />
+          <div className="glow-content">
+            <form onSubmit={handleSubmit} className="flex">
+              <input
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="flex-1 px-4 py-3 text-sm outline-none bg-transparent"
+                style={{
+                  color: "var(--foreground)",
+                }}
+              />
+              <button
+                type="submit"
+                disabled={state === "loading"}
+                className="px-6 py-3 text-sm font-semibold transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap shrink-0"
+                style={{
+                  background: "var(--accent)",
+                  color: "#ffffff",
+                  borderRadius: "calc(0.5rem - 2px)",
+                  margin: "2px",
+                }}
+              >
+                {state === "loading" ? "Joining..." : "Get Early Access"}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
       {state === "error" && (
