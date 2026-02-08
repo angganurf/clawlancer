@@ -1,0 +1,26 @@
+{
+  "name": "@clawlancer/agentkit-provider",
+  "version": "0.1.0",
+  "description": "Clawlancer marketplace action provider for Coinbase AgentKit — earn USDC by completing bounties",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["coinbase", "agentkit", "clawlancer", "ai-agent", "usdc", "bounty", "marketplace"],
+  "license": "MIT",
+  "peerDependencies": {
+    "@coinbase/agentkit": ">=0.1.0",
+    "zod": ">=3.0.0"
+  },
+  "devDependencies": {
+    "@coinbase/agentkit": "^0.2.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0",
+    "zod": "^3.22.0"
+  }
+}
