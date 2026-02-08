@@ -25,14 +25,24 @@ function parseDecorations(text: string) {
 }
 
 function Highlight({ children, revealed }: { children: string; revealed: boolean }) {
+  const [everRevealed, setEverRevealed] = useState(false);
+
+  useEffect(() => {
+    if (revealed && !everRevealed) {
+      setEverRevealed(true);
+    }
+  }, [revealed, everRevealed]);
+
+  const isShown = revealed || everRevealed;
+
   return (
-    <span className={`scroll-word${revealed ? " revealed" : ""} relative inline-block`}>
+    <span className={`scroll-word${isShown ? " revealed" : ""} relative inline-block`}>
       <span
         className="absolute inset-0 -mx-1 -my-0.5 rounded transition-all duration-500"
         style={{
           background: "#fef08a",
-          opacity: revealed ? 1 : 0,
-          transform: revealed ? "scale(1)" : "scale(0.95)",
+          opacity: isShown ? 1 : 0,
+          transform: isShown ? "scale(1)" : "scale(0.95)",
         }}
       />
       <span className="relative">{children}</span>
@@ -41,8 +51,18 @@ function Highlight({ children, revealed }: { children: string; revealed: boolean
 }
 
 function Circle({ children, revealed }: { children: string; revealed: boolean }) {
+  const [everRevealed, setEverRevealed] = useState(false);
+
+  useEffect(() => {
+    if (revealed && !everRevealed) {
+      setEverRevealed(true);
+    }
+  }, [revealed, everRevealed]);
+
+  const isShown = revealed || everRevealed;
+
   return (
-    <span className={`scroll-word${revealed ? " revealed" : ""} relative inline-block`}>
+    <span className={`scroll-word${isShown ? " revealed" : ""} relative inline-block`}>
       <svg
         className="absolute pointer-events-none"
         style={{
@@ -66,9 +86,9 @@ function Circle({ children, revealed }: { children: string; revealed: boolean })
           strokeLinejoin="round"
           style={{
             strokeDasharray: "400",
-            strokeDashoffset: revealed ? 0 : 400,
+            strokeDashoffset: isShown ? 0 : 400,
             transition: "stroke-dashoffset 0.8s ease-out",
-            opacity: revealed ? 0.5 : 0,
+            opacity: isShown ? 0.5 : 0,
           }}
         />
         <path
@@ -80,9 +100,9 @@ function Circle({ children, revealed }: { children: string; revealed: boolean })
           strokeLinejoin="round"
           style={{
             strokeDasharray: "400",
-            strokeDashoffset: revealed ? 0 : 400,
+            strokeDashoffset: isShown ? 0 : 400,
             transition: "stroke-dashoffset 0.9s ease-out",
-            opacity: revealed ? 0.6 : 0,
+            opacity: isShown ? 0.6 : 0,
           }}
         />
       </svg>
@@ -92,8 +112,18 @@ function Circle({ children, revealed }: { children: string; revealed: boolean })
 }
 
 function Underline({ children, revealed }: { children: string; revealed: boolean }) {
+  const [everRevealed, setEverRevealed] = useState(false);
+
+  useEffect(() => {
+    if (revealed && !everRevealed) {
+      setEverRevealed(true);
+    }
+  }, [revealed, everRevealed]);
+
+  const isShown = revealed || everRevealed;
+
   return (
-    <span className={`scroll-word${revealed ? " revealed" : ""} relative inline-block`}>
+    <span className={`scroll-word${isShown ? " revealed" : ""} relative inline-block`}>
       <svg
         className="absolute pointer-events-none"
         style={{
@@ -114,9 +144,9 @@ function Underline({ children, revealed }: { children: string; revealed: boolean
           strokeLinecap="round"
           style={{
             strokeDasharray: "100",
-            strokeDashoffset: revealed ? 0 : 100,
+            strokeDashoffset: isShown ? 0 : 100,
             transition: "stroke-dashoffset 0.8s ease-out",
-            opacity: revealed ? 0.8 : 0,
+            opacity: isShown ? 0.8 : 0,
           }}
         />
       </svg>
