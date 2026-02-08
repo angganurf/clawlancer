@@ -9,7 +9,19 @@ import { Footer } from "@/components/landing/footer";
 
 export default function Home() {
   return (
-    <main data-theme="landing">
+    <main
+      data-theme="landing"
+      style={{
+        '--background': '#f8f7f4',
+        '--foreground': '#333334',
+        '--muted': '#6b6b6b',
+        '--card': '#ffffff',
+        '--border': 'rgba(0, 0, 0, 0.1)',
+        '--accent': '#2b5e49',
+        background: '#f8f7f4',
+        color: '#333334',
+      } as React.CSSProperties}
+    >
       <Hero />
       <HowItWorks />
       <Comparison />
