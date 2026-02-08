@@ -3,6 +3,7 @@ import { getSupabase } from "@/lib/supabase";
 import { configureOpenClaw, waitForHealth } from "@/lib/ssh";
 import { validateAdminKey } from "@/lib/security";
 import { logger } from "@/lib/logger";
+import { sendVMReadyEmail } from "@/lib/email";
 
 // SSH + configure-vm.sh + health check can take 60-90s
 export const maxDuration = 120;
@@ -111,6 +112,25 @@ export async function POST(req: NextRequest) {
           last_health_check: new Date().toISOString(),
         })
         .eq("id", vm.id);
+
+      // Send deployment success email
+      const { data: user } = await supabase
+        .from("instaclaw_users")
+        .select("email")
+        .eq("id", userId)
+        .single();
+
+      if (user?.email) {
+        try {
+          await sendVMReadyEmail(user.email, `${process.env.NEXTAUTH_URL}/dashboard`);
+        } catch (emailErr) {
+          logger.error("Failed to send VM ready email", {
+            error: String(emailErr),
+            route: "vm/configure",
+            userId,
+          });
+        }
+      }
     }
 
     return NextResponse.json({
