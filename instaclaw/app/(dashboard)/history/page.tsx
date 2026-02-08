@@ -46,16 +46,18 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <div>
-        <h1 className="text-2xl font-bold">Conversation History</h1>
-        <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
+        <h1 className="text-3xl sm:text-4xl font-normal tracking-[-0.5px]" style={{ fontFamily: "var(--font-serif)" }}>
+          Conversation History
+        </h1>
+        <p className="text-base mt-2" style={{ color: "var(--muted)" }}>
           View past conversations with your bot.
         </p>
       </div>
 
       {loading ? (
-        <div className="glass rounded-xl p-8 text-center">
+        <div className="glass rounded-xl p-10 text-center">
           <p className="text-sm" style={{ color: "var(--muted)" }}>
             Loading conversations...
           </p>
@@ -76,13 +78,13 @@ export default function HistoryPage() {
           </button>
 
           {loadingMessages ? (
-            <div className="glass rounded-xl p-8 text-center">
+            <div className="glass rounded-xl p-10 text-center">
               <p className="text-sm" style={{ color: "var(--muted)" }}>
                 Loading messages...
               </p>
             </div>
           ) : messages.length === 0 ? (
-            <div className="glass rounded-xl p-8 text-center">
+            <div className="glass rounded-xl p-10 text-center">
               <p className="text-sm" style={{ color: "var(--muted)" }}>
                 No messages in this conversation.
               </p>
@@ -123,7 +125,7 @@ export default function HistoryPage() {
           )}
         </div>
       ) : sessions.length === 0 ? (
-        <div className="glass rounded-xl p-8 text-center">
+        <div className="glass rounded-xl p-10 text-center">
           <MessageSquare className="w-8 h-8 mx-auto mb-3" style={{ color: "var(--muted)" }} />
           <p className="text-sm" style={{ color: "var(--muted)" }}>
             No conversations yet. Start chatting with your bot!
