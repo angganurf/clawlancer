@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabase } from "@/lib/supabase";
-import { checkHealth, restartGateway } from "@/lib/ssh";
-import { sendHealthAlertEmail } from "@/lib/email";
+import { checkHealth, restartGateway, stopGateway } from "@/lib/ssh";
+import { sendHealthAlertEmail, sendSuspendedEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
 
 const ALERT_THRESHOLD = 3; // Send alert after 3 consecutive failures
+const SUSPENSION_GRACE_DAYS = 7; // Days before suspending VM for past_due payment
 const ADMIN_EMAIL = process.env.ADMIN_ALERT_EMAIL ?? "";
 
 export async function GET(req: NextRequest) {
@@ -104,11 +105,89 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // ========================================================================
+  // Second pass: Check for past_due subscriptions and suspend after grace period
+  // ========================================================================
+  let suspended = 0;
+
+  const { data: pastDueSubscriptions } = await supabase
+    .from("instaclaw_subscriptions")
+    .select("user_id, past_due_since")
+    .eq("payment_status", "past_due")
+    .not("past_due_since", "is", null);
+
+  if (pastDueSubscriptions?.length) {
+    for (const sub of pastDueSubscriptions) {
+      const daysPastDue = Math.floor(
+        (Date.now() - new Date(sub.past_due_since).getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      if (daysPastDue >= SUSPENSION_GRACE_DAYS) {
+        // Grace period expired, suspend the VM
+        const { data: vm } = await supabase
+          .from("instaclaw_vms")
+          .select("*")
+          .eq("assigned_to", sub.user_id)
+          .single();
+
+        if (vm && vm.health_status !== "suspended") {
+          try {
+            // Stop the gateway
+            await stopGateway(vm);
+
+            // Mark VM as suspended
+            await supabase
+              .from("instaclaw_vms")
+              .update({
+                health_status: "suspended",
+                last_health_check: new Date().toISOString(),
+              })
+              .eq("id", vm.id);
+
+            // Send suspension email
+            const { data: user } = await supabase
+              .from("instaclaw_users")
+              .select("email")
+              .eq("id", sub.user_id)
+              .single();
+
+            if (user?.email) {
+              try {
+                await sendSuspendedEmail(user.email);
+              } catch (emailErr) {
+                logger.error("Failed to send suspended email", {
+                  error: String(emailErr),
+                  route: "cron/health-check",
+                  userId: sub.user_id,
+                });
+              }
+            }
+
+            suspended++;
+            logger.info("VM suspended for past_due payment", {
+              route: "cron/health-check",
+              userId: sub.user_id,
+              vmId: vm.id,
+              daysPastDue,
+            });
+          } catch (err) {
+            logger.error("Failed to suspend VM", {
+              error: String(err),
+              route: "cron/health-check",
+              userId: sub.user_id,
+            });
+          }
+        }
+      }
+    }
+  }
+
   return NextResponse.json({
     checked: vms.length,
     healthy,
     unhealthy,
     restarted,
     alerted,
+    suspended,
   });
 }

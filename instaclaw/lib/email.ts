@@ -225,3 +225,29 @@ export async function sendCanceledEmail(email: string): Promise<void> {
     `,
   });
 }
+
+export async function sendSuspendedEmail(email: string): Promise<void> {
+  const resend = getResend();
+  await resend.emails.send({
+    from: FROM,
+    to: email,
+    subject: "Your InstaClaw Instance Has Been Suspended",
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #000; color: #fff;">
+        <h1 style="font-size: 24px; margin-bottom: 16px;">Service Suspended</h1>
+        <p style="color: #888; line-height: 1.6;">
+          Your OpenClaw instance has been suspended due to failed payment. Your data is safe, but the bot is no longer responding to messages.
+        </p>
+        <p style="color: #888; line-height: 1.6; margin-top: 12px;">
+          Update your payment method to restore service immediately.
+        </p>
+        <a href="${process.env.NEXTAUTH_URL}/billing" style="display: inline-block; margin-top: 16px; padding: 12px 24px; background: #fff; color: #000; text-decoration: none; border-radius: 6px; font-weight: 600;">
+          Update Payment Method
+        </a>
+        <p style="margin-top: 24px; font-size: 12px; color: #888;">
+          Your instance will be automatically restored once payment is successful.
+        </p>
+      </div>
+    `,
+  });
+}

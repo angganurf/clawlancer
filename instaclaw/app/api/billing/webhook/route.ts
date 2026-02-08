@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { getSupabase } from "@/lib/supabase";
-import { sendPaymentFailedEmail, sendCanceledEmail, sendPendingEmail, sendTrialEndingEmail, sendAdminAlertEmail } from "@/lib/email";
+import { sendPaymentFailedEmail, sendCanceledEmail, sendPendingEmail, sendTrialEndingEmail, sendAdminAlertEmail, sendVMReadyEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
@@ -194,14 +194,20 @@ export async function POST(req: NextRequest) {
       // Update subscription payment status to past_due
       const { data: sub } = await supabase
         .from("instaclaw_subscriptions")
-        .select("user_id")
+        .select("user_id, payment_status, past_due_since")
         .eq("stripe_customer_id", customerId)
         .single();
 
       if (sub) {
+        // Set past_due_since if not already set (first failure)
+        const updates: Record<string, unknown> = { payment_status: "past_due" };
+        if (!sub.past_due_since) {
+          updates.past_due_since = new Date().toISOString();
+        }
+
         await supabase
           .from("instaclaw_subscriptions")
-          .update({ payment_status: "past_due" })
+          .update(updates)
           .eq("user_id", sub.user_id);
 
         // Send payment failed email
@@ -228,11 +234,62 @@ export async function POST(req: NextRequest) {
       const invoice = event.data.object as any;
       const customerId = invoice.customer as string;
 
-      // Clear past_due status on successful payment
-      await supabase
+      // Clear past_due status and timestamp on successful payment
+      const { data: sub } = await supabase
         .from("instaclaw_subscriptions")
-        .update({ payment_status: "current" })
-        .eq("stripe_customer_id", customerId);
+        .select("user_id, payment_status")
+        .eq("stripe_customer_id", customerId)
+        .single();
+
+      if (sub) {
+        await supabase
+          .from("instaclaw_subscriptions")
+          .update({
+            payment_status: "current",
+            past_due_since: null
+          })
+          .eq("stripe_customer_id", customerId);
+
+        // If they were past_due, restart their VM if suspended
+        if (sub.payment_status === "past_due") {
+          const { data: vm } = await supabase
+            .from("instaclaw_vms")
+            .select("id, health_status")
+            .eq("assigned_to", sub.user_id)
+            .single();
+
+          if (vm?.health_status === "suspended") {
+            // Trigger gateway restart
+            try {
+              await fetch(`${process.env.NEXTAUTH_URL}/api/vm/restart`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "X-Admin-Key": process.env.ADMIN_API_KEY ?? "",
+                },
+                body: JSON.stringify({ userId: sub.user_id }),
+              });
+
+              // Send "you're back online" email
+              const { data: user } = await supabase
+                .from("instaclaw_users")
+                .select("email")
+                .eq("id", sub.user_id)
+                .single();
+
+              if (user?.email) {
+                try {
+                  await sendVMReadyEmail(user.email, `${process.env.NEXTAUTH_URL}/dashboard`);
+                } catch (emailErr) {
+                  logger.error("Failed to send VM restored email", { error: String(emailErr), route: "billing/webhook" });
+                }
+              }
+            } catch (err) {
+              logger.error("Failed to restart suspended VM", { error: String(err), route: "billing/webhook", userId: sub.user_id });
+            }
+          }
+        }
+      }
 
       break;
     }

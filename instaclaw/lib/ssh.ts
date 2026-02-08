@@ -747,3 +747,31 @@ export async function restartGateway(vm: VMRecord): Promise<boolean> {
     ssh.dispose();
   }
 }
+
+export async function stopGateway(vm: VMRecord): Promise<boolean> {
+  const ssh = await connectSSH(vm);
+  try {
+    const result = await ssh.execCommand(`${NVM_PREAMBLE} && pkill -f "openclaw gateway" 2>/dev/null || true`);
+    return true; // Always succeed, even if gateway wasn't running
+  } finally {
+    ssh.dispose();
+  }
+}
+
+export async function startGateway(vm: VMRecord): Promise<boolean> {
+  const ssh = await connectSSH(vm);
+  try {
+    const script = [
+      '#!/bin/bash',
+      NVM_PREAMBLE,
+      `nohup openclaw gateway run --bind lan --port ${GATEWAY_PORT} --force > /tmp/openclaw-gateway.log 2>&1 &`,
+      'sleep 5',
+    ].join('\n');
+
+    await ssh.execCommand(`cat > /tmp/ic-start.sh << 'ICEOF'\n${script}\nICEOF`);
+    const result = await ssh.execCommand('bash /tmp/ic-start.sh; EC=$?; rm -f /tmp/ic-start.sh; exit $EC');
+    return result.code === 0;
+  } finally {
+    ssh.dispose();
+  }
+}
