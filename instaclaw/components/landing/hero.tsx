@@ -22,7 +22,7 @@ export function Hero() {
       >
         <Link href="/" className="flex items-center gap-2">
           <Image src="/logo.png" alt="InstaClaw" width={36} height={36} />
-          <span className="text-lg font-bold tracking-tight">
+          <span className="text-xl tracking-[-0.5px]" style={{ fontFamily: "var(--font-serif)" }}>
             Insta<span style={{ color: "var(--accent)" }}>Claw</span>
           </span>
         </Link>
