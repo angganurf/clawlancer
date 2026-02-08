@@ -104,11 +104,12 @@ export function Hero() {
             <motion.svg
               className="absolute pointer-events-none"
               style={{
-                left: "-2px",
+                left: "0",
                 bottom: "-2px",
-                width: "calc(100% + 4px)",
+                width: "100%",
                 height: "8px",
               }}
+              viewBox="0 0 100 8"
               xmlns="http://www.w3.org/2000/svg"
               preserveAspectRatio="none"
               initial={{ opacity: 0 }}
@@ -116,7 +117,7 @@ export function Hero() {
               transition={{ delay: 1.4, duration: 0.1 }}
             >
               <motion.path
-                d="M0,4 Q25,2 50,4 T100,4"
+                d="M0,4 Q25,2 50,4 Q75,6 100,4"
                 vectorEffect="non-scaling-stroke"
                 fill="none"
                 stroke="var(--accent)"
