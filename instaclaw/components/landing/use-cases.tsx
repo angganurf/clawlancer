@@ -36,8 +36,19 @@ function MarqueeRow({
         {repeated.map((item, i) => (
           <span
             key={`${item}-${i}`}
-            className="glass whitespace-nowrap px-4 py-2 rounded-full text-sm shrink-0"
-            style={{ color: "var(--muted)" }}
+            className="whitespace-nowrap px-6 py-2 rounded-full text-sm shrink-0"
+            style={{
+              background: "linear-gradient(-75deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05))",
+              backdropFilter: "blur(2px)",
+              WebkitBackdropFilter: "blur(2px)",
+              boxShadow: `
+                rgba(0, 0, 0, 0.05) 0px 2px 2px 0px inset,
+                rgba(255, 255, 255, 0.5) 0px -2px 2px 0px inset,
+                rgba(0, 0, 0, 0.2) 0px 4px 2px -2px,
+                rgba(255, 255, 255, 0.2) 0px 0px 1.6px 4px inset
+              `,
+              color: "var(--foreground)",
+            }}
           >
             {item}
           </span>
