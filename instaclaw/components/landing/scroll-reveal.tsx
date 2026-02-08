@@ -144,7 +144,9 @@ export function ScrollReveal({ text }: { text: string }) {
       const scrolled = viewportH - rect.top;
       const progress = Math.min(Math.max(scrolled / total, 0), 1);
       const mapped = Math.min(Math.max((progress - 0.15) / 0.7, 0), 1);
-      setRevealedCount(Math.round(mapped * parsedWords.length));
+      const newCount = Math.round(mapped * parsedWords.length);
+      // Only increase, never decrease (words stay revealed once shown)
+      setRevealedCount(prev => Math.max(prev, newCount));
     }
 
     const observer = new IntersectionObserver(
