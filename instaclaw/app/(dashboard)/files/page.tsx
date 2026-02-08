@@ -76,7 +76,7 @@ export default function FilesPage() {
   return (
     <div className="space-y-10">
       <div>
-        <h1 className="text-2xl font-bold">File Browser</h1>
+        <h1 className="text-3xl sm:text-4xl font-normal tracking-[-0.5px]" style={{ fontFamily: "var(--font-serif)" }}>File Browser</h1>
         <p className="text-base mt-2" style={{ color: "var(--muted)" }}>
           Browse files on your VM.
         </p>

@@ -21,10 +21,12 @@ export default function BillingPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <div>
-        <h1 className="text-2xl font-bold">Billing</h1>
-        <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
+        <h1 className="text-3xl sm:text-4xl font-normal tracking-[-0.5px]" style={{ fontFamily: "var(--font-serif)" }}>
+          Billing
+        </h1>
+        <p className="text-base mt-2" style={{ color: "var(--muted)" }}>
           Manage your subscription and payment details.
         </p>
       </div>
