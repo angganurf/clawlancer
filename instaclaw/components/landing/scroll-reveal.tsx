@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 const REVEAL_TEXT =
-  "We believe everyone deserves a personal AI that actually does things. Not just chat. Not just suggest. Actually take action on your behalf.";
+  "We believe everyone deserves a personal AI that actually does things. Not just chat. Not just suggest. Actually take action on your behalf. Literally anything.";
 
 export function ScrollReveal() {
   const sectionRef = useRef<HTMLElement>(null);
