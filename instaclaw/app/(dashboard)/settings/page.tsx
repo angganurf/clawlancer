@@ -553,7 +553,7 @@ export default function SettingsPage() {
           )}
         </h2>
         <p className="text-sm mb-5" style={{ color: "var(--muted)" }}>
-          <strong>Tip:</strong> You can also customize your bot just by chatting with it — tell it how you want it to act, what skills to learn, or what personality to have. This system prompt is just a starting point.
+          <strong>This is optional.</strong> You don&apos;t even have to do this to begin with. Honestly, it&apos;s best to just chat with your bot and tell it how you want it to be. It will learn. Every day it will learn and get better and better.
         </p>
         <div className="glass rounded-xl p-6 space-y-3" style={{ border: "1px solid var(--border)" }}>
           <textarea

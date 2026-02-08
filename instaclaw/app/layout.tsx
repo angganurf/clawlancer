@@ -12,7 +12,7 @@ const instrumentSerif = Instrument_Serif({
   weight: "400",
   style: ["normal", "italic"],
   variable: "--font-serif",
-  display: "swap",
+  display: "optional",
 });
 
 export const metadata: Metadata = {
@@ -42,12 +42,23 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link
-          rel="preload"
-          href="/_next/static/media/instrument-serif-latin-400-normal.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                document.documentElement.style.visibility = 'hidden';
+                document.addEventListener('DOMContentLoaded', function() {
+                  if (document.fonts) {
+                    document.fonts.ready.then(function() {
+                      document.documentElement.style.visibility = 'visible';
+                    });
+                  } else {
+                    document.documentElement.style.visibility = 'visible';
+                  }
+                });
+              })();
+            `,
+          }}
         />
       </head>
       <body className={`${inter.className} ${instrumentSerif.variable}`}>
