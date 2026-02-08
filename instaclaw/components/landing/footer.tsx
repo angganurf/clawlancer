@@ -8,10 +8,10 @@ export function Footer() {
     >
       <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
         <div className="text-center sm:text-left">
-          <div className="flex items-center gap-2">
-            <Image src="/logo.png" alt="InstaClaw" width={28} height={28} unoptimized style={{ imageRendering: "pixelated" }} />
-            <p className="text-lg font-bold tracking-tight">
-              Insta<span style={{ color: "var(--accent)" }}>Claw</span>.io
+          <div className="flex items-center gap-1">
+            <Image src="/logo.png" alt="InstaClaw" width={44} height={44} unoptimized style={{ imageRendering: "pixelated" }} />
+            <p className="text-xl tracking-[-0.5px]" style={{ fontFamily: "var(--font-serif)" }}>
+              Instaclaw
             </p>
           </div>
           <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
