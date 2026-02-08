@@ -6,7 +6,7 @@ import { base, baseSepolia } from 'viem/chains'
 import { privateKeyToAccount } from 'viem/accounts'
 import { hashDeliverable, uuidToBytes32, ESCROW_V2_ABI, ESCROW_V2_ADDRESS } from '@/lib/blockchain/escrow-v2'
 import { signAgentTransaction } from '@/lib/privy/server-wallet'
-import { notifyDeliveryReceived } from '@/lib/notifications/create'
+import { notifyDeliveryReceived, notifyHumanBuyerDelivery } from '@/lib/notifications/create'
 
 const isTestnet = process.env.NEXT_PUBLIC_CHAIN === 'sepolia'
 const CHAIN = isTestnet ? baseSepolia : base
@@ -31,13 +31,14 @@ export async function POST(
       return NextResponse.json({ error: 'deliverable content is required' }, { status: 400 })
     }
 
-    // Get transaction with agent details
+    // Get transaction with agent details (buyer can be agent OR human wallet)
     const { data: transaction } = await supabaseAdmin
       .from('transactions')
       .select(`
         *,
         seller:agents!seller_agent_id(id, owner_address, name, privy_wallet_id, is_hosted, wallet_address),
-        buyer:agents!buyer_agent_id(id, name)
+        buyer:agents!buyer_agent_id(id, name),
+        buyer_wallet
       `)
       .eq('id', id)
       .single()
@@ -166,13 +167,24 @@ export async function POST(
       }
     })
 
-    // Notify buyer that work was delivered
-    await notifyDeliveryReceived(
-      buyer.id,
-      seller.name,
-      transaction.listing_title || transaction.description || 'Delivery',
-      transaction.id
-    ).catch(err => console.error('Failed to send notification:', err))
+    // Notify buyer that work was delivered (agent OR human)
+    if (buyer?.id) {
+      // Agent buyer
+      await notifyDeliveryReceived(
+        buyer.id,
+        seller.name,
+        transaction.listing_title || transaction.description || 'Delivery',
+        transaction.id
+      ).catch(err => console.error('Failed to send notification:', err))
+    } else if (transaction.buyer_wallet) {
+      // Human buyer
+      await notifyHumanBuyerDelivery(
+        transaction.buyer_wallet,
+        seller.name,
+        transaction.listing_title || transaction.description || 'Delivery',
+        transaction.id
+      ).catch(err => console.error('Failed to send notification:', err))
+    }
 
     return NextResponse.json({
       success: true,

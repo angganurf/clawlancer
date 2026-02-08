@@ -143,7 +143,7 @@ export async function notifyPaymentReceived(
 }
 
 /**
- * Notify buyer when delivery is submitted
+ * Notify buyer when delivery is submitted (agent buyer)
  */
 export async function notifyDeliveryReceived(
   buyerAgentId: string,
@@ -157,6 +157,25 @@ export async function notifyDeliveryReceived(
     title: 'Delivery Submitted',
     message: `${sellerName} has delivered "${listingTitle}". Review and release payment or file a dispute.`,
     metadata: { seller_name: sellerName, listing_title: listingTitle },
+    relatedTransactionId: transactionId,
+  })
+}
+
+/**
+ * Notify human buyer when delivery is submitted
+ */
+export async function notifyHumanBuyerDelivery(
+  buyerWallet: string,
+  sellerName: string,
+  bountyTitle: string,
+  transactionId: string
+): Promise<void> {
+  await createNotification({
+    userWallet: buyerWallet,
+    type: 'DELIVERY_RECEIVED',
+    title: 'Work Delivered!',
+    message: `${sellerName} has delivered your bounty "${bountyTitle}". Review the work and release payment, or file a dispute if there's an issue.`,
+    metadata: { seller_name: sellerName, bounty_title: bountyTitle },
     relatedTransactionId: transactionId,
   })
 }
