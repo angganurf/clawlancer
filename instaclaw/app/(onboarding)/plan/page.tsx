@@ -41,6 +41,7 @@ export default function PlanPage() {
     "all_inclusive"
   );
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const stored = sessionStorage.getItem("instaclaw_onboarding");
@@ -49,17 +50,32 @@ export default function PlanPage() {
       return;
     }
     const data = JSON.parse(stored);
-    setApiMode(data.apiMode);
+    setApiMode(data.apiMode ?? "all_inclusive");
   }, [router]);
+
+  function handleToggleApiMode() {
+    const newMode = apiMode === "all_inclusive" ? "byok" : "all_inclusive";
+    setApiMode(newMode);
+
+    // Sync back to sessionStorage
+    const stored = sessionStorage.getItem("instaclaw_onboarding");
+    if (stored) {
+      const data = JSON.parse(stored);
+      data.apiMode = newMode;
+      sessionStorage.setItem("instaclaw_onboarding", JSON.stringify(data));
+    }
+  }
 
   async function handleCheckout() {
     setLoading(true);
+    setError("");
 
     // Store tier selection
     const stored = sessionStorage.getItem("instaclaw_onboarding");
     if (stored) {
       const data = JSON.parse(stored);
       data.tier = selectedTier;
+      data.apiMode = apiMode;
       sessionStorage.setItem("instaclaw_onboarding", JSON.stringify(data));
     }
 
@@ -76,7 +92,7 @@ export default function PlanPage() {
           botToken: onboarding.botToken,
           discordToken: onboarding.discordToken,
           channels: onboarding.channels,
-          apiMode: onboarding.apiMode,
+          apiMode,
           apiKey: onboarding.apiKey,
           tier: selectedTier,
         }),
@@ -85,12 +101,12 @@ export default function PlanPage() {
       if (!saveRes.ok) {
         const err = await saveRes.json();
         setLoading(false);
-        alert(err.error || "Failed to save configuration. Please try again.");
+        setError(err.error || "Failed to save configuration. Please try again.");
         return;
       }
     } catch {
       setLoading(false);
-      alert("Network error saving configuration. Please try again.");
+      setError("Network error saving configuration. Please try again.");
       return;
     }
 
@@ -111,9 +127,11 @@ export default function PlanPage() {
         window.location.href = data.url;
       } else {
         setLoading(false);
+        setError(data.error || "Failed to create checkout session. Please try again.");
       }
     } catch {
       setLoading(false);
+      setError("Network error creating checkout. Please try again.");
     }
   }
 
@@ -124,6 +142,37 @@ export default function PlanPage() {
         <p className="text-sm mt-2" style={{ color: "var(--muted)" }}>
           All plans include a full OpenClaw instance on a dedicated VM.
         </p>
+
+        {/* BYOK toggle */}
+        <div className="inline-flex items-center gap-3 text-sm mt-4">
+          <span style={{ color: apiMode === "byok" ? "var(--muted)" : "#ffffff" }}>
+            All-Inclusive
+          </span>
+          <button
+            type="button"
+            onClick={handleToggleApiMode}
+            className="relative w-12 h-6 rounded-full transition-colors cursor-pointer"
+            style={{
+              background: apiMode === "byok" ? "#ffffff" : "rgba(255, 255, 255, 0.15)",
+            }}
+          >
+            <span
+              className="absolute top-1 w-4 h-4 rounded-full transition-all duration-200"
+              style={{
+                background: apiMode === "byok" ? "#000000" : "#ffffff",
+                left: apiMode === "byok" ? "28px" : "4px",
+              }}
+            />
+          </button>
+          <span style={{ color: apiMode === "byok" ? "#ffffff" : "var(--muted)" }}>
+            BYOK
+          </span>
+        </div>
+        {apiMode === "byok" && (
+          <p className="text-xs mt-2" style={{ color: "var(--muted)" }}>
+            Bring Your Own Anthropic API Key — lower monthly cost, you pay Anthropic directly.
+          </p>
+        )}
       </div>
 
       <div className="space-y-3">
@@ -207,6 +256,12 @@ export default function PlanPage() {
           );
         })}
       </div>
+
+      {error && (
+        <p className="text-sm text-center" style={{ color: "#ef4444" }}>
+          {error}
+        </p>
+      )}
 
       <button
         onClick={handleCheckout}
