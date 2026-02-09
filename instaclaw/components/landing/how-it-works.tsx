@@ -6,19 +6,19 @@ const SNAPPY = [0.23, 1, 0.32, 1] as const;
 
 const steps = [
   {
-    number: "01",
+    number: "1",
     title: "Get Invited",
     description:
       "Join the waitlist and get your invite code. We roll out access in batches.",
   },
   {
-    number: "02",
+    number: "2",
     title: "Connect & Choose",
     description:
       "Link your Telegram bot, pick your plan, and choose All-Inclusive or BYOK.",
   },
   {
-    number: "03",
+    number: "3",
     title: "Deploy",
     description:
       "Your dedicated OpenClaw instance goes live on its own VM. Full shell access, skills, memory — everything.",
@@ -84,7 +84,7 @@ export function HowItWorks() {
                     }}
                   />
                   <span
-                    className="relative text-base sm:text-lg font-medium tracking-[-0.5px]"
+                    className="relative text-xl sm:text-2xl font-medium tracking-[-0.5px]"
                     style={{
                       fontFamily: "var(--font-serif)",
                       color: "var(--accent)",
