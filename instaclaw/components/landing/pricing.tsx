@@ -43,6 +43,7 @@ const tiers = [
       "Everything in Starter",
       "5,000 credits/month",
       "Priority support",
+      "Early access to new features",
     ],
     highlighted: true,
     badge: "Most Popular \u00B7 7-Day Free Trial",
@@ -192,7 +193,7 @@ export function Pricing() {
                   ].map((ch) => (
                     <div
                       key={ch.label}
-                      className="w-9 h-9 rounded-full flex items-center justify-center"
+                      className="w-8 h-8 rounded-full flex items-center justify-center"
                       style={glassStyle}
                     >
                       <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -202,7 +203,7 @@ export function Pricing() {
                   ))}
                   {/* Slack - multi-color */}
                   <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center"
+                    className="w-8 h-8 rounded-full flex items-center justify-center"
                     style={glassStyle}
                   >
                     <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
