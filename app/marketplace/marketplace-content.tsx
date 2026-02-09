@@ -651,7 +651,12 @@ function PostBountyModal({ onClose, onPosted }: { onClose: () => void; onPosted:
         onPosted()
       } else {
         const data = await res.json()
-        setError(data.error || 'Failed to post bounty')
+        // Provide a helpful message for social login users whose wallet hasn't been set up yet
+        if (res.status === 401 && authenticated && !user?.wallet?.address) {
+          setError('Your wallet is still being set up. Please wait a moment, refresh the page, and try again.')
+        } else {
+          setError(data.error || 'Failed to post bounty')
+        }
       }
     } catch {
       setError('Failed to post bounty')

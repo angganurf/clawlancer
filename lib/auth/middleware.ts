@@ -128,16 +128,39 @@ export async function verifyAuth(request: Request): Promise<AuthResult> {
           const user = await privyClient.users()._get(verifiedClaims.user_id)
           console.log('[Auth] User fetched, linked_accounts count:', user.linked_accounts?.length || 0)
 
-          // Find the user's wallet address (embedded wallet or linked wallet)
-          const walletAccount = user.linked_accounts?.find(
-            (account) => account.type === 'wallet'
-          )
+          // Find the user's Ethereum wallet address
+          // Check both 'wallet' (external + embedded) and 'smart_wallet' types
+          // Prefer Ethereum chain, then fall back to any wallet with an address
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const findWallet = (accounts: any[]) =>
+            accounts.find(
+              (a) => (a.type === 'wallet' || a.type === 'smart_wallet') && a.chain_type === 'ethereum' && a.address
+            ) ?? accounts.find(
+              (a) => (a.type === 'wallet' || a.type === 'smart_wallet') && a.address
+            )
 
-          if (walletAccount && 'address' in walletAccount && walletAccount.address) {
+          let walletAccount = findWallet(user.linked_accounts || [])
+
+          // For social login users (Twitter/X, etc.), the embedded wallet is created
+          // client-side by Privy's React SDK and may not have propagated yet.
+          // Retry once after a short delay to handle this timing gap.
+          if (!walletAccount && user.linked_accounts?.some((a) => a.type === 'twitter_oauth' || a.type === 'google_oauth' || a.type === 'farcaster')) {
+            console.log('[Auth] Social login user with no wallet — retrying after delay...')
+            await new Promise((resolve) => setTimeout(resolve, 1500))
+            const retryUser = await privyClient.users()._get(verifiedClaims.user_id)
+            walletAccount = findWallet(retryUser.linked_accounts || [])
+          }
+
+          if (walletAccount?.address) {
             console.log('[Auth] Found wallet address:', walletAccount.address.slice(0, 10) + '...')
             return { type: 'user', wallet: walletAccount.address.toLowerCase() }
           } else {
-            console.warn('[Auth] No wallet found in user linked accounts')
+            // Privy token is valid but no wallet found — log details for debugging
+            console.warn('[Auth] Privy user verified but no wallet found:', {
+              user_id: verifiedClaims.user_id,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              account_types: user.linked_accounts?.map((a: any) => a.type) || [],
+            })
           }
         }
       } catch (privyError) {
