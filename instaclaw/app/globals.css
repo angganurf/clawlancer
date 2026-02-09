@@ -307,8 +307,8 @@ html.lenis body {
 }
 
 @keyframes globe-glow {
-  0%, 100% { opacity: 0.2; transform: scale(0.95); }
-  50%      { opacity: 0.45; transform: scale(1.08); }
+  0%, 100% { opacity: 0.35; transform: scale(0.95); }
+  50%      { opacity: 0.7; transform: scale(1.1); }
 }
 
 /* iMessage bubble with tail (like real iOS Messages) */

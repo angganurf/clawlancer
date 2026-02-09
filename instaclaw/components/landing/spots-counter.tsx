@@ -40,7 +40,7 @@ export function SpotsCounter() {
           <span className="relative flex items-center justify-center w-5 h-5 rounded-full overflow-hidden shrink-0"
             style={{
               background: spots > 0
-                ? "radial-gradient(circle at 35% 30%, rgba(220,103,67,0.5), rgba(220,103,67,0.25) 50%, rgba(180,70,40,0.6) 100%)"
+                ? "radial-gradient(circle at 35% 30%, rgba(220,103,67,0.7), rgba(220,103,67,0.4) 50%, rgba(180,70,40,0.75) 100%)"
                 : "radial-gradient(circle at 35% 30%, rgba(140,140,140,0.4), rgba(100,100,100,0.25) 50%, rgba(60,60,60,0.5) 100%)",
               boxShadow: `
                 inset 0 -2px 4px rgba(0,0,0,0.3),
@@ -71,7 +71,7 @@ export function SpotsCounter() {
               className="absolute inset-[-2px] rounded-full"
               style={{
                 background: spots > 0
-                  ? "radial-gradient(circle, rgba(220,103,67,0.25) 0%, transparent 70%)"
+                  ? "radial-gradient(circle, rgba(220,103,67,0.4) 0%, transparent 70%)"
                   : "radial-gradient(circle, rgba(140,140,140,0.2) 0%, transparent 70%)",
                 animation: "globe-glow 4s ease-in-out infinite",
               }}
