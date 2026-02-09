@@ -94,10 +94,15 @@ export function Comparison() {
                 <div className="flex-1 py-6 sm:py-8">
                   <div className="flex items-start gap-3">
                     <span
-                      className="shrink-0 mt-0.5 text-sm"
-                      style={{ color: "rgba(200, 80, 60, 0.5)" }}
+                      className="shrink-0 mt-0.5 flex items-center justify-center w-5 h-5 rounded-full"
+                      style={{
+                        background: "radial-gradient(circle at 40% 35%, rgba(160,160,160,0.15), rgba(120,120,120,0.08) 70%)",
+                        boxShadow: "inset 0 1px 2px rgba(255,255,255,0.3), inset 0 -1px 2px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)",
+                      }}
                     >
-                      ✕
+                      <svg className="w-2.5 h-2.5" viewBox="0 0 10 10" fill="none">
+                        <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" stroke="rgba(160,130,120,0.5)" strokeWidth="1.2" strokeLinecap="round" />
+                      </svg>
                     </span>
                     <p
                       className="text-sm sm:text-base leading-relaxed line-through decoration-1"
@@ -115,10 +120,15 @@ export function Comparison() {
                 >
                   <div className="flex items-start gap-3">
                     <span
-                      className="shrink-0 mt-0.5 text-sm"
-                      style={{ color: "var(--accent)" }}
+                      className="shrink-0 mt-0.5 flex items-center justify-center w-5 h-5 rounded-full"
+                      style={{
+                        background: "radial-gradient(circle at 40% 35%, rgba(220,103,67,0.25), rgba(220,103,67,0.12) 70%)",
+                        boxShadow: "inset 0 1px 2px rgba(255,255,255,0.4), inset 0 -1px 2px rgba(0,0,0,0.1), 0 1px 3px rgba(220,103,67,0.1)",
+                      }}
                     >
-                      ✓
+                      <svg className="w-2.5 h-2.5" viewBox="0 0 10 10" fill="none">
+                        <path d="M2.5 5.5l2 2 3.5-4" stroke="var(--accent)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
                     </span>
                     <p className="text-sm sm:text-base leading-relaxed font-medium">
                       {row.new}
