@@ -15,13 +15,23 @@ const faqs = [
   },
   {
     q: "What can it actually do for me?",
-    a: "Sort and reply to your emails, research topics and summarize findings, manage your schedule, generate reports, post to social media, monitor websites, automate repetitive tasks, and much more. It learns your preferences over time and gets better the more you use it.",
+    a: "Sort and reply to your emails, research topics and summarize findings, manage your schedule, generate reports, post to social media, monitor websites, automate repetitive tasks, and much more. It comes pre-loaded with powerful skills and learns your preferences over time — the more you use it, the better it gets.",
     tech: "Under the hood: full bash shell execution, Python/Node runtime, web browsing via headless browser, file I/O, MCP tool servers, web search APIs, cron-based task scheduling, and a skills system that lets the agent learn and reuse complex workflows. The VM runs Ubuntu with 3 vCPU, 4GB RAM, and 80GB SSD.",
   },
   {
     q: "Do I need any technical knowledge?",
     a: "Not at all. You just talk to it in plain English. Setup takes about 2 minutes — you create a Telegram bot, paste the token, pick a plan, and you're live. No coding, no configuration, no terminal.",
     tech: "That said, if you are technical, you get full SSH access to the underlying VM. You can install packages, configure services, write custom scripts, and extend the agent however you want. The system is built on OpenClaw, which is fully open source.",
+  },
+  {
+    q: "What are skills?",
+    a: "Skills are superpowers you can add to your AI. Things like searching X/Twitter for the latest posts, monitoring websites, managing your inbox, or running safety checks. Every InstaClaw agent comes pre-loaded with the best skills, and we're constantly adding new ones as they come out. You can also teach your agent new skills just by talking to it.",
+    tech: "Skills are MCP tool servers and OpenClaw skill packages that extend agent capabilities. We curate and pre-install top skills from the OpenClaw ecosystem. When a user teaches their agent a new workflow via chat, it's saved as a reusable skill and synced to the dashboard. Skills can also be added/removed/configured from the web dashboard. The skill system supports versioning — we push updates automatically as improved versions are released.",
+  },
+  {
+    q: "How do I manage skills and API keys?",
+    a: "Everything lives in your dashboard. You can browse available skills, add them with one click, and see all the skills your agent has learned. For API keys, we have a simple setup guide — just paste your key and you're done. You can add keys for different services to unlock even more capabilities for your agent.",
+    tech: "The dashboard provides a full skill management UI: install from our curated library, view agent-learned skills (synced from chat interactions), configure per-skill settings, and manage API keys for third-party services (encrypted at rest with AES-256). Skills added via any channel (Telegram, WhatsApp, etc.) are automatically reflected in the dashboard in real time.",
   },
   {
     q: "What are credits?",

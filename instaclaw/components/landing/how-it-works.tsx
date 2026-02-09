@@ -1,31 +1,37 @@
 "use client";
 
-import { motion } from "motion/react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 
 const SNAPPY = [0.23, 1, 0.32, 1] as const;
 
 const steps = [
   {
     number: "1",
-    title: "Get Invited",
+    title: "Sign Up",
     description:
-      "Join the waitlist and get your invite code. We roll out access in batches.",
+      "Join the waitlist and grab your invite. Takes about 30 seconds.",
+    tech: "Invites are distributed in waves via our waitlist. Once activated, your account automatically provisions a dedicated cloud instance with the full OpenClaw runtime pre-installed.",
   },
   {
     number: "2",
-    title: "Connect & Choose",
+    title: "Connect",
     description:
-      "Link your Telegram bot, pick your plan, and choose All-Inclusive or BYOK.",
+      "Link your Telegram, Discord, Slack, or WhatsApp. Pick a plan. That's the whole setup — no coding, no configuration.",
+    tech: "OAuth-based bot linking for all supported platforms. Plan selection configures credit allocation and optional BYOK (Bring Your Own Key) mode for direct Anthropic API access with your choice of Claude model.",
   },
   {
     number: "3",
-    title: "Deploy",
+    title: "You're Live",
     description:
-      "Your dedicated OpenClaw instance goes live on its own VM. Full shell access, skills, memory — everything.",
+      "Your personal AI launches on its own dedicated machine — with real computing power, persistent memory, and pre-loaded skills. It starts working immediately and gets smarter every day.",
+    tech: "A dedicated Ubuntu VM spins up with full SSH access, shell execution, Python/Node runtimes, MCP tool servers, cron scheduling, and persistent memory across conversations. You can install any software, run background services, and extend the agent however you want.",
   },
 ];
 
 export function HowItWorks() {
+  const [openTech, setOpenTech] = useState<number | null>(null);
+
   return (
     <section className="py-16 sm:py-[12vh] px-4">
       <div className="max-w-3xl mx-auto">
@@ -95,7 +101,7 @@ export function HowItWorks() {
                 </span>
 
                 {/* Content */}
-                <div>
+                <div className="flex-1 min-w-0">
                   <h3
                     className="text-2xl sm:text-3xl font-normal tracking-[-0.5px] mb-3"
                     style={{ fontFamily: "var(--font-serif)" }}
@@ -108,6 +114,54 @@ export function HowItWorks() {
                   >
                     {step.description}
                   </p>
+
+                  {/* Technical details toggle */}
+                  {step.tech && (
+                    <div className="mt-3">
+                      <button
+                        onClick={() =>
+                          setOpenTech(openTech === i ? null : i)
+                        }
+                        className="inline-flex items-center gap-1.5 text-xs cursor-pointer transition-colors"
+                        style={{ color: "var(--accent)" }}
+                      >
+                        <span
+                          className="transition-transform duration-200"
+                          style={{
+                            display: "inline-block",
+                            transform:
+                              openTech === i
+                                ? "rotate(90deg)"
+                                : "rotate(0deg)",
+                          }}
+                        >
+                          &#9656;
+                        </span>
+                        Technical details
+                      </button>
+                      <AnimatePresence initial={false}>
+                        {openTech === i && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{
+                              height: { duration: 0.25, ease: SNAPPY },
+                              opacity: { duration: 0.2 },
+                            }}
+                            className="overflow-hidden"
+                          >
+                            <p
+                              className="pt-2 text-xs leading-relaxed max-w-md"
+                              style={{ color: "#999" }}
+                            >
+                              {step.tech}
+                            </p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  )}
                 </div>
               </div>
 
