@@ -44,6 +44,7 @@ export default auth((req) => {
     "/api/billing/webhook",
     "/api/cron",
     "/api/vm/configure",
+    "/api/admin/provision",
     "/api/gateway",
     "/api/waitlist",
     "/api/invite/validate",
