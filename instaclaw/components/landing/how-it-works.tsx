@@ -17,14 +17,14 @@ const steps = [
     number: "2",
     title: "Connect",
     description:
-      "Link your Telegram, Discord, Slack, or WhatsApp. Pick a plan. That's the whole setup — no coding, no configuration.",
+      "Link your Telegram, Discord, Slack, or WhatsApp. Pick a plan. No coding, no configuration. That's the whole setup.",
     tech: "OAuth-based bot linking for all supported platforms. Plan selection configures credit allocation and optional BYOK (Bring Your Own Key) mode for direct Anthropic API access with your choice of Claude model.",
   },
   {
     number: "3",
     title: "You're Live",
     description:
-      "Your personal AI launches on its own dedicated machine — with real computing power, persistent memory, and pre-loaded skills. It starts working immediately and gets smarter every day.",
+      "Your personal AI launches on its own dedicated machine with real computing power, persistent memory, and pre-loaded skills. It starts working immediately and gets smarter every day.",
     tech: "A dedicated Ubuntu VM spins up with full SSH access, shell execution, Python/Node runtimes, MCP tool servers, cron scheduling, and persistent memory across conversations. You can install any software, run background services, and extend the agent however you want.",
   },
 ];
