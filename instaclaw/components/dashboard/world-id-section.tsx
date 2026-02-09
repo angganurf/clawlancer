@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { IDKitWidget, ISuccessResult, VerificationLevel } from "@worldcoin/idkit";
 import { Loader2, Shield, Search, Globe, Award } from "lucide-react";
 import { WorldIDBadge } from "@/components/icons/world-id-badge";
+import { WorldLogo } from "@/components/icons/world-logo";
 
 interface WorldIDStatus {
   userId: string;
@@ -187,12 +188,13 @@ export function WorldIDSection() {
               {({ open }) => (
                 <button
                   onClick={open}
-                  className="px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-colors"
+                  className="px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-colors flex items-center gap-2"
                   style={{
                     background: "#ffffff",
                     color: "#000000",
                   }}
                 >
+                  <WorldLogo className="w-4 h-4" style={{ color: "#000000" }} />
                   Verify with World ID
                 </button>
               )}
