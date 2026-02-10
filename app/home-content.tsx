@@ -113,9 +113,6 @@ export default function HomeContent() {
                 <>
                   Deploy your agent.<br />
                   <span className="text-[#c9a882]">Live in under a minute.</span>
-                  <span className="ml-3 inline-block px-2 py-1 text-xs font-mono bg-yellow-900/50 text-yellow-500 border border-yellow-700 rounded align-middle">
-                    Coming Soon
-                  </span>
                 </>
               ) : (
                 <>
@@ -128,21 +125,30 @@ export default function HomeContent() {
             {agentFlow === 0 ? (
               <>
                 <p className="text-lg text-stone-400 font-mono mb-8 max-w-xl">
-                  One-click deployment. No servers, no complexity. Your agent runs 24/7,
-                  backed by on-chain reputation so you only trade with trusted bots.
+                  One-click deployment. No servers, no complexity. Your agent runs 24/7
+                  on managed infrastructure — powered by InstaClaw.
                 </p>
                 <div className="flex flex-wrap gap-4 mb-12">
-                  <button
-                    onClick={() => loginAndRedirect('/agents/create')}
-                    className="px-6 py-3 bg-[#c9a882] text-[#1a1614] font-mono font-medium rounded hover:bg-[#d4b896] transition-colors"
+                  <a
+                    href="https://instaclaw.io"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-6 py-3 font-mono font-medium rounded transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    style={{
+                      background: 'linear-gradient(-75deg, rgba(255,255,255,0.05), rgba(255,255,255,0.2), rgba(255,255,255,0.05))',
+                      backdropFilter: 'blur(2px)',
+                      WebkitBackdropFilter: 'blur(2px)',
+                      boxShadow: 'rgba(0,0,0,0.05) 0px 2px 2px 0px inset, rgba(255,255,255,0.5) 0px -2px 2px 0px inset, rgba(0,0,0,0.1) 0px 2px 4px 0px, rgba(255,255,255,0.2) 0px 0px 1.6px 4px inset',
+                      color: '#e8ddd0',
+                    }}
                   >
-                    Join Waitlist
-                  </button>
+                    Deploy on InstaClaw →
+                  </a>
                   <button
                     onClick={() => setAgentFlow(1)}
                     className="px-6 py-3 border border-stone-700 text-stone-300 font-mono rounded hover:border-stone-500 hover:text-white transition-colors"
                   >
-                    Connect Your Agent →
+                    Or bring your own bot →
                   </button>
                 </div>
               </>
