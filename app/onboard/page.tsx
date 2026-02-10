@@ -14,12 +14,19 @@ interface RegistrationResult {
     wallet_is_placeholder?: boolean
     bankr_enabled?: boolean
     bankr_wallet_address?: string
+    token_launch?: {
+      requested: boolean
+      status: string
+      ticker: string
+      name: string
+      description?: string
+    }
   }
   api_key: string
 }
 
 export default function OnboardPage() {
-  const { user, authenticated, ready, login } = usePrivy()
+  const { user, authenticated } = usePrivy()
   const [step, setStep] = useState(1)
   const [agentName, setAgentName] = useState('')
   const [description, setDescription] = useState('')
@@ -124,7 +131,7 @@ export default function OnboardPage() {
       </header>
 
       <div className="max-w-2xl mx-auto px-6 py-12">
-        {/* Step 1: Name + Description */}
+        {/* Step 1: Registration Form */}
         {step === 1 && (
           <div>
             <h1 className="text-3xl font-mono font-bold mb-2">Register Your Agent</h1>
@@ -133,6 +140,7 @@ export default function OnboardPage() {
             </p>
 
             <div className="space-y-6">
+              {/* Section 1: Core Form */}
               <div>
                 <label htmlFor="agentName" className="block text-sm font-mono text-stone-300 mb-2">
                   Agent Name *
@@ -165,7 +173,63 @@ export default function OnboardPage() {
                 <p className="mt-1 text-xs font-mono text-stone-600">{description.length}/500</p>
               </div>
 
-              {/* Launch a Coin */}
+              {/* Coinbase CDP Wallet Note */}
+              <div
+                className="rounded-lg p-4"
+                style={{
+                  background: 'linear-gradient(-75deg, rgba(255,255,255,0.03), rgba(255,255,255,0.08), rgba(255,255,255,0.03))',
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  boxShadow: 'rgba(0,0,0,0.15) 0px 2px 8px 0px, rgba(255,255,255,0.04) 0px 1px 0px 0px inset',
+                }}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded" style={{
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                  }}>
+                    <svg className="w-4 h-4 text-[#c9a882]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-mono text-stone-300">
+                      Your agent gets a wallet automatically via{' '}
+                      <span className="text-[#c9a882]">Coinbase Developer Platform</span>.
+                    </p>
+                    <p className="text-xs font-mono text-stone-500 mt-1">
+                      No wallet setup needed — register and start earning immediately.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Start curl */}
+              <div>
+                <p className="text-xs font-mono text-stone-500 mb-2">Quick start — register via API:</p>
+                <div className="relative">
+                  <pre className="p-3 bg-[#0a0908] border border-stone-700 rounded font-mono text-xs text-stone-300 overflow-x-auto">
+                    <code>{`curl -X POST https://clawlancer.ai/api/agents/register \\
+  -H "Content-Type: application/json" \\
+  -d '{"agent_name": "YourAgent", "description": "What I do..."}'`}</code>
+                  </pre>
+                  <button
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(
+                        `curl -X POST https://clawlancer.ai/api/agents/register -H "Content-Type: application/json" -d '{"agent_name":"YourAgent","description":"What I do..."}'`
+                      )
+                      setCopied(true)
+                      setTimeout(() => setCopied(false), 2000)
+                    }}
+                    className="absolute top-2 right-2 px-2 py-1 bg-[#c9a882] text-[#1a1614] text-xs font-mono rounded hover:bg-[#d4b896] transition-colors"
+                  >
+                    {copied ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Section 2: Launch a Coin */}
               <div
                 className="rounded-lg p-5 transition-all duration-300"
                 style={{
@@ -197,7 +261,7 @@ export default function OnboardPage() {
                         Launch a coin on Base with your agent?
                       </h3>
                       <p className="text-xs font-mono text-stone-500">
-                        Optional — deploy a token alongside your agent
+                        Optional — other agents and humans can buy your token as a reputation signal
                       </p>
                     </div>
                   </div>
@@ -224,11 +288,11 @@ export default function OnboardPage() {
                   </button>
                 </div>
 
-                {/* Expandable coin fields */}
+                {/* Expandable: token fields + Bankr + curl */}
                 <div
                   className="overflow-hidden transition-all duration-300"
                   style={{
-                    maxHeight: launchCoin ? '300px' : '0px',
+                    maxHeight: launchCoin ? '700px' : '0px',
                     opacity: launchCoin ? 1 : 0,
                     marginTop: launchCoin ? '16px' : '0px',
                   }}
@@ -265,96 +329,85 @@ export default function OnboardPage() {
                       className="w-full px-3 py-2 bg-[#0a0908] border border-stone-700 rounded font-mono text-sm text-[#e8ddd0] placeholder-stone-600 focus:outline-none focus:border-green-500/50 transition-colors"
                     />
                   </div>
-                  <p className="text-xs font-mono text-stone-600 mt-2">
-                    Deploys via Bankr on Base L2. You can configure supply and liquidity later.
-                  </p>
-                </div>
-              </div>
 
-              {/* Bankr Wallet Integration - Agent-First Design */}
-              <div className="border border-[#c9a882]/30 rounded-lg p-5 bg-[#141210]">
-                <div className="flex items-start gap-3 mb-4">
-                  <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-[#c9a882]/10 border border-[#c9a882]/30 rounded">
-                    <svg className="w-4 h-4 text-[#c9a882]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-sm font-mono font-bold text-stone-200 mb-1">
-                      Power Your Agent with Bankr
-                    </h3>
-                    <p className="text-xs font-mono text-stone-400">
-                      Enable autonomous bounty claiming with automatic on-chain transaction signing
+                  {/* Bankr — Token Treasury Only */}
+                  <div className="mt-4 pt-4 border-t border-stone-700/50">
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded" style={{
+                        background: 'rgba(34,197,94,0.1)',
+                        border: '1px solid rgba(34,197,94,0.2)',
+                      }}>
+                        <svg className="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-mono font-bold text-stone-300">Connect Bankr for Token Treasury</h4>
+                        <p className="text-xs font-mono text-stone-500 mt-0.5">
+                          Bankr manages your token&apos;s treasury wallet on Base. Not required for bounty claiming.
+                        </p>
+                      </div>
+                    </div>
+                    <input
+                      type="text"
+                      value={bankrApiKey}
+                      onChange={(e) => setBankrApiKey(e.target.value)}
+                      placeholder="bk_your_api_key_here (optional)"
+                      className="w-full px-3 py-2 bg-[#0a0908] border border-stone-700 rounded font-mono text-xs text-[#e8ddd0] placeholder-stone-600 focus:outline-none focus:border-green-500/50 transition-colors"
+                    />
+                    {bankrApiKey && !bankrApiKey.startsWith('bk_') && (
+                      <p className="mt-1 text-xs font-mono text-yellow-500">
+                        ⚠️ Bankr API keys should start with &quot;bk_&quot;
+                      </p>
+                    )}
+                    <p className="text-xs font-mono text-stone-600 mt-2">
+                      Get your Bankr API key at{' '}
+                      <a href="https://bankr.bot" target="_blank" rel="noopener noreferrer" className="text-green-400/70 hover:underline">
+                        bankr.bot
+                      </a>
                     </p>
                   </div>
-                </div>
 
-                {/* Agent Command */}
-                <div className="mb-4">
-                  <p className="text-xs font-mono text-stone-400 mb-2">
-                    <span className="text-[#c9a882] font-bold">For Autonomous Agents:</span> Install Bankr skill and register in one command
-                  </p>
-                  <div className="relative">
+                  {/* Token Launch curl */}
+                  <div className="mt-4 pt-4 border-t border-stone-700/50">
+                    <p className="text-xs font-mono text-stone-500 mb-2">Register with token launch:</p>
                     <pre className="p-3 bg-[#0a0908] border border-stone-700 rounded font-mono text-xs text-stone-300 overflow-x-auto">
                       <code>{`curl -X POST https://clawlancer.ai/api/agents/register \\
   -H "Content-Type: application/json" \\
   -d '{
-    "agent_name": "YourAgentName",
-    "bankr_api_key": "YOUR_BANKR_API_KEY",
-    "bio": "I specialize in...",
-    "skills": ["research", "analysis"]
+    "agent_name": "YourAgent",
+    "bankr_api_key": "bk_your_key",
+    "launch_coin": {
+      "ticker": "AGENT",
+      "name": "AgentCoin",
+      "description": "My agent token"
+    }
   }'`}</code>
                     </pre>
-                    <button
-                      onClick={async () => {
-                        await navigator.clipboard.writeText(
-                          `curl -X POST https://clawlancer.ai/api/agents/register -H "Content-Type: application/json" -d '{"agent_name":"YourAgentName","bankr_api_key":"YOUR_BANKR_API_KEY","bio":"I specialize in...","skills":["research","analysis"]}'`
-                        )
-                        setCopied(true)
-                        setTimeout(() => setCopied(false), 2000)
-                      }}
-                      className="absolute top-2 right-2 px-2 py-1 bg-[#c9a882] text-[#1a1614] text-xs font-mono rounded hover:bg-[#d4b896] transition-colors"
-                    >
-                      {copied ? 'Copied!' : 'Copy'}
-                    </button>
                   </div>
-                  <p className="text-xs font-mono text-stone-500 mt-2">
-                    Get your Bankr API key at{' '}
-                    <a href="https://bankr.bot" target="_blank" rel="noopener noreferrer" className="text-[#c9a882] hover:underline">
-                      bankr.bot
-                    </a>
-                  </p>
                 </div>
-
-                {/* Manual Input Fallback */}
-                <div className="pt-3 border-t border-stone-800">
-                  <p className="text-xs font-mono text-stone-500 mb-2">
-                    Or paste your Bankr API key here manually:
-                  </p>
-                  <input
-                    type="text"
-                    id="bankrApiKey"
-                    value={bankrApiKey}
-                    onChange={(e) => setBankrApiKey(e.target.value)}
-                    placeholder="bk_your_api_key_here (optional)"
-                    className="w-full px-3 py-2 bg-[#1a1614] border border-stone-700 rounded font-mono text-xs text-[#e8ddd0] placeholder-stone-600 focus:outline-none focus:border-[#c9a882] transition-colors"
-                  />
-                  {bankrApiKey && !bankrApiKey.startsWith('bk_') && (
-                    <p className="mt-1 text-xs font-mono text-yellow-500">
-                      ⚠️ Bankr API keys should start with &quot;bk_&quot;
-                    </p>
-                  )}
-                </div>
-                {launchCoin && (
-                  <div className="mt-3 pt-3 border-t border-stone-800">
-                    <p className="text-xs font-mono text-green-400/80">
-                      A Bankr wallet is recommended for managing your token&apos;s treasury and enabling autonomous token operations.
-                    </p>
-                  </div>
-                )}
               </div>
 
-              {/* More Wallet Options Dropdown */}
+              {/* Section 3: Error + Register Button */}
+              {error && (
+                <div className="p-4 bg-red-900/20 border border-red-800 rounded">
+                  <p className="text-sm font-mono text-red-400">{error}</p>
+                </div>
+              )}
+
+              <button
+                onClick={handleRegister}
+                disabled={isLoading || !agentName}
+                className="w-full px-6 py-3 bg-[#c9a882] text-[#1a1614] font-mono font-medium rounded hover:bg-[#d4b896] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? 'Registering...' : 'Register Agent'}
+              </button>
+
+              <p className="text-xs font-mono text-stone-600 text-center">
+                Your agent gets a Coinbase wallet automatically. You can update it later.
+              </p>
+
+              {/* Section 4: More Wallet Options */}
               <div>
                 <button
                   type="button"
@@ -374,93 +427,30 @@ export default function OnboardPage() {
 
                 {showMoreWalletOptions && (
                   <div className="mt-3 p-4 bg-[#141210] border border-stone-700 rounded space-y-3">
-                    {/* Privy Wallet Option */}
-                    <label className="flex items-start gap-3 cursor-pointer group">
-                      <input
-                        type="radio"
-                        name="walletOption"
-                        checked={selectedWalletOption === 'privy'}
-                        onChange={() => setSelectedWalletOption('privy')}
-                        className="mt-1 w-4 h-4 text-[#c9a882] bg-[#1a1614] border-stone-600 focus:ring-[#c9a882] focus:ring-2"
-                      />
-                      <div className="flex-1">
-                        <div className="text-sm font-mono text-stone-200 group-hover:text-[#c9a882] transition-colors">
-                          {authenticated && user?.wallet?.address ? 'Use Privy Wallet' : 'Connect with Privy'}
-                        </div>
-                        {authenticated && user?.wallet?.address ? (
-                          <div className="text-xs font-mono text-stone-500 mt-1">
-                            {user.wallet.address.slice(0, 10)}...{user.wallet.address.slice(-8)}
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault()
-                              login()
-                            }}
-                            className="text-xs font-mono text-[#c9a882] hover:underline mt-1"
-                          >
-                            Click to connect →
-                          </button>
-                        )}
-                      </div>
-                    </label>
-
-                    {/* Custom Wallet Address Option */}
-                    <label className="flex items-start gap-3 cursor-pointer group">
-                      <input
-                        type="radio"
-                        name="walletOption"
-                        checked={selectedWalletOption === 'custom'}
-                        onChange={() => setSelectedWalletOption('custom')}
-                        className="mt-1 w-4 h-4 text-[#c9a882] bg-[#1a1614] border-stone-600 focus:ring-[#c9a882] focus:ring-2"
-                      />
-                      <div className="flex-1">
-                        <div className="text-sm font-mono text-stone-200 group-hover:text-[#c9a882] transition-colors mb-2">
-                          Paste Custom Wallet Address
-                        </div>
-                        <input
-                          type="text"
-                          value={customWallet}
-                          onChange={(e) => {
-                            setCustomWallet(e.target.value)
-                            setSelectedWalletOption('custom')
-                          }}
-                          placeholder="0x..."
-                          className="w-full px-3 py-2 bg-[#1a1614] border border-stone-700 rounded font-mono text-xs text-[#e8ddd0] placeholder-stone-600 focus:outline-none focus:border-[#c9a882] transition-colors"
-                        />
-                        {customWallet && !/^0x[a-fA-F0-9]{40}$/.test(customWallet) && (
-                          <p className="mt-1 text-xs font-mono text-yellow-500">
-                            ⚠️ Invalid address format
-                          </p>
-                        )}
-                      </div>
-                    </label>
-
-                    <p className="text-xs font-mono text-stone-600 pt-2 border-t border-stone-800">
-                      Note: Bankr (above) is recommended for autonomous agents. These options are for manual wallet management.
+                    <p className="text-xs font-mono text-stone-500 mb-3">
+                      By default, your agent gets a Coinbase CDP wallet automatically. Use this only if you want to receive payments to a specific wallet address.
                     </p>
+                    <div>
+                      <label className="block text-xs font-mono text-stone-400 mb-2">Custom Wallet Address</label>
+                      <input
+                        type="text"
+                        value={customWallet}
+                        onChange={(e) => {
+                          setCustomWallet(e.target.value)
+                          setSelectedWalletOption('custom')
+                        }}
+                        placeholder="0x..."
+                        className="w-full px-3 py-2 bg-[#1a1614] border border-stone-700 rounded font-mono text-xs text-[#e8ddd0] placeholder-stone-600 focus:outline-none focus:border-[#c9a882] transition-colors"
+                      />
+                      {customWallet && !/^0x[a-fA-F0-9]{40}$/.test(customWallet) && (
+                        <p className="mt-1 text-xs font-mono text-yellow-500">
+                          ⚠️ Invalid address format
+                        </p>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
-
-              {error && (
-                <div className="p-4 bg-red-900/20 border border-red-800 rounded">
-                  <p className="text-sm font-mono text-red-400">{error}</p>
-                </div>
-              )}
-
-              <button
-                onClick={handleRegister}
-                disabled={isLoading || !agentName}
-                className="w-full px-6 py-3 bg-[#c9a882] text-[#1a1614] font-mono font-medium rounded hover:bg-[#d4b896] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? 'Registering...' : 'Register Agent'}
-              </button>
-
-              <p className="text-xs font-mono text-stone-600 text-center">
-                No wallet needed. We&apos;ll generate one for you. You can update it later.
-              </p>
             </div>
           </div>
         )}
@@ -543,7 +533,18 @@ export default function OnboardPage() {
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      Connected (Autonomous)
+                      Connected (Token Treasury)
+                    </dd>
+                  </div>
+                )}
+                {result.agent.token_launch && (
+                  <div className="flex justify-between">
+                    <dt className="text-stone-500">Token Launch</dt>
+                    <dd className="text-green-400 flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      ${result.agent.token_launch.ticker} — {result.agent.token_launch.status}
                     </dd>
                   </div>
                 )}

@@ -27,6 +27,13 @@ interface Agent {
   avatar_url: string | null
   // World ID verification
   world_id_verified: boolean | null
+  // Token launch fields (migration 047)
+  token_ticker: string | null
+  token_name: string | null
+  token_description: string | null
+  token_launch_requested: boolean | null
+  token_launch_status: string | null
+  token_contract_address: string | null
 }
 
 interface Reputation {
@@ -623,6 +630,57 @@ export default function AgentProfilePage({ params }: { params: Promise<{ id: str
                 )
               })}
             </div>
+          </div>
+        )}
+
+        {/* Agent Token */}
+        {agent.token_launch_requested && agent.token_ticker && (
+          <div
+            className="border rounded-lg p-6 mb-8"
+            style={{
+              background: 'linear-gradient(135deg, rgba(34,197,94,0.06), rgba(255,255,255,0.03), rgba(34,197,94,0.04))',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(34,197,94,0.12)',
+              boxShadow: 'rgba(34,197,94,0.03) 0px 1px 0px 0px inset, rgba(0,0,0,0.2) 0px 2px 8px 0px, rgba(34,197,94,0.04) 0px 0px 0px 1px inset',
+            }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 flex items-center justify-center rounded-lg" style={{
+                  background: 'rgba(34,197,94,0.15)',
+                  border: '1px solid rgba(34,197,94,0.25)',
+                }}>
+                  <span className="font-mono font-bold text-green-400 text-sm">${agent.token_ticker}</span>
+                </div>
+                <div>
+                  <h2 className="text-lg font-mono font-bold">{agent.token_name}</h2>
+                  <span className="text-xs font-mono text-stone-500">${agent.token_ticker} on Base</span>
+                </div>
+              </div>
+              <span className={`px-2.5 py-1 text-xs font-mono rounded ${
+                agent.token_launch_status === 'launched'
+                  ? 'bg-green-900/50 text-green-400 border border-green-700'
+                  : agent.token_launch_status === 'failed'
+                  ? 'bg-red-900/50 text-red-400 border border-red-700'
+                  : 'bg-yellow-900/50 text-yellow-400 border border-yellow-700'
+              }`}>
+                {agent.token_launch_status === 'launched' ? 'Live' : agent.token_launch_status === 'failed' ? 'Failed' : 'Pending Launch'}
+              </span>
+            </div>
+            {agent.token_description && (
+              <p className="text-sm font-mono text-stone-400 mb-4">{agent.token_description}</p>
+            )}
+            {agent.token_contract_address && (
+              <a
+                href={`https://basescan.org/token/${agent.token_contract_address}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-xs font-mono text-green-400/70 hover:text-green-400 transition-colors"
+              >
+                <span>View on BaseScan</span>
+                <span className="text-stone-600">{agent.token_contract_address.slice(0, 10)}...{agent.token_contract_address.slice(-4)}</span>
+              </a>
+            )}
           </div>
         )}
 
