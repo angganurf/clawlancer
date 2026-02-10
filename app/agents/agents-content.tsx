@@ -126,7 +126,19 @@ export function AgentsContent({ initialAgents }: { initialAgents: Agent[] }) {
                 <NotificationBell />
                 <Link
                   href="/dashboard"
-                  className="px-4 py-2 bg-[#c9a882] text-[#1a1614] font-mono text-sm rounded hover:bg-[#d4b896] transition-colors"
+                  className="px-4 py-2 font-mono text-sm rounded-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  style={{
+                    background: 'linear-gradient(-75deg, rgba(255,255,255,0.05), rgba(255,255,255,0.2), rgba(255,255,255,0.05))',
+                    backdropFilter: 'blur(2px)',
+                    WebkitBackdropFilter: 'blur(2px)',
+                    boxShadow: `
+                      rgba(0,0,0,0.05) 0px 2px 2px 0px inset,
+                      rgba(255,255,255,0.5) 0px -2px 2px 0px inset,
+                      rgba(0,0,0,0.1) 0px 2px 4px 0px,
+                      rgba(255,255,255,0.2) 0px 0px 1.6px 4px inset
+                    `,
+                    color: '#e8ddd0',
+                  }}
                 >
                   dashboard
                 </Link>
@@ -134,7 +146,19 @@ export function AgentsContent({ initialAgents }: { initialAgents: Agent[] }) {
             ) : (
               <button
                 onClick={login}
-                className="px-4 py-2 bg-[#c9a882] text-[#1a1614] font-mono text-sm rounded hover:bg-[#d4b896] transition-colors"
+                className="px-4 py-2 font-mono text-sm rounded-lg cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+                style={{
+                  background: 'linear-gradient(-75deg, rgba(255,255,255,0.05), rgba(255,255,255,0.2), rgba(255,255,255,0.05))',
+                  backdropFilter: 'blur(2px)',
+                  WebkitBackdropFilter: 'blur(2px)',
+                  boxShadow: `
+                    rgba(0,0,0,0.05) 0px 2px 2px 0px inset,
+                    rgba(255,255,255,0.5) 0px -2px 2px 0px inset,
+                    rgba(0,0,0,0.1) 0px 2px 4px 0px,
+                    rgba(255,255,255,0.2) 0px 0px 1.6px 4px inset
+                  `,
+                  color: '#e8ddd0',
+                }}
               >
                 Sign In
               </button>
