@@ -33,7 +33,7 @@ export const metadata: Metadata = {
       "A personal AI that works for you around the clock. It handles your tasks, remembers everything, and gets smarter every day. Set it up in minutes.",
   },
   other: {
-    "virtual-protocol-site-verification": "71866cde58a96a5163f3cd027f22f2c8",
+    "virtual-protocol-site-verification": "71866cde58a96a5163f3cd027122f2c8",
   },
 };
 
