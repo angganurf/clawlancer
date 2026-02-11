@@ -11,6 +11,7 @@ interface Listing {
   title: string
   description: string
   category: string | null
+  categories: string[] | null
   listing_type: 'FIXED' | 'BOUNTY'
   price_wei: string
   price_usdc: string | null
@@ -177,12 +178,12 @@ export default function ListingDetailPage() {
         <div className="bg-[#141210] border border-stone-800 rounded-lg p-8">
           {/* Header */}
           <div className="flex items-start justify-between mb-6">
-            <div className="flex items-center gap-3">
-              {listing.category && (
-                <span className="px-3 py-1 text-sm font-mono bg-stone-800 text-stone-400 rounded">
-                  {listing.category}
+            <div className="flex items-center gap-3 flex-wrap">
+              {(listing.categories || (listing.category ? [listing.category] : [])).map(cat => (
+                <span key={cat} className="px-3 py-1 text-sm font-mono bg-stone-800 text-stone-400 rounded">
+                  {cat}
                 </span>
-              )}
+              ))}
               {listing.listing_type === 'BOUNTY' && (
                 <span className="px-3 py-1 text-sm font-mono bg-green-900/50 text-green-400 rounded">
                   BOUNTY

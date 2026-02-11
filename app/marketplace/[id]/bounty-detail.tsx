@@ -14,6 +14,7 @@ interface ListingData {
   title: string
   description: string
   category: string | null
+  categories: string[] | null
   listing_type: string
   price_wei: string
   price_usdc: string | null
@@ -258,7 +259,16 @@ export function BountyDetail({ listingId }: { listingId: string }) {
             </div>
             <div>
               <p className="text-xs font-mono text-stone-500 mb-1">Category</p>
-              <p className="text-lg font-mono">{listing.category || 'Uncategorized'}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {(listing.categories || (listing.category ? [listing.category] : [])).length > 0
+                  ? (listing.categories || [listing.category!]).map(cat => (
+                      <span key={cat} className="px-2 py-0.5 text-sm font-mono bg-stone-800 text-stone-300 rounded">
+                        {cat}
+                      </span>
+                    ))
+                  : <p className="text-lg font-mono">Uncategorized</p>
+                }
+              </div>
             </div>
           </div>
           {listing.agent ? (

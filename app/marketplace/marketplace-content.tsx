@@ -10,6 +10,7 @@ interface Listing {
   title: string
   description: string
   category: string | null
+  categories: string[] | null
   listing_type: 'FIXED' | 'BOUNTY'
   price_wei: string
   price_usdc: string | null
@@ -184,7 +185,10 @@ export function MarketplaceContent({ initialListings }: { initialListings: Listi
 
   // Apply all filters
   const filteredListings = listings.filter(l => {
-    if (categoryFilter !== 'all' && l.category !== categoryFilter) return false
+    if (categoryFilter !== 'all') {
+      const cats = l.categories || (l.category ? [l.category] : [])
+      if (!cats.includes(categoryFilter)) return false
+    }
     if (!meetsReputationFilter(l.agent?.reputation_tier ?? null, reputationFilter)) return false
     if (showStarterOnly && !isStarterGig(l.price_wei)) return false
     if (showBountiesOnly && l.listing_type !== 'BOUNTY') return false
@@ -405,11 +409,11 @@ export function MarketplaceContent({ initialListings }: { initialListings: Listi
                           Completed
                         </span>
                       )}
-                      {listing.category && (
-                        <span className="px-2 py-1 text-xs font-mono bg-stone-800 text-stone-400 rounded">
-                          {listing.category}
+                      {(listing.categories || (listing.category ? [listing.category] : [])).map(cat => (
+                        <span key={cat} className="px-2 py-1 text-xs font-mono bg-stone-800 text-stone-400 rounded">
+                          {cat}
                         </span>
-                      )}
+                      ))}
                       {listing.listing_type === 'BOUNTY' && (
                         <span className="px-2 py-1 text-xs font-mono bg-green-900/50 text-green-400 rounded">
                           BOUNTY
@@ -553,7 +557,7 @@ function PostBountyModal({ onClose, onPosted }: { onClose: () => void; onPosted:
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [price, setPrice] = useState('')
-  const [category, setCategory] = useState('other')
+  const [categories, setCategories] = useState<string[]>([])
   const [agentId, setAgentId] = useState<string | null>(null)
   const [agents, setAgents] = useState<Array<{ id: string; name: string }>>([])
   const [posting, setPosting] = useState(false)
@@ -578,6 +582,10 @@ function PostBountyModal({ onClose, onPosted }: { onClose: () => void; onPosted:
       setError('Title and price are required')
       return
     }
+    if (categories.length === 0) {
+      setError('Select at least one category')
+      return
+    }
     setPosting(true)
     setError('')
     try {
@@ -592,7 +600,7 @@ function PostBountyModal({ onClose, onPosted }: { onClose: () => void; onPosted:
       const body: Record<string, unknown> = {
         title,
         description,
-        category,
+        categories: categories.length > 0 ? categories : ['other'],
         listing_type: 'BOUNTY',
         price_wei: priceWei,
       }
@@ -706,18 +714,33 @@ function PostBountyModal({ onClose, onPosted }: { onClose: () => void; onPosted:
                   className="w-full bg-[#141210] border border-stone-700 rounded p-3 font-mono text-sm text-[#e8ddd0]"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-mono text-stone-500 mb-2">Category</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full bg-[#141210] border border-stone-700 rounded p-3 font-mono text-sm text-[#e8ddd0]"
-                >
-                  {CATEGORIES.filter(c => c !== 'all').map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-xs font-mono text-stone-500 mb-2">Categories</label>
+              <div className="flex flex-wrap gap-2">
+                {CATEGORIES.filter(c => c !== 'all').map(c => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setCategories(prev =>
+                      prev.includes(c)
+                        ? prev.filter(x => x !== c)
+                        : prev.length >= 5 ? prev : [...prev, c]
+                    )}
+                    className={`px-3 py-1.5 text-sm font-mono rounded border transition-colors ${
+                      categories.includes(c)
+                        ? 'bg-green-700/30 border-green-600 text-green-400'
+                        : 'bg-stone-800 border-stone-700 text-stone-400 hover:border-stone-500'
+                    }`}
+                  >
+                    {c}
+                  </button>
+                ))}
               </div>
+              <p className="text-xs font-mono text-stone-600 mt-1">
+                {categories.length} of 5 max{categories.length === 0 ? ' — select at least 1' : ''}
+              </p>
             </div>
 
             {error && (

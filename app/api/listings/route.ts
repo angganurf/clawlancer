@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
   let query = supabaseAdmin
     .from('listings')
     .select(`
-      id, agent_id, poster_wallet, title, description, category, listing_type, price_wei, price_usdc, currency,
+      id, agent_id, poster_wallet, title, description, category, categories, listing_type, price_wei, price_usdc, currency,
       is_negotiable, times_purchased, avg_rating, created_at, is_active,
       agent:agents(id, name, wallet_address, transaction_count, reputation_tier)
     `)
@@ -101,7 +101,8 @@ export async function GET(request: NextRequest) {
   }
 
   if (category) {
-    query = query.eq('category', category)
+    // Use array overlap on new categories column, with fallback to old category column
+    query = query.or(`categories.ov.{${category}},and(categories.is.null,category.eq.${category})`)
   }
 
   if (minPrice) {
@@ -289,7 +290,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { agent_id, title, description, category, listing_type, price_wei, price_usdc, currency, is_negotiable } = body
+    const { agent_id, title, description, category, categories: rawCategories, listing_type, price_wei, price_usdc, currency, is_negotiable } = body
 
     if (!title || !description || !price_wei) {
       return NextResponse.json(
@@ -307,11 +308,38 @@ export async function POST(request: NextRequest) {
     }
 
     const validCategories = ['research', 'writing', 'coding', 'analysis', 'design', 'data', 'other']
-    if (category && !validCategories.includes(category)) {
+
+    // Resolve categories array: accept `categories` (array) or `category` (string) for backward compat
+    let resolvedCategories: string[] | null = null
+    if (rawCategories && Array.isArray(rawCategories) && rawCategories.length === 0) {
       return NextResponse.json(
-        { error: `category must be one of: ${validCategories.join(', ')}` },
+        { error: 'At least one category is required when categories array is provided' },
         { status: 400 }
       )
+    }
+    if (rawCategories && Array.isArray(rawCategories) && rawCategories.length > 0) {
+      if (rawCategories.length > 5) {
+        return NextResponse.json(
+          { error: 'Maximum 5 categories allowed' },
+          { status: 400 }
+        )
+      }
+      const invalid = rawCategories.find((c: string) => !validCategories.includes(c))
+      if (invalid) {
+        return NextResponse.json(
+          { error: `Invalid category "${invalid}". Must be one of: ${validCategories.join(', ')}` },
+          { status: 400 }
+        )
+      }
+      resolvedCategories = rawCategories as string[]
+    } else if (category) {
+      if (!validCategories.includes(category)) {
+        return NextResponse.json(
+          { error: `category must be one of: ${validCategories.join(', ')}` },
+          { status: 400 }
+        )
+      }
+      resolvedCategories = [category]
     }
 
     const validListingTypes = ['FIXED', 'BOUNTY']
@@ -409,7 +437,8 @@ export async function POST(request: NextRequest) {
         poster_wallet: agent_id ? null : (auth.type === 'user' ? auth.wallet.toLowerCase() : null),
         title,
         description,
-        category: category || null,
+        category: resolvedCategories?.[0] || null,
+        categories: resolvedCategories,
         listing_type: listing_type || 'FIXED',
         price_wei,
         price_usdc: price_usdc || null,
@@ -431,7 +460,7 @@ export async function POST(request: NextRequest) {
         listing.id,
         title,
         description,
-        category || null,
+        resolvedCategories,
         price_wei,
         168 // 7 days default deadline
       ).catch(err => console.error('Failed to send webhook notifications:', err))
@@ -440,7 +469,7 @@ export async function POST(request: NextRequest) {
       notifyNewBountyMatch(
         listing.id,
         title,
-        category || null,
+        resolvedCategories,
         price_wei,
         agent_id
       ).catch(err => console.error('Failed to notify bounty match:', err))

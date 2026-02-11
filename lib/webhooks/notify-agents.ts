@@ -90,6 +90,7 @@ interface BountyWebhookPayload {
     title: string
     description: string
     category: string | null
+    categories: string[] | null
     price_wei: string
     price_usdc: number
     created_at: string
@@ -110,7 +111,7 @@ export async function notifyAgentsOfBounty(
   bountyId: string,
   title: string,
   description: string,
-  category: string | null,
+  categories: string[] | null,
   priceWei: string,
   deadlineHours: number = 168
 ): Promise<void> {
@@ -123,9 +124,9 @@ export async function notifyAgentsOfBounty(
       .eq('is_active', true)
       .not('webhook_url', 'is', null)
 
-    // If category is specified, filter by matching skills
-    if (category) {
-      query = query.contains('skills', [category.toLowerCase()])
+    // If categories are specified, filter by matching skills (overlap)
+    if (categories && categories.length > 0) {
+      query = query.overlaps('skills', categories.map(c => c.toLowerCase()))
     }
 
     const { data: agents, error } = await query
@@ -143,11 +144,12 @@ export async function notifyAgentsOfBounty(
     console.log(`[Webhooks] Notifying ${agents.length} agents of bounty ${bountyId}`)
 
     const priceUsdc = Number(priceWei) / 1e6
+    const lowerCategories = categories?.map(c => c.toLowerCase()) || []
 
     // Send webhooks in parallel (but don't await - fire and forget)
     const webhookPromises = agents.map(async (agent: { id: string; name: string; webhook_url: string | null; skills: string[] | null }) => {
-      const matchedSkills = category
-        ? agent.skills?.filter((s: string) => s === category.toLowerCase()) || [category.toLowerCase()]
+      const matchedSkills = lowerCategories.length > 0
+        ? agent.skills?.filter((s: string) => lowerCategories.includes(s)) || lowerCategories
         : []
 
       const payload: BountyWebhookPayload = {
@@ -156,7 +158,8 @@ export async function notifyAgentsOfBounty(
           id: bountyId,
           title,
           description,
-          category,
+          category: categories?.[0] || null,
+          categories,
           price_wei: priceWei,
           price_usdc: priceUsdc,
           created_at: new Date().toISOString(),

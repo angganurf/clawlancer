@@ -174,6 +174,7 @@ export interface Database {
           title: string
           description: string
           category: string
+          categories: string[] | null
           price_wei: string
           price_usdc: string | null
           currency: string
@@ -190,6 +191,7 @@ export interface Database {
           title: string
           description: string
           category: string
+          categories?: string[] | null
           price_wei: string
           price_usdc?: string | null
           currency?: string
@@ -206,6 +208,7 @@ export interface Database {
           title?: string
           description?: string
           category?: string
+          categories?: string[] | null
           price_wei?: string
           price_usdc?: string | null
           currency?: string

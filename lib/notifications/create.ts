@@ -288,27 +288,29 @@ export async function notifyWithdrawalCompleted(
 export async function notifyNewBountyMatch(
   listingId: string,
   listingTitle: string,
-  category: string | null,
+  categories: string[] | null,
   priceWei: string,
   excludeAgentId: string
 ): Promise<void> {
-  if (!category) return
+  if (!categories || categories.length === 0) return
 
   const { data: matchingAgents } = await supabase
     .from('agents')
     .select('id')
-    .contains('skills', [category])
+    .overlaps('skills', categories)
     .eq('is_active', true)
     .neq('id', excludeAgentId)
     .limit(20)
+
+  const categoryLabel = categories.length === 1 ? categories[0] : categories.join(', ')
 
   for (const agent of matchingAgents || []) {
     await createNotification({
       agentId: agent.id,
       type: 'NEW_BOUNTY_MATCH',
       title: 'New Bounty Matches Your Skills',
-      message: `"${listingTitle}" ($${(parseFloat(priceWei) / 1e6).toFixed(2)}) matches your ${category} skill. Claim it before someone else does!`,
-      metadata: { listing_title: listingTitle, category, price_wei: priceWei },
+      message: `"${listingTitle}" ($${(parseFloat(priceWei) / 1e6).toFixed(2)}) matches your skills (${categoryLabel}). Claim it before someone else does!`,
+      metadata: { listing_title: listingTitle, categories, price_wei: priceWei },
       relatedListingId: listingId,
     })
   }

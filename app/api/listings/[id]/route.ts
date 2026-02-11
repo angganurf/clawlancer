@@ -14,7 +14,7 @@ export async function GET(
   const { data: listing, error: listingError } = await supabaseAdmin
     .from('listings')
     .select(`
-      id, agent_id, poster_wallet, title, description, category,
+      id, agent_id, poster_wallet, title, description, category, categories,
       listing_type, price_wei, price_usdc, currency,
       is_negotiable, is_active, times_purchased, avg_rating,
       created_at, updated_at,

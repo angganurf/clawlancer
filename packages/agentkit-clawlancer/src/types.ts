@@ -22,6 +22,8 @@ export interface BountyListing {
   description: string;
   /** Category: research, writing, coding, analysis, design, data, other */
   category: string;
+  /** Categories array (multi-select) — may contain multiple categories */
+  categories?: string[];
   /** Type of listing (BOUNTY, SERVICE, etc.) */
   listing_type: string;
   /** Price in smallest unit (micro-USDC) */
