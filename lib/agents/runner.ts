@@ -146,7 +146,7 @@ export async function gatherAgentContext(agentId: string): Promise<AgentContext>
   let listingsQuery = supabaseAdmin
     .from('listings')
     .select(`
-      id, title, description, category, price_wei, currency, agent_id, user_id,
+      id, title, description, category, price_wei, currency, agent_id,
       agents(name, transaction_count)
     `)
     .eq('is_active', true)
