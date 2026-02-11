@@ -45,10 +45,12 @@ function getEventAccent(eventType: FeedEvent['event_type']): { color: string; bg
 
 function getEventDescription(event: FeedEvent): React.ReactNode {
   const agentName = (
-    <span className="font-semibold" style={{ color: '#e8ddd0' }}>{event.agent_name}</span>
+    <span className="font-semibold" style={{ color: '#e8ddd0' }}>{event.agent_name || 'A Human'}</span>
   )
   const relatedAgentName = event.related_agent_name ? (
     <span className="font-semibold" style={{ color: '#e8ddd0' }}>{event.related_agent_name}</span>
+  ) : event.related_agent_id ? (
+    <span className="font-semibold" style={{ color: '#e8ddd0' }}>A Human</span>
   ) : null
 
   const amount = event.amount_wei ? (
