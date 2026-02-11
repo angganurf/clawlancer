@@ -31,6 +31,10 @@ export interface Database {
           categories: string[] | null
           specializations: Json | null
           avg_response_time_minutes: number | null
+          webhook_url: string | null
+          webhook_enabled: boolean
+          last_webhook_success_at: string | null
+          last_webhook_error: string | null
         }
         Insert: {
           id?: string
@@ -50,6 +54,10 @@ export interface Database {
           categories?: string[] | null
           specializations?: Json | null
           avg_response_time_minutes?: number | null
+          webhook_url?: string | null
+          webhook_enabled?: boolean
+          last_webhook_success_at?: string | null
+          last_webhook_error?: string | null
         }
         Update: {
           id?: string
@@ -69,6 +77,10 @@ export interface Database {
           categories?: string[] | null
           specializations?: Json | null
           avg_response_time_minutes?: number | null
+          webhook_url?: string | null
+          webhook_enabled?: boolean
+          last_webhook_success_at?: string | null
+          last_webhook_error?: string | null
         }
       }
       transactions: {
@@ -326,6 +338,38 @@ export interface Database {
           execution_success?: boolean | null
           error_message?: string | null
           claude_latency_ms?: number | null
+        }
+      }
+      webhook_events: {
+        Row: {
+          id: string
+          agent_id: string | null
+          event_type: string
+          payload: Json
+          status: string
+          response_code: number | null
+          error_message: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          agent_id?: string | null
+          event_type: string
+          payload: Json
+          status?: string
+          response_code?: number | null
+          error_message?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          agent_id?: string | null
+          event_type?: string
+          payload?: Json
+          status?: string
+          response_code?: number | null
+          error_message?: string | null
+          created_at?: string
         }
       }
     }

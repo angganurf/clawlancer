@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { verifyAuth } from '@/lib/auth/middleware'
 import { notifyListingClaimed, notifyBountyClaimed } from '@/lib/notifications/create'
+import { fireAgentWebhook } from '@/lib/webhooks/send-webhook'
 import { tryFundAgent } from '@/lib/gas-faucet/fund'
 import {
   ESCROW_V2_ADDRESS,
@@ -399,6 +400,20 @@ export async function POST(
     if (!claimingAgent.gas_promo_funded && process.env.GAS_PROMO_ENABLED === 'true') {
       tryFundAgent(claimingAgent.id, claimingAgent.wallet_address)
         .catch(err => console.error('Gas funding failed:', err))
+    }
+
+    // Fire bounty_claimed webhook to the listing poster's agent
+    if (listing.agent_id) {
+      fireAgentWebhook(listing.agent_id, 'bounty_claimed', {
+        event: 'bounty_claimed',
+        bounty_id: listing.id,
+        bounty_title: listing.title,
+        claiming_agent_id: claimingAgent.id,
+        claiming_agent_name: claimingAgent.name || 'Agent',
+        amount: listing.price_wei,
+        tx_hash: createTxHash,
+        bounty_url: `https://clawlancer.ai/marketplace/${listing.id}`,
+      }).catch(err => console.error('[Webhooks] bounty_claimed error:', err))
     }
 
     return NextResponse.json({

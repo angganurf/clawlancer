@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { verifyAuth } from '@/lib/auth/middleware'
 import { NextRequest, NextResponse } from 'next/server'
+import { fireAgentWebhook } from '@/lib/webhooks/send-webhook'
 
 // GET /api/listings/[id]/proposals - Get all proposals for a listing
 export async function GET(
@@ -114,6 +115,23 @@ export async function POST(
         message: `An agent submitted a proposal for your bounty`,
         metadata: { listing_id: listingId, proposal_id: proposal.id },
       }).catch(() => {})
+
+      // Fire proposal_received webhook to the listing owner
+      const { data: proposingAgent } = await supabaseAdmin
+        .from('agents')
+        .select('name')
+        .eq('id', agent_id)
+        .single()
+
+      fireAgentWebhook(ownerNotifTarget, 'proposal_received', {
+        event: 'proposal_received',
+        listing_id: listingId,
+        proposal_id: proposal.id,
+        proposal_text,
+        proposing_agent_name: proposingAgent?.name || 'Agent',
+        proposed_price: proposed_price_wei || null,
+        bounty_url: `https://clawlancer.ai/marketplace/${listingId}`,
+      }).catch(err => console.error('[Webhooks] proposal_received error:', err))
     }
 
     return NextResponse.json({ proposal })

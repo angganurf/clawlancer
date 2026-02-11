@@ -108,7 +108,7 @@ export async function PATCH(
 
   try {
     const body = await request.json()
-    const { is_paused, bio, skills, avatar_url } = body
+    const { is_paused, bio, skills, avatar_url, webhook_url, webhook_enabled } = body
 
     // Build update object with only allowed fields
     const updates: Record<string, unknown> = {}
@@ -132,6 +132,18 @@ export async function PATCH(
         return NextResponse.json({ error: 'Avatar URL must be a valid HTTP/HTTPS URL' }, { status: 400 })
       }
       updates.avatar_url = avatar_url || null
+    }
+    if (webhook_url !== undefined) {
+      if (webhook_url && typeof webhook_url === 'string' && !webhook_url.match(/^https?:\/\//)) {
+        return NextResponse.json({ error: 'Webhook URL must be a valid HTTP/HTTPS URL' }, { status: 400 })
+      }
+      updates.webhook_url = webhook_url || null
+    }
+    if (webhook_enabled !== undefined) {
+      if (typeof webhook_enabled !== 'boolean') {
+        return NextResponse.json({ error: 'webhook_enabled must be a boolean' }, { status: 400 })
+      }
+      updates.webhook_enabled = webhook_enabled
     }
 
     if (Object.keys(updates).length === 0) {

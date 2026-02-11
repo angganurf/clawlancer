@@ -46,7 +46,10 @@ export function ShareModal({ isOpen, onClose, type, data }: ShareModalProps) {
   const [copied, setCopied] = useState(false)
   const [myAgents, setMyAgents] = useState<Array<{ id: string; name: string }>>([])
   const [sharingAgent, setSharingAgent] = useState(false)
-  const [agentShared, setAgentShared] = useState(false)
+  const [agentShareResult, setAgentShareResult] = useState<{
+    status: 'sent' | 'no_webhook' | 'error'
+    agentName?: string
+  } | null>(null)
 
   const variants = TWEET_VARIANTS[type] || TWEET_VARIANTS.bounty_posted
   const tweetText = variants[Math.floor(Math.random() * variants.length)](data)
@@ -89,10 +92,18 @@ export function ShareModal({ isOpen, onClose, type, data }: ShareModalProps) {
         }),
       })
       if (res.ok) {
-        setAgentShared(true)
+        const result = await res.json()
+        if (result.agents_notified > 0) {
+          const agent = result.agents[0]
+          setAgentShareResult({ status: 'sent', agentName: agent.name })
+        } else {
+          setAgentShareResult({ status: 'no_webhook' })
+        }
+      } else {
+        setAgentShareResult({ status: 'error' })
       }
     } catch {
-      // silent fail
+      setAgentShareResult({ status: 'error' })
     } finally {
       setSharingAgent(false)
     }
@@ -167,8 +178,18 @@ export function ShareModal({ isOpen, onClose, type, data }: ShareModalProps) {
         {myAgents.length > 0 && (
           <div className="border-t border-stone-800 pt-4">
             <p className="text-xs font-mono text-stone-500 mb-3">Make My Agent Share It</p>
-            {agentShared ? (
-              <p className="text-sm font-mono text-green-400">Queued! Your agent will share it soon.</p>
+            {agentShareResult ? (
+              <p className={`text-sm font-mono ${
+                agentShareResult.status === 'sent' ? 'text-green-400' :
+                agentShareResult.status === 'no_webhook' ? 'text-stone-400' :
+                'text-amber-400'
+              }`}>
+                {agentShareResult.status === 'sent'
+                  ? `Sent to ${agentShareResult.agentName} — sharing across all platforms now`
+                  : agentShareResult.status === 'no_webhook'
+                  ? 'No agents with webhooks configured.'
+                  : "Could not reach your agent. They'll pick it up next check-in."}
+              </p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {myAgents.map((agent) => (

@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { notifyNewBountyMatch } from '@/lib/notifications/create'
 import { notifyAgentsOfBounty } from '@/lib/webhooks/notify-agents'
 import { checkAndAwardAchievements } from '@/lib/achievements/check'
+import { fireAgentWebhook } from '@/lib/webhooks/send-webhook'
 
 // GET /api/listings - Browse marketplace
 // Query params:
@@ -487,6 +488,18 @@ export async function POST(request: NextRequest) {
         message: `You've been assigned a bounty worth $${(Number(price_wei) / 1e6).toFixed(2)} USDC`,
         metadata: { listing_id: listing.id },
       }).then(() => {}).catch((err: unknown) => console.error('Failed to notify assigned agent:', err))
+
+      // Fire direct_hire webhook to the assigned agent
+      fireAgentWebhook(assigned_agent_id, 'direct_hire', {
+        event: 'direct_hire',
+        listing_id: listing.id,
+        title,
+        description,
+        amount: price_wei,
+        categories: resolvedCategories,
+        poster_name: agent_id ? 'Agent' : 'User',
+        bounty_url: `https://clawlancer.ai/marketplace/${listing.id}`,
+      }).catch(err => console.error('[Webhooks] direct_hire error:', err))
     }
 
     // Check for marketplace_maker achievement

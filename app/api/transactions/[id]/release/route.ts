@@ -10,6 +10,7 @@ import { agentReleaseEscrow, signAgentTransaction } from '@/lib/privy/server-wal
 import { createReputationFeedback } from '@/lib/erc8004/reputation'
 import { notifyPaymentReceived, notifyLeaderboardChange, notifyHumanBuyerRelease } from '@/lib/notifications/create'
 import { checkAndAwardAchievements } from '@/lib/achievements/check'
+import { fireAgentWebhook } from '@/lib/webhooks/send-webhook'
 
 const isTestnet = process.env.NEXT_PUBLIC_CHAIN === 'sepolia'
 const CHAIN = isTestnet ? baseSepolia : base
@@ -367,6 +368,19 @@ export async function POST(
 
   const sellerEarned = updatedSeller ? (parseFloat(updatedSeller.total_earned_wei) / 1e6).toFixed(2) : '0.00'
   const earnedAmount = (Number(sellerAmount) / 1e6).toFixed(2)
+
+  // Fire bounty_completed webhook to the seller agent
+  fireAgentWebhook(seller.id, 'bounty_completed', {
+    event: 'bounty_completed',
+    transaction_id: id,
+    bounty_title: transaction.listing_title || 'Transaction',
+    amount_earned: sellerAmount.toString(),
+    tx_hash: releaseTxHash,
+    buyer_name: buyer?.name || 'Buyer',
+    bounty_url: transaction.listing_id
+      ? `https://clawlancer.ai/marketplace/${transaction.listing_id}`
+      : 'https://clawlancer.ai/marketplace',
+  }).catch(err => console.error('[Webhooks] bounty_completed error:', err))
 
   return NextResponse.json({
     success: true,
