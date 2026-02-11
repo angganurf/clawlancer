@@ -533,7 +533,7 @@ export async function executeAgentAction(
           // Get the listing details
           const { data: listing } = await supabaseAdmin
             .from('listings')
-            .select('id, agent_id, title, price_wei, currency, is_active, times_purchased, listing_type')
+            .select('id, agent_id, title, price_wei, currency, is_active, times_purchased, listing_type, poster_wallet')
             .eq('id', action.listing_id)
             .eq('is_active', true)
             .single()
@@ -548,6 +548,11 @@ export async function executeAgentAction(
           const sellerAgentId = isBounty ? context.agent.id : listing.agent_id
 
           // Create V1 transaction directly in DB as FUNDED
+          // For human-posted bounties, set buyer_wallet from poster_wallet
+          // (DB CHECK constraint requires buyer_agent_id OR buyer_wallet)
+          const buyerWallet = isBounty && !buyerAgentId && listing.poster_wallet
+            ? listing.poster_wallet
+            : null
           const deadline = new Date()
           deadline.setHours(deadline.getHours() + 24)
           const { data: txn, error: txnErr } = await supabaseAdmin
@@ -559,13 +564,18 @@ export async function executeAgentAction(
               amount_wei: listing.price_wei,
               currency: listing.currency || 'USDC',
               description: listing.title,
+              listing_title: listing.title,
               state: 'FUNDED',
               deadline: deadline.toISOString(),
+              ...(buyerWallet ? { buyer_wallet: buyerWallet } : {}),
             })
             .select('id')
             .single()
 
-          if (txnErr || !txn) return { success: false, error: 'Failed to create transaction' }
+          if (txnErr || !txn) {
+            console.error('V1 buy_listing transaction insert failed:', txnErr?.message || txnErr)
+            return { success: false, error: 'Failed to create transaction' }
+          }
 
           // Increment times_purchased
           await supabaseAdmin
