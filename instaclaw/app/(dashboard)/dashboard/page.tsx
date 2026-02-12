@@ -274,7 +274,7 @@ export default function DashboardPage() {
                   <span
                     className="px-2.5 py-0.5 rounded-full text-xs font-medium"
                     style={{
-                      background: "rgba(255,255,255,0.06)",
+                      background: "rgba(0,0,0,0.04)",
                       border: "1px solid var(--border)",
                       color: "var(--muted)",
                     }}
@@ -297,7 +297,7 @@ export default function DashboardPage() {
               {/* Premium progress bar */}
               <div
                 className="h-3 rounded-full overflow-hidden mb-5"
-                style={{ background: "rgba(255,255,255,0.06)" }}
+                style={{ background: "rgba(0,0,0,0.06)" }}
               >
                 <div
                   className="h-full rounded-full"
@@ -367,24 +367,24 @@ export default function DashboardPage() {
           {/* ── Credits & Plan ── */}
           {usage && vm.apiMode === "all_inclusive" ? (
             <div className="grid gap-5 sm:grid-cols-2">
-              {/* Credit Balance (dark card) */}
+              {/* Credit Balance (dark card — no .glass to avoid !important override) */}
               <div
-                className="glass rounded-xl p-6"
+                className="rounded-xl p-6"
                 style={{
-                  background: "rgba(0,0,0,0.35)",
-                  border: "1px solid rgba(255,255,255,0.08)",
+                  background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)",
+                  border: "1px solid rgba(255,255,255,0.1)",
                 }}
               >
                 <div className="flex items-center gap-2 mb-4">
-                  <Zap className="w-4 h-4" style={{ color: "#3b82f6" }} />
+                  <Zap className="w-4 h-4" style={{ color: "#60a5fa" }} />
                   <span className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.6)" }}>
                     Bonus Credits
                   </span>
                 </div>
-                <p className="text-3xl sm:text-4xl font-bold text-white">
+                <p className="text-3xl sm:text-4xl font-bold" style={{ color: "#ffffff" }}>
                   {usage.creditBalance}
                 </p>
-                <p className="text-xs mt-1 mb-5" style={{ color: "rgba(255,255,255,0.4)" }}>
+                <p className="text-xs mt-1 mb-5" style={{ color: "rgba(255,255,255,0.45)" }}>
                   {usage.creditBalance > 0
                     ? "Used after daily limit is reached. Never expire."
                     : "Buy credits to extend past your daily limit."}
@@ -433,7 +433,7 @@ export default function DashboardPage() {
                     href="/billing"
                     className="inline-flex px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                     style={{
-                      background: "rgba(255,255,255,0.06)",
+                      background: "rgba(0,0,0,0.04)",
                       color: "var(--muted)",
                       border: "1px solid var(--border)",
                     }}
@@ -471,7 +471,7 @@ export default function DashboardPage() {
                     href="/billing"
                     className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                     style={{
-                      background: "rgba(255,255,255,0.06)",
+                      background: "rgba(0,0,0,0.04)",
                       color: "var(--muted)",
                       border: "1px solid var(--border)",
                     }}
