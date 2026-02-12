@@ -35,3 +35,14 @@ export const TIER_DISPLAY: Record<Tier, { name: string; allInclusive: number; by
   pro: { name: "Pro", allInclusive: 99, byok: 39 },
   power: { name: "Power", allInclusive: 299, byok: 99 },
 };
+
+/** Reverse-map a Stripe price ID back to a tier. Returns null if unrecognized. */
+export function tierFromPriceId(priceId: string): Tier | null {
+  for (const [key, val] of Object.entries(PRICE_IDS)) {
+    if (val && val === priceId) {
+      // key is like "pro_all_inclusive" — extract tier portion
+      return key.split("_")[0] as Tier;
+    }
+  }
+  return null;
+}

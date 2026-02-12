@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getStripe } from "@/lib/stripe";
+import { getStripe, tierFromPriceId } from "@/lib/stripe";
 import { getSupabase } from "@/lib/supabase";
 import { sendPaymentFailedEmail, sendCanceledEmail, sendPendingEmail, sendTrialEndingEmail, sendAdminAlertEmail, sendVMReadyEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
@@ -43,27 +43,45 @@ export async function POST(req: NextRequest) {
       if (session.metadata?.type === "credit_pack") {
         const vmId = session.metadata.vm_id;
         const credits = parseInt(session.metadata.credits || "0", 10);
+        const paymentIntent = session.payment_intent as string;
 
-        if (vmId && credits > 0) {
-          // Atomically increment credit balance via RPC
+        if (vmId && credits > 0 && paymentIntent) {
+          // Idempotency: insert purchase log first with UNIQUE constraint on
+          // stripe_payment_intent. If this is a webhook retry, the insert will
+          // return zero rows and we skip adding credits.
+          const { data: inserted, error: insertErr } = await supabase
+            .from("instaclaw_credit_purchases")
+            .insert({
+              vm_id: vmId,
+              stripe_payment_intent: paymentIntent,
+              credits_purchased: credits,
+              amount_cents: session.amount_total ?? 0,
+            })
+            .select("id")
+            .single();
+
+          if (insertErr || !inserted) {
+            // Duplicate payment_intent = webhook retry — skip credit addition
+            logger.info("Credit pack webhook duplicate — skipping", {
+              route: "billing/webhook",
+              vmId,
+              paymentIntent,
+              error: insertErr ? String(insertErr) : "no row returned",
+            });
+            break;
+          }
+
+          // Only add credits if the insert succeeded (first delivery)
           await supabase.rpc("instaclaw_add_credits", {
             p_vm_id: vmId,
             p_credits: credits,
-          });
-
-          // Log the purchase
-          await supabase.from("instaclaw_credit_purchases").insert({
-            vm_id: vmId,
-            stripe_payment_intent: session.payment_intent as string,
-            credits_purchased: credits,
-            amount_cents: session.amount_total ?? 0,
           });
 
           logger.info("Credit pack purchased", {
             route: "billing/webhook",
             vmId,
             credits,
-            paymentIntent: session.payment_intent,
+            paymentIntent,
           });
         }
         break;
@@ -163,15 +181,47 @@ export async function POST(req: NextRequest) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const periodEnd = (subscription as any).current_period_end as number | undefined;
 
+      // Detect tier changes (upgrades/downgrades) from the subscription's current price
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const items = (subscription as any).items?.data as Array<{ price?: { id?: string } }> | undefined;
+      const currentPriceId = items?.[0]?.price?.id;
+      const newTier = currentPriceId ? tierFromPriceId(currentPriceId) : null;
+
+      const subUpdates: Record<string, unknown> = {
+        status: subscription.status,
+        ...(periodEnd
+          ? { current_period_end: new Date(periodEnd * 1000).toISOString() }
+          : {}),
+        ...(newTier ? { tier: newTier } : {}),
+      };
+
       await supabase
         .from("instaclaw_subscriptions")
-        .update({
-          status: subscription.status,
-          ...(periodEnd
-            ? { current_period_end: new Date(periodEnd * 1000).toISOString() }
-            : {}),
-        })
+        .update(subUpdates)
         .eq("stripe_customer_id", customerId);
+
+      // If tier changed, also update the VM so the proxy uses the new daily limit
+      if (newTier) {
+        const { data: sub } = await supabase
+          .from("instaclaw_subscriptions")
+          .select("user_id")
+          .eq("stripe_customer_id", customerId)
+          .single();
+
+        if (sub) {
+          await supabase
+            .from("instaclaw_vms")
+            .update({ tier: newTier })
+            .eq("assigned_to", sub.user_id);
+
+          logger.info("Tier updated via subscription change", {
+            route: "billing/webhook",
+            userId: sub.user_id,
+            newTier,
+            priceId: currentPriceId,
+          });
+        }
+      }
 
       break;
     }
