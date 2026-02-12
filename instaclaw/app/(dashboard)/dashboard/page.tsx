@@ -72,6 +72,7 @@ export default function DashboardPage() {
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [buyingPack, setBuyingPack] = useState<string | null>(null);
   const [showCreditPacks, setShowCreditPacks] = useState(false);
+  const [creditsPurchased, setCreditsPurchased] = useState(false);
   const creditPackRef = useRef<HTMLDivElement>(null);
 
   async function fetchStatus() {
@@ -109,6 +110,13 @@ export default function DashboardPage() {
       setTimeout(() => {
         creditPackRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 300);
+    }
+    if (params.get("credits") === "purchased") {
+      setCreditsPurchased(true);
+      fetchUsage(); // Refresh to show new balance
+      setTimeout(() => setCreditsPurchased(false), 5000);
+      // Clean URL without reload
+      window.history.replaceState({}, "", "/dashboard");
     }
   }, []);
 
@@ -198,6 +206,22 @@ export default function DashboardPage() {
           Manage your OpenClaw instance.
         </p>
       </div>
+
+      {/* Credits purchased success banner */}
+      {creditsPurchased && (
+        <div
+          className="rounded-xl p-4 flex items-center gap-3 transition-snappy"
+          style={{
+            background: "rgba(22,163,74,0.08)",
+            border: "1px solid rgba(22,163,74,0.2)",
+          }}
+        >
+          <Zap className="w-5 h-5 shrink-0" style={{ color: "var(--success)" }} />
+          <p className="text-sm font-medium" style={{ color: "var(--success)" }}>
+            Credits added! They&apos;re ready to use now.
+          </p>
+        </div>
+      )}
 
       {/* Payment past_due banner */}
       {billing?.paymentStatus === "past_due" && (

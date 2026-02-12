@@ -197,9 +197,21 @@ export async function POST(req: NextRequest) {
 
     if (limitResult && !limitResult.allowed) {
       return friendlyAssistantResponse(
-        `Hey! You've hit your daily limit for today (${limitResult.count}/${limitResult.limit} units used). 😊\n\nYour limit resets at midnight UTC, but if you want to keep going right now, grab a credit pack — they kick in instantly and never expire:\n\n• 50 units — $5\n• 200 units — $15\n• 500 units — $30\n\n[Top up here →](https://instaclaw.io/dashboard?buy=credits)\n\n(Tip: Haiku uses 1 unit per message, Sonnet uses 3, and Opus uses 15 — switching models stretches your units further!)`,
+        `You've hit your daily limit (${limitResult.count}/${limitResult.limit} units). Your limit resets at midnight UTC.\n\nWant to keep going? Grab a credit pack — they kick in instantly:\n\nhttps://instaclaw.io/dashboard?buy=credits`,
         requestedModel
       );
+    }
+
+    // --- Compute usage warning thresholds ---
+    const usageCount = limitResult?.count ?? 0;
+    const usageLimit = limitResult?.limit ?? 1;
+    const usagePct = (usageCount / usageLimit) * 100;
+
+    let usageWarning = "";
+    if (usagePct >= 90) {
+      usageWarning = `\n\n---\n⚠️ You've used ${usageCount} of ${usageLimit} daily units. Running low — credit packs available at instaclaw.io/dashboard?buy=credits`;
+    } else if (usagePct >= 80) {
+      usageWarning = `\n\n---\n⚡ You've used ${usageCount} of ${usageLimit} daily units.`;
     }
 
     // --- Proxy to Anthropic ---
@@ -222,13 +234,41 @@ export async function POST(req: NextRequest) {
       body,
     });
 
-    // Stream the response back to the VM gateway
-    return new NextResponse(anthropicRes.body, {
-      status: anthropicRes.status,
-      headers: {
-        "content-type": anthropicRes.headers.get("content-type") || "application/json",
-      },
-    });
+    // If no usage warning needed, stream response directly (no overhead)
+    if (!usageWarning) {
+      return new NextResponse(anthropicRes.body, {
+        status: anthropicRes.status,
+        headers: {
+          "content-type": anthropicRes.headers.get("content-type") || "application/json",
+        },
+      });
+    }
+
+    // Append usage warning to the AI response
+    const resText = await anthropicRes.text();
+    try {
+      const resBody = JSON.parse(resText);
+      if (resBody.content && Array.isArray(resBody.content)) {
+        // Find last text block and append warning
+        for (let i = resBody.content.length - 1; i >= 0; i--) {
+          if (resBody.content[i].type === "text") {
+            resBody.content[i].text += usageWarning;
+            break;
+          }
+        }
+      }
+      return NextResponse.json(resBody, {
+        status: anthropicRes.status,
+      });
+    } catch {
+      // If parsing fails, return original response without warning
+      return new NextResponse(resText, {
+        status: anthropicRes.status,
+        headers: {
+          "content-type": anthropicRes.headers.get("content-type") || "application/json",
+        },
+      });
+    }
   } catch (err) {
     logger.error("Gateway proxy error", { error: String(err), route: "gateway/proxy" });
     return NextResponse.json(
