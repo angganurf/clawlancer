@@ -117,7 +117,8 @@ export async function GET(req: NextRequest) {
   }
 
   const isSnapshot =
-    provider.name === "hetzner" && !!process.env.HETZNER_SNAPSHOT_ID;
+    (provider.name === "hetzner" && !!process.env.HETZNER_SNAPSHOT_ID) ||
+    (provider.name === "linode" && !!process.env.LINODE_SNAPSHOT_ID);
 
   const provisioned: { name: string; ip: string; provider: string }[] = [];
 
@@ -130,7 +131,7 @@ export async function GET(req: NextRequest) {
       const created = await provider.createServer({ name: vmName });
       const readyServer = await provider.waitForServer(created.providerId);
 
-      const vmStatus = isSnapshot && provider.name === "hetzner" ? "ready" : "provisioning";
+      const vmStatus = isSnapshot ? "ready" : "provisioning";
       const { error } = await supabase.from("instaclaw_vms").insert({
         ip_address: readyServer.ip,
         name: vmName,

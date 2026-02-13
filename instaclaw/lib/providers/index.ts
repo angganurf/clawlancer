@@ -1,12 +1,13 @@
 import type { CloudProvider } from "./types";
 import { hetznerProvider } from "./hetzner";
 import { digitalOceanProvider } from "./digitalocean";
+import { linodeProvider } from "./linode";
 
 export type { CloudProvider, ServerConfig, ServerResult } from "./types";
 
-const PROVIDERS: CloudProvider[] = [hetznerProvider, digitalOceanProvider];
+const PROVIDERS: CloudProvider[] = [hetznerProvider, digitalOceanProvider, linodeProvider];
 
-export function getProvider(name: "hetzner" | "digitalocean"): CloudProvider {
+export function getProvider(name: "hetzner" | "digitalocean" | "linode"): CloudProvider {
   const provider = PROVIDERS.find((p) => p.name === name);
   if (!provider) throw new Error(`Unknown provider: ${name}`);
   if (!provider.isConfigured())
@@ -20,7 +21,7 @@ export function getProvider(name: "hetzner" | "digitalocean"): CloudProvider {
 export function getAvailableProvider(): CloudProvider {
   const provider = PROVIDERS.find((p) => p.isConfigured());
   if (!provider)
-    throw new Error("No cloud provider configured. Set HETZNER_API_TOKEN or DIGITALOCEAN_API_TOKEN.");
+    throw new Error("No cloud provider configured. Set HETZNER_API_TOKEN, DIGITALOCEAN_API_TOKEN, or LINODE_API_TOKEN.");
   return provider;
 }
 

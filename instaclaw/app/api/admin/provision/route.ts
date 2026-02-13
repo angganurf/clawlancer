@@ -10,6 +10,7 @@ import {
 import {
   getProvider,
   getAvailableProvider,
+  getAllProviders,
 } from "@/lib/providers";
 import type { CloudProvider } from "@/lib/providers";
 import { logger } from "@/lib/logger";
@@ -57,7 +58,8 @@ export async function POST(req: NextRequest) {
   }
 
   const isSnapshot =
-    provider.name === "hetzner" && !!process.env.HETZNER_SNAPSHOT_ID;
+    (provider.name === "hetzner" && !!process.env.HETZNER_SNAPSHOT_ID) ||
+    (provider.name === "linode" && !!process.env.LINODE_SNAPSHOT_ID);
 
   const results: {
     id: string;
@@ -113,55 +115,60 @@ export async function POST(req: NextRequest) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       logger.error("Failed to create VM", { error: msg, route: "admin/provision", vmName, provider: provider.name });
 
-      // Auto-fallback: if Hetzner fails with limit error and DO is available, try DO
-      if (
-        provider.name === "hetzner" &&
-        msg.includes("limit") &&
-        !requestedProvider
-      ) {
-        try {
-          const fallback = getProvider("digitalocean");
-          logger.info("Falling back to DigitalOcean", { route: "admin/provision", vmName });
+      // Auto-fallback: if primary provider fails with limit error, try other configured providers
+      if (msg.includes("limit") && !requestedProvider) {
+        const allProviders = getAllProviders();
+        let fallbackSucceeded = false;
 
-          const created = await fallback.createServer({ name: vmName });
-          const ready = await fallback.waitForServer(created.providerId);
+        for (const fallback of allProviders) {
+          if (fallback.name === provider.name) continue;
 
-          const { data: vm, error } = await supabase
-            .from("instaclaw_vms")
-            .insert({
-              ip_address: ready.ip,
-              name: vmName,
-              provider_server_id: ready.providerId,
-              provider: "digitalocean",
-              ssh_port: 22,
-              ssh_user: "openclaw",
-              status: "provisioning",
-              region: ready.region,
-              server_type: ready.serverType,
-            })
-            .select()
-            .single();
+          try {
+            logger.info(`Falling back to ${fallback.name}`, { route: "admin/provision", vmName });
 
-          if (!error && vm) {
-            results.push({
-              id: vm.id,
-              name: vmName,
-              ip: ready.ip,
-              provider_server_id: ready.providerId,
-              provider: "digitalocean",
-              status: "provisioning",
+            const created = await fallback.createServer({ name: vmName });
+            const ready = await fallback.waitForServer(created.providerId);
+
+            const { data: vm, error } = await supabase
+              .from("instaclaw_vms")
+              .insert({
+                ip_address: ready.ip,
+                name: vmName,
+                provider_server_id: ready.providerId,
+                provider: fallback.name,
+                ssh_port: 22,
+                ssh_user: "openclaw",
+                status: "provisioning",
+                region: ready.region,
+                server_type: ready.serverType,
+              })
+              .select()
+              .single();
+
+            if (!error && vm) {
+              results.push({
+                id: vm.id,
+                name: vmName,
+                ip: ready.ip,
+                provider_server_id: ready.providerId,
+                provider: fallback.name,
+                status: "provisioning",
+              });
+              // Switch provider for remaining iterations
+              provider = fallback;
+              fallbackSucceeded = true;
+              break;
+            }
+          } catch (fallbackErr) {
+            logger.error(`${fallback.name} fallback also failed`, {
+              error: fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr),
+              route: "admin/provision",
+              vmName,
             });
-            // Switch provider for remaining iterations
-            provider = fallback;
-            continue;
           }
-        } catch (fallbackErr) {
-          logger.error("DO fallback also failed", {
-            error: fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr),
-            route: "admin/provision",
-            vmName,
-          });
         }
+
+        if (fallbackSucceeded) continue;
       }
 
       errors.push({ name: vmName, error: msg });

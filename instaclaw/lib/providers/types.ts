@@ -5,7 +5,7 @@ export interface ServerConfig {
 
 export interface ServerResult {
   providerId: string;
-  provider: "hetzner" | "digitalocean";
+  provider: "hetzner" | "digitalocean" | "linode";
   ip: string;
   name: string;
   region: string;
@@ -14,7 +14,7 @@ export interface ServerResult {
 }
 
 export interface CloudProvider {
-  name: "hetzner" | "digitalocean";
+  name: "hetzner" | "digitalocean" | "linode";
   createServer(config: ServerConfig): Promise<ServerResult>;
   waitForServer(providerId: string): Promise<ServerResult>;
   deleteServer(providerId: string): Promise<void>;
