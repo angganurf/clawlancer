@@ -19,6 +19,7 @@ interface UserConfig {
   discordBotToken?: string;
   channels?: string[];
   braveApiKey?: string;
+  gmailProfileSummary?: string;
 }
 
 // NVM preamble required before any `openclaw` CLI call on the VM.
@@ -299,6 +300,18 @@ export async function configureOpenClaw(
       'fi',
       ''
     );
+
+    // Write MEMORY.md with Gmail personality profile if available.
+    // This gives the agent context about its user from the very first message.
+    if (config.gmailProfileSummary) {
+      const memoryContent = config.gmailProfileSummary;
+      const memoryB64 = Buffer.from(memoryContent, 'utf-8').toString('base64');
+      scriptParts.push(
+        '# Write Gmail-based personality profile to MEMORY.md',
+        `echo '${memoryB64}' | base64 -d > "$AGENT_DIR/MEMORY.md"`,
+        ''
+      );
+    }
 
     // Base64-encode a Python script to auto-approve device pairing.
     // Avoids nested heredoc issues (PYEOF inside ICEOF).

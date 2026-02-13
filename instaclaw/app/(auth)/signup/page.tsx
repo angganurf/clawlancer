@@ -44,7 +44,7 @@ export default function SignupPage() {
 
   async function handleGoogleSignIn() {
     document.cookie = `instaclaw_invite_code=${encodeURIComponent(code)}; path=/; max-age=3600; SameSite=Lax`;
-    await signIn("google", { callbackUrl: "/connect" });
+    await signIn("google", { callbackUrl: "/gmail-connect" });
   }
 
   return (

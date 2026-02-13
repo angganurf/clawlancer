@@ -80,6 +80,28 @@ export async function POST(req: NextRequest) {
     if (pending.discord_bot_token) channels.push("discord");
     if (channels.length === 0) channels.push("telegram");
 
+    // Fetch Gmail personality profile if user connected Gmail during onboarding
+    let gmailProfileSummary: string | undefined;
+    const { data: userProfile } = await supabase
+      .from("instaclaw_users")
+      .select("gmail_profile_summary, gmail_insights")
+      .eq("id", userId)
+      .single();
+
+    if (userProfile?.gmail_profile_summary) {
+      const insights: string[] = userProfile.gmail_insights ?? [];
+      gmailProfileSummary = [
+        "## About My User (from onboarding)",
+        "",
+        userProfile.gmail_profile_summary,
+        "",
+        "### Quick Profile",
+        ...insights.map((i: string) => `- ${i}`),
+        "",
+        "Use this context to personalize all interactions. You already know this person — act like it.",
+      ].join("\n");
+    }
+
     // Configure OpenClaw on the VM
     const result = await configureOpenClaw(vm, {
       telegramBotToken: pending.telegram_bot_token,
@@ -89,6 +111,7 @@ export async function POST(req: NextRequest) {
       model: pending.default_model,
       discordBotToken: pending.discord_bot_token ?? undefined,
       channels,
+      gmailProfileSummary,
     });
 
     // ── Critical DB updates first (before any health check) ──

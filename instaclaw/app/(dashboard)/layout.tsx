@@ -40,7 +40,7 @@ export default function DashboardLayout({
 
   useEffect(() => {
     if (needsOnboarding) {
-      router.replace("/connect");
+      router.replace("/gmail-connect");
     }
   }, [needsOnboarding, router]);
 
