@@ -352,7 +352,9 @@ function DeployingPageContent() {
               updateStep("health", "done");
               setPolling(false);
               clearInterval(interval);
-              setTimeout(() => router.push("/dashboard"), 1500);
+              // Full page navigation (not router.push) so the NextAuth
+              // session is re-fetched with the updated onboardingComplete flag.
+              setTimeout(() => { window.location.href = "/dashboard"; }, 1500);
             } else {
               // "configuring" or "unknown" — actively trigger health check
               updateStep("health", "active");
