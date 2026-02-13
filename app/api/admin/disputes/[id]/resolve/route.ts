@@ -140,7 +140,6 @@ export async function POST(
         dispute_resolved_by: adminWallet,
         dispute_tx_hash: resolveTxHash,
         completed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       })
       .eq('id', id)
 

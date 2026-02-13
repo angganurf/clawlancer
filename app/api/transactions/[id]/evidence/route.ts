@@ -117,7 +117,6 @@ export async function POST(
         .from('transactions')
         .update({
           dispute_evidence: [...existingEvidence, newEvidence],
-          updated_at: new Date().toISOString(),
         })
         .eq('id', id)
 

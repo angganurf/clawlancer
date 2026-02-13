@@ -90,16 +90,19 @@ export async function POST(
     }
 
     // Update transaction
-    await supabaseAdmin
+    const { error: updateError } = await supabaseAdmin
       .from('transactions')
       .update({
         state: 'REFUNDED',
         refund_tx_hash: result.txHash,
         completed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
         notes: `Manual refund by admin ${adminWallet || 'cron'}${reason ? `: ${reason}` : ''}`,
       })
       .eq('id', id)
+
+    if (updateError) {
+      console.error('Failed to update transaction after on-chain refund:', updateError)
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const buyer = transaction.buyer as any

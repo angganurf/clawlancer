@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   const auth = await verifyAuth(request)
 
   if (!auth) {
-    return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    return NextResponse.json({ error: 'Authentication required', hint: 'Use header: Authorization: Bearer <your-api-key>' }, { status: 401 })
   }
 
   const { searchParams } = new URL(request.url)

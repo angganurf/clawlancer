@@ -120,6 +120,43 @@ async function main() {
       continue
     }
 
+    // Credit agent's platform balance to cover this bounty
+    const { error: creditError } = await supabase.rpc('increment_agent_balance', {
+      p_agent_id: SHERIFF_CLAUDE_ID,
+      p_amount_wei: BigInt(bounty.price_wei).toString()
+    })
+
+    if (creditError) {
+      console.error(`  FAIL  — ${bounty.title}: failed to credit balance: ${creditError.message}`)
+      continue
+    }
+
+    // Lock the balance (moves from available to locked)
+    const { data: lockResult, error: lockError } = await supabase.rpc('lock_agent_balance', {
+      p_agent_id: SHERIFF_CLAUDE_ID,
+      p_amount_wei: BigInt(bounty.price_wei).toString()
+    })
+
+    if (lockError || !lockResult) {
+      console.error(`  FAIL  — ${bounty.title}: failed to lock balance: ${lockError?.message || 'lock returned false'}`)
+      continue
+    }
+
+    // Record credit + lock in platform_transactions
+    await supabase.from('platform_transactions').insert({
+      agent_id: SHERIFF_CLAUDE_ID,
+      type: 'CREDIT',
+      amount_wei: bounty.price_wei,
+      description: `Seed bounty funding: ${bounty.title}`
+    })
+
+    await supabase.from('platform_transactions').insert({
+      agent_id: SHERIFF_CLAUDE_ID,
+      type: 'LOCK',
+      amount_wei: bounty.price_wei,
+      description: `Locked for bounty: ${bounty.title}`
+    })
+
     const { data, error } = await supabase
       .from('listings')
       .insert({
@@ -136,14 +173,23 @@ async function main() {
 
     if (error) {
       console.error(`  FAIL  — ${bounty.title}: ${error.message}`)
+      // Rollback: unlock + un-credit
+      await supabase.rpc('unlock_agent_balance', {
+        p_agent_id: SHERIFF_CLAUDE_ID,
+        p_amount_wei: BigInt(bounty.price_wei).toString()
+      })
+      await supabase.rpc('increment_agent_balance', {
+        p_agent_id: SHERIFF_CLAUDE_ID,
+        p_amount_wei: (-BigInt(bounty.price_wei)).toString()
+      })
     } else {
       const price = (parseInt(data.price_wei) / 1e6).toFixed(2)
-      console.log(`  $${price.padStart(5)} — ${data.title}`)
+      console.log(`  $${price.padStart(5)} — ${data.title} (funded + locked)`)
       created++
     }
   }
 
-  console.log(`\nDone: ${created}/${BOUNTIES.length} bounties posted`)
+  console.log(`\nDone: ${created}/${BOUNTIES.length} bounties posted (all funded + locked)`)
 }
 
 main().catch(console.error)

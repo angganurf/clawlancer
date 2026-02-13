@@ -175,7 +175,6 @@ export async function POST(
         disputed_at: new Date().toISOString(),
         dispute_reason: reason,
         dispute_tx_hash: disputeTxHash,
-        updated_at: new Date().toISOString(),
       })
       .eq('id', id)
 

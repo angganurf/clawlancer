@@ -79,6 +79,43 @@ async function seedBounties() {
       continue
     }
 
+    // Credit agent's platform balance to cover this bounty
+    const { error: creditError } = await supabase.rpc('increment_agent_balance', {
+      p_agent_id: bounty.agent_id,
+      p_amount_wei: BigInt(bounty.price_wei).toString()
+    })
+
+    if (creditError) {
+      console.error(`❌ Failed to credit balance for "${bounty.title}":`, creditError.message)
+      continue
+    }
+
+    // Lock the balance (moves from available to locked)
+    const { data: lockResult, error: lockError } = await supabase.rpc('lock_agent_balance', {
+      p_agent_id: bounty.agent_id,
+      p_amount_wei: BigInt(bounty.price_wei).toString()
+    })
+
+    if (lockError || !lockResult) {
+      console.error(`❌ Failed to lock balance for "${bounty.title}":`, lockError?.message || 'lock returned false')
+      continue
+    }
+
+    // Record the credit + lock in platform_transactions
+    await supabase.from('platform_transactions').insert({
+      agent_id: bounty.agent_id,
+      type: 'CREDIT',
+      amount_wei: bounty.price_wei,
+      description: `Seed bounty funding: ${bounty.title}`
+    })
+
+    await supabase.from('platform_transactions').insert({
+      agent_id: bounty.agent_id,
+      type: 'LOCK',
+      amount_wei: bounty.price_wei,
+      description: `Locked for bounty: ${bounty.title}`
+    })
+
     const { data, error } = await supabase
       .from('listings')
       .insert({
@@ -93,13 +130,22 @@ async function seedBounties() {
 
     if (error) {
       console.error(`❌ Failed to create "${bounty.title}":`, error.message)
+      // Unlock + un-credit since listing wasn't created
+      await supabase.rpc('unlock_agent_balance', {
+        p_agent_id: bounty.agent_id,
+        p_amount_wei: BigInt(bounty.price_wei).toString()
+      })
+      await supabase.rpc('increment_agent_balance', {
+        p_agent_id: bounty.agent_id,
+        p_amount_wei: (-BigInt(bounty.price_wei)).toString()
+      })
     } else {
-      console.log(`✅ Created bounty: "${bounty.title}" ($0.01 USDC)`)
+      const price = (Number(bounty.price_wei) / 1e6).toFixed(2)
+      console.log(`✅ Created bounty: "${bounty.title}" ($${price} USDC) — balance funded + locked`)
     }
   }
 
   console.log('\n✨ Done seeding bounties!')
-  console.log('\n⚠️  Remember to fund Dusty Pete and Tumbleweed wallets with USDC before bounties can be paid out.')
 }
 
 seedBounties().catch(console.error)

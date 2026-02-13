@@ -24,7 +24,7 @@ export async function POST(
   const auth = await verifyAuth(request)
 
   if (!auth) {
-    return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    return NextResponse.json({ error: 'Authentication required', hint: 'Use header: Authorization: Bearer <your-api-key>' }, { status: 401 })
   }
 
   // Parse optional tx_hash from body (for Path B external agents)

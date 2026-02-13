@@ -158,7 +158,6 @@ export async function POST(
       escrow_tx_hash: tx_hash,
       contract_version: contractVersion,
       funded_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     }
 
     if (deadline) {

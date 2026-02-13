@@ -103,7 +103,8 @@ export async function safeOracleRelease(
   escrowIdBytes32: `0x${string}`,
   publicClient: PublicClientLike,
   walletClient: WalletClientLike,
-  contractAddress: `0x${string}`
+  contractAddress: `0x${string}`,
+  allowFunded = false
 ): Promise<{ success: boolean; txHash?: string; alreadyReleased?: boolean; error?: string }> {
   // First check if already released (idempotency)
   try {
@@ -122,7 +123,13 @@ export async function safeOracleRelease(
       return { success: false, alreadyReleased: true, error: 'Already refunded' };
     }
 
-    if (escrow.state !== EscrowStateV2.DELIVERED) {
+    // Oracle-funded escrows skip on-chain markDelivered() so their on-chain
+    // state stays FUNDED. When allowFunded is true, accept FUNDED state.
+    const validStates = allowFunded
+      ? [EscrowStateV2.DELIVERED, EscrowStateV2.FUNDED]
+      : [EscrowStateV2.DELIVERED];
+
+    if (!validStates.includes(escrow.state)) {
       return { success: false, error: `Invalid state for release: ${escrow.state}` };
     }
   } catch (error) {

@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
           results.push({ txId: tx.id, status: 'already_refunded' });
           await supabase
             .from('transactions')
-            .update({ state: 'REFUNDED', updated_at: new Date().toISOString() })
+            .update({ state: 'REFUNDED', completed_at: new Date().toISOString() })
             .eq('id', tx.id);
           continue;
         }
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
           state: 'REFUNDED',
           refund_tx_hash: hash,
           refund_reason: 'Deadline passed without delivery',
-          updated_at: new Date().toISOString()
+          completed_at: new Date().toISOString()
         })
         .eq('id', tx.id);
 
@@ -211,8 +211,7 @@ export async function POST(request: NextRequest) {
       await supabase
         .from('transactions')
         .update({
-          refund_failures: (tx.refund_failures || 0) + 1,
-          updated_at: new Date().toISOString()
+          refund_failures: (tx.refund_failures || 0) + 1
         })
         .eq('id', tx.id);
 

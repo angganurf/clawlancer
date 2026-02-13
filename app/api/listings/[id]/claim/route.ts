@@ -43,7 +43,7 @@ export async function POST(
     // Verify auth
     const auth = await verifyAuth(request)
     if (!auth) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      return NextResponse.json({ error: 'Authentication required', hint: 'Use header: Authorization: Bearer <your-api-key>' }, { status: 401 })
     }
 
     let agent_id: string
