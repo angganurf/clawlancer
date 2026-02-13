@@ -134,6 +134,107 @@ export async function POST(request: NextRequest) {
           results.push({ txId: tx.id, status: 'not_ready' });
           continue;
         }
+
+        // Check on-chain state — oracle-funded txs may have state NONE
+        // (no escrow ever created on-chain). In that case, do DB-only release.
+        let onChainState: number | undefined;
+        try {
+          const escrow = await publicClient.readContract({
+            address: ESCROW_V2_ADDRESS,
+            abi: ESCROW_V2_ABI,
+            functionName: 'getEscrow',
+            args: [escrowIdBytes32]
+          }) as { state: number };
+          onChainState = escrow.state;
+        } catch {
+          // If we can't read on-chain state, fall through to safeOracleRelease
+        }
+
+        if (onChainState === 0 /* NONE — no on-chain escrow exists */) {
+          // DB-only release: update state, credit seller, record fee, notify
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const txBuyer = tx.buyer as any;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const txSeller = tx.seller as any;
+          const amountWei = BigInt(tx.price_wei || tx.amount_wei);
+          const feeAmount = (amountWei * BigInt(100)) / BigInt(10000); // 1% fee
+          const sellerAmount = amountWei - feeAmount;
+
+          await supabase
+            .from('transactions')
+            .update({
+              state: 'RELEASED',
+              release_tx_hash: 'db-only-oracle-funded',
+              completed_at: new Date().toISOString()
+            })
+            .eq('id', tx.id);
+
+          // Credit seller earnings
+          if (txSeller) {
+            const oldEarned = BigInt(txSeller.total_earned_wei || '0');
+            await supabase
+              .from('agents')
+              .update({ total_earned_wei: (oldEarned + sellerAmount).toString() })
+              .eq('id', txSeller.id);
+          }
+
+          // Increment transaction counts
+          await supabase.rpc('increment_transaction_count', { agent_id: tx.seller_agent_id });
+          if (tx.buyer_agent_id) {
+            await supabase.rpc('increment_transaction_count', { agent_id: tx.buyer_agent_id });
+          }
+
+          // Record platform fee
+          if (feeAmount > BigInt(0)) {
+            try {
+              await supabase.from('platform_fees').insert({
+                transaction_id: tx.id,
+                fee_type: 'MARKETPLACE',
+                amount_wei: feeAmount.toString(),
+                currency: tx.currency || 'USDC',
+                buyer_agent_id: tx.buyer_agent_id,
+                seller_agent_id: tx.seller_agent_id,
+                description: `1% oracle-release fee on "${tx.listing_title || 'transaction'}"`,
+              });
+            } catch { /* best-effort */ }
+          }
+
+          // Debit locked balance for the buyer (house bot)
+          if (tx.buyer_agent_id) {
+            try {
+              await supabase.rpc('debit_locked_agent_balance', {
+                p_agent_id: tx.buyer_agent_id,
+                p_amount_wei: amountWei.toString(),
+              });
+            } catch { /* best-effort */ }
+          }
+
+          // Notify seller
+          notifyPaymentReceived(
+            tx.seller_agent_id,
+            txBuyer?.name || 'Buyer',
+            tx.listing_title || 'Transaction',
+            sellerAmount.toString(),
+            tx.id
+          ).catch(() => {});
+
+          // Fire webhook
+          fireAgentWebhook(tx.seller_agent_id, 'bounty_completed', {
+            event: 'bounty_completed',
+            transaction_id: tx.id,
+            bounty_title: tx.listing_title || 'Transaction',
+            amount_earned: sellerAmount.toString(),
+            tx_hash: 'db-only-oracle-funded',
+            buyer_name: txBuyer?.name || 'Buyer',
+            bounty_url: tx.listing_id
+              ? `https://clawlancer.ai/marketplace/${tx.listing_id}`
+              : 'https://clawlancer.ai/marketplace',
+          }).catch(() => {});
+
+          results.push({ txId: tx.id, status: 'released', hash: 'db-only' });
+          continue;
+        }
+        // If on-chain state is FUNDED, fall through to safeOracleRelease below
       } else {
         // Non-oracle-funded: check on-chain readiness (DELIVERED + window passed)
         const isReady = await publicClient.readContract({
