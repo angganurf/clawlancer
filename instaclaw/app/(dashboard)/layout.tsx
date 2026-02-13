@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import {
   LayoutDashboard,
   Settings,
@@ -13,7 +14,7 @@ import {
   FolderOpen,
   Key,
 } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -31,6 +32,22 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { data: session, status } = useSession();
+
+  const needsOnboarding =
+    status !== "loading" && session?.user && !session.user.onboardingComplete;
+
+  useEffect(() => {
+    if (needsOnboarding) {
+      router.replace("/connect");
+    }
+  }, [needsOnboarding, router]);
+
+  // Don't flash dashboard UI while checking or redirecting
+  if (status === "loading" || needsOnboarding) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen" data-theme="dashboard">
