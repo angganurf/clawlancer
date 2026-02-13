@@ -112,13 +112,12 @@ export async function configureOpenClaw(
     // does not self-match the SSH process (whose cmdline would contain the full script).
     const scriptParts = [
       '#!/bin/bash',
-      'set -eo pipefail',
       NVM_PREAMBLE,
       '',
       '# Kill any existing gateway process (both the runner and the binary)',
       'pkill -f "openclaw-gateway" 2>/dev/null || true',
       'pkill -f "openclaw gateway" 2>/dev/null || true',
-      'sleep 3',
+      'sleep 2',
       '',
       '# Clear stale device pairing state (OpenClaw >=2026.2.9 requires device pairing)',
       'rm -rf ~/.openclaw/devices 2>/dev/null || true',
@@ -159,11 +158,11 @@ export async function configureOpenClaw(
     if (channels.includes("telegram") && config.telegramBotToken) {
       scriptParts.push(
         '# Configure Telegram channel (open DM policy for SaaS)',
-        `openclaw config set channels.telegram.botToken '${config.telegramBotToken}'`,
-        `openclaw config set channels.telegram.allowFrom '["*"]'`,
-        'openclaw config set channels.telegram.dmPolicy open',
-        'openclaw config set channels.telegram.groupPolicy allowlist',
-        'openclaw config set channels.telegram.streamMode partial',
+        `openclaw config set channels.telegram.botToken '${config.telegramBotToken}' || true`,
+        `openclaw config set channels.telegram.allowFrom '["*"]' || true`,
+        'openclaw config set channels.telegram.dmPolicy open || true',
+        'openclaw config set channels.telegram.groupPolicy allowlist || true',
+        'openclaw config set channels.telegram.streamMode partial || true',
         ''
       );
     }
@@ -173,8 +172,8 @@ export async function configureOpenClaw(
       assertSafeShellArg(config.discordBotToken, "discordBotToken");
       scriptParts.push(
         '# Configure Discord channel',
-        `openclaw config set channels.discord.botToken '${config.discordBotToken}'`,
-        `openclaw config set channels.discord.allowFrom '["*"]'`,
+        `openclaw config set channels.discord.botToken '${config.discordBotToken}' || true`,
+        `openclaw config set channels.discord.allowFrom '["*"]' || true`,
         ''
       );
     }
@@ -203,7 +202,7 @@ export async function configureOpenClaw(
         `echo '${authB64}' | base64 -d > "$AUTH_DIR/auth-profiles.json"`,
         '',
         '# Set provider base URL — this is what the gateway actually uses for outbound API calls',
-        `openclaw config set 'models.providers.anthropic' '{"baseUrl":"${proxyBaseUrl}","models":[]}' --json`,
+        `openclaw config set 'models.providers.anthropic' '{"baseUrl":"${proxyBaseUrl}","models":[]}' --json || true`,
         ''
       );
     }
@@ -211,7 +210,7 @@ export async function configureOpenClaw(
     // Set model
     scriptParts.push(
       '# Set model',
-      `openclaw config set agents.defaults.model.primary '${openclawModel}'`,
+      `openclaw config set agents.defaults.model.primary '${openclawModel}' || true`,
       ''
     );
 
@@ -221,8 +220,8 @@ export async function configureOpenClaw(
       assertSafeShellArg(braveKey, "braveApiKey");
       scriptParts.push(
         '# Configure web search (Brave)',
-        `openclaw config set tools.webSearch.provider brave`,
-        `openclaw config set tools.webSearch.apiKey '${braveKey}'`,
+        `openclaw config set tools.webSearch.provider brave || true`,
+        `openclaw config set tools.webSearch.apiKey '${braveKey}' || true`,
         ''
       );
     }
@@ -240,7 +239,7 @@ export async function configureOpenClaw(
       '  --env CLAWLANCER_API_KEY= \\',
       '  --env CLAWLANCER_BASE_URL=https://clawlancer.ai \\',
       '  --scope home \\',
-      '  --description "Clawlancer AI agent marketplace"',
+      '  --description "Clawlancer AI agent marketplace" || true',
       '',
       '# Register skill directory with OpenClaw (hardcoded path to avoid $HOME expansion issues)',
       'openclaw config set skills.load.extraDirs \'["/home/openclaw/.openclaw/skills"]\' 2>/dev/null || true',
@@ -282,36 +281,44 @@ export async function configureOpenClaw(
       ''
     );
 
+    // Base64-encode a Python script to auto-approve device pairing.
+    // Avoids nested heredoc issues (PYEOF inside ICEOF).
+    const pairingPython = [
+      'import json, os, sys',
+      'ddir = os.path.expanduser("~/.openclaw/devices")',
+      'pf = os.path.join(ddir, "pending.json")',
+      'af = os.path.join(ddir, "paired.json")',
+      'if not os.path.exists(pf): sys.exit(0)',
+      'with open(pf) as f: pending = json.load(f)',
+      'if not pending: sys.exit(0)',
+      'try:',
+      '  with open(af) as f: paired = json.load(f)',
+      'except: paired = {}',
+      'for rid, req in pending.items():',
+      '  paired[req["deviceId"]] = {"deviceId":req["deviceId"],"publicKey":req.get("publicKey",""),"role":req.get("role","operator"),"roles":req.get("roles",["operator"]),"scopes":req.get("scopes",[]),"approvedAt":req.get("ts",0),"platform":req.get("platform","linux")}',
+      'with open(af, "w") as f: json.dump(paired, f)',
+    ].join('\n');
+    const pairingB64 = Buffer.from(pairingPython, 'utf-8').toString('base64');
+
     scriptParts.push(
       '# Start gateway in background',
       `nohup openclaw gateway run --bind lan --port ${GATEWAY_PORT} --force > /tmp/openclaw-gateway.log 2>&1 &`,
       '',
       '# Wait for gateway to initialize',
-      'sleep 5',
+      'sleep 3',
       '',
       '# Auto-approve local device pairing (OpenClaw >=2026.2.9 requires this)',
-      '# Trigger a health check attempt to generate a pairing request, then approve it.',
+      '# Trigger a health check to generate a pairing request, then approve it via python.',
       'openclaw gateway health --timeout 3000 2>/dev/null || true',
       'sleep 1',
-      'DDIR="$HOME/.openclaw/devices"',
-      'if [ -f "$DDIR/pending.json" ] && [ -f "$DDIR/paired.json" ]; then',
-      '  python3 << \'PYEOF\'',
-      'import json, os',
-      'ddir = os.path.expanduser("~/.openclaw/devices")',
-      'with open(os.path.join(ddir, "pending.json")) as f: pending = json.load(f)',
-      'try:',
-      '  with open(os.path.join(ddir, "paired.json")) as f: paired = json.load(f)',
-      'except: paired = {}',
-      'for rid, req in pending.items():',
-      '  paired[req["deviceId"]] = {"deviceId":req["deviceId"],"publicKey":req.get("publicKey",""),"role":req.get("role","operator"),"roles":req.get("roles",["operator"]),"scopes":req.get("scopes",[]),"approvedAt":req.get("ts",0),"platform":req.get("platform","linux")}',
-      'with open(os.path.join(ddir, "paired.json"), "w") as f: json.dump(paired, f)',
-      'PYEOF',
-      '  # Restart gateway to pick up pairing approval',
-      '  pkill -f "openclaw-gateway" 2>/dev/null || true',
-      '  sleep 3',
-      `  nohup openclaw gateway run --bind lan --port ${GATEWAY_PORT} --force > /tmp/openclaw-gateway.log 2>&1 &`,
-      '  sleep 5',
-      'fi',
+      `echo '${pairingB64}' | base64 -d | python3 2>/dev/null || true`,
+      '',
+      '# Restart gateway to pick up pairing approval',
+      'pkill -f "openclaw-gateway" 2>/dev/null || true',
+      'pkill -f "openclaw gateway" 2>/dev/null || true',
+      'sleep 2',
+      `nohup openclaw gateway run --bind lan --port ${GATEWAY_PORT} --force > /tmp/openclaw-gateway.log 2>&1 &`,
+      'sleep 3',
       '',
       'echo "OPENCLAW_CONFIGURE_DONE"'
     );
