@@ -35,7 +35,7 @@ export async function GET() {
   }
 
   try {
-    const [overview, daily, topPages, referrers, recentEvents] = await Promise.all([
+    const [overview, daily, topPages, referrers, recentEvents, geoCountries, geoCities] = await Promise.all([
       // Overview KPIs — last 7 days
       hogql(
         `SELECT
@@ -100,6 +100,38 @@ export async function GET() {
         LIMIT 50`,
         apiKey
       ),
+      // Country-level geo — last 7 days
+      hogql(
+        `SELECT
+          properties.$geoip_country_code as country_code,
+          properties.$geoip_country_name as country_name,
+          count() as pageviews,
+          count(DISTINCT distinct_id) as unique_visitors
+        FROM events
+        WHERE event = '$pageview'
+          AND timestamp >= now() - interval 7 day
+          AND properties.$geoip_country_code IS NOT NULL
+        GROUP BY country_code, country_name
+        ORDER BY pageviews DESC
+        LIMIT 50`,
+        apiKey
+      ),
+      // City-level geo — last 7 days
+      hogql(
+        `SELECT
+          properties.$geoip_city_name as city_name,
+          properties.$geoip_country_code as country_code,
+          count() as pageviews,
+          count(DISTINCT distinct_id) as unique_visitors
+        FROM events
+        WHERE event = '$pageview'
+          AND timestamp >= now() - interval 7 day
+          AND properties.$geoip_city_name IS NOT NULL
+        GROUP BY city_name, country_code
+        ORDER BY pageviews DESC
+        LIMIT 15`,
+        apiKey
+      ),
     ]);
 
     return NextResponse.json({
@@ -108,6 +140,8 @@ export async function GET() {
       topPages: topPages.results || [],
       referrers: referrers.results || [],
       recentEvents: recentEvents.results || [],
+      geoCountries: geoCountries.results || [],
+      geoCities: geoCities.results || [],
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

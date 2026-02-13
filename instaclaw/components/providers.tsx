@@ -6,8 +6,8 @@ import { SessionProvider } from "next-auth/react";
 import posthog from "posthog-js";
 
 if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
-  posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
-    api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
+  posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY.trim(), {
+    api_host: (process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com").trim(),
     capture_pageview: false, // we capture manually on route change
   });
 }

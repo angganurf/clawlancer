@@ -9,7 +9,10 @@ import {
   RefreshCw,
   Loader2,
   AlertCircle,
+  Globe,
+  Building2,
 } from "lucide-react";
+import { WorldMap } from "@/components/hq/world-map";
 
 interface AnalyticsData {
   overview: [number, number, number]; // pageviews, sessions, unique_visitors
@@ -17,6 +20,8 @@ interface AnalyticsData {
   topPages: [string, number, number][]; // [path, views, uniques]
   referrers: [string, number][]; // [referrer, visits]
   recentEvents: [string, string, string][]; // [event, url, timestamp]
+  geoCountries: [string, string, number, number][]; // [country_code, country_name, pageviews, unique_visitors]
+  geoCities: [string, string, number, number][]; // [city_name, country_code, pageviews, unique_visitors]
 }
 
 function timeAgo(ts: string): string {
@@ -41,6 +46,7 @@ export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [geoTab, setGeoTab] = useState<"countries" | "cities">("countries");
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -102,6 +108,12 @@ export default function AnalyticsPage() {
   const maxDaily = Math.max(...data.daily.map(([, v]) => v), 1);
   const maxPageViews = Math.max(...data.topPages.map(([, v]) => v), 1);
   const maxReferrerVisits = Math.max(...data.referrers.map(([, v]) => v), 1);
+
+  const countryData = data.geoCountries.map(([code, name, pv, uv]) => ({
+    code, name, pageviews: pv, uniqueVisitors: uv,
+  }));
+  const geoList = geoTab === "countries" ? data.geoCountries : data.geoCities;
+  const maxGeoViews = Math.max(...geoList.map(([, , pv]) => pv), 1);
 
   return (
     <>
@@ -205,6 +217,83 @@ export default function AnalyticsPage() {
         )}
         {/* Bottom spacing for x-axis labels */}
         {data.daily.length > 0 && <div className="h-5" />}
+      </div>
+
+      {/* Visitor Locations */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
+        {/* Map */}
+        <div className="lg:col-span-2 glass rounded-xl p-4 sm:p-5">
+          <h2
+            className="text-base font-normal tracking-[-0.3px] mb-3"
+            style={{ fontFamily: "var(--font-serif)" }}
+          >
+            Visitor Locations
+            <span className="text-xs ml-2" style={{ color: "var(--muted)", fontFamily: "inherit" }}>
+              Last 7 days
+            </span>
+          </h2>
+          <WorldMap countries={countryData} />
+        </div>
+
+        {/* Ranked list */}
+        <div className="glass rounded-xl p-4 sm:p-5">
+          {/* Toggle tabs */}
+          <div className="flex gap-1 mb-3">
+            <button
+              onClick={() => setGeoTab("countries")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+              style={{
+                background: geoTab === "countries" ? "rgba(220, 103, 67, 0.12)" : "transparent",
+                color: geoTab === "countries" ? "var(--accent)" : "var(--muted)",
+              }}
+            >
+              <Globe className="w-3.5 h-3.5" />
+              Countries
+            </button>
+            <button
+              onClick={() => setGeoTab("cities")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+              style={{
+                background: geoTab === "cities" ? "rgba(220, 103, 67, 0.12)" : "transparent",
+                color: geoTab === "cities" ? "var(--accent)" : "var(--muted)",
+              }}
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              Cities
+            </button>
+          </div>
+
+          {geoList.length === 0 ? (
+            <p className="text-xs text-center py-8" style={{ color: "var(--muted)" }}>No data yet</p>
+          ) : (
+            <div className="space-y-1.5 overflow-y-auto" style={{ maxHeight: 320 }}>
+              {geoList.map(([primary, secondary, views, uniques]) => (
+                <div
+                  key={`${primary}-${secondary}`}
+                  className="relative flex items-center justify-between px-3 py-2 rounded-lg text-sm"
+                >
+                  <div
+                    className="absolute inset-0 rounded-lg"
+                    style={{
+                      background: "var(--accent)",
+                      opacity: 0.08,
+                      width: `${(views / maxGeoViews) * 100}%`,
+                    }}
+                  />
+                  <span className="relative truncate mr-3" style={{ maxWidth: "55%" }}>
+                    {geoTab === "countries" ? secondary : primary}
+                    {geoTab === "cities" && (
+                      <span className="text-xs ml-1" style={{ color: "var(--muted)" }}>{secondary}</span>
+                    )}
+                  </span>
+                  <span className="relative text-xs whitespace-nowrap" style={{ color: "var(--muted)" }}>
+                    {views} views &middot; {uniques} unique
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Top Pages + Referrers */}
