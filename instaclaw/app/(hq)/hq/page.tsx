@@ -86,7 +86,7 @@ function TaskCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-start gap-2 flex-1 min-w-0">
-          <GripVertical className="w-4 h-4 mt-0.5 shrink-0 opacity-30 group-hover:opacity-60 transition-opacity" />
+          <GripVertical className="w-4 h-4 mt-0.5 shrink-0 opacity-30 group-hover:opacity-60 transition-opacity hidden sm:block" />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-1">
               <span
@@ -111,18 +111,19 @@ function TaskCard({
             )}
           </div>
         </div>
-        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        {/* Always visible on mobile, hover on desktop */}
+        <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
           <button
             onClick={() => onEdit(task)}
-            className="p-1 rounded hover:bg-black/5 transition-colors"
+            className="p-1.5 sm:p-1 rounded hover:bg-black/5 transition-colors"
           >
-            <Pencil className="w-3 h-3" style={{ color: "var(--muted)" }} />
+            <Pencil className="w-3.5 h-3.5 sm:w-3 sm:h-3" style={{ color: "var(--muted)" }} />
           </button>
           <button
             onClick={() => onDelete(task.id)}
-            className="p-1 rounded hover:bg-black/5 transition-colors"
+            className="p-1.5 sm:p-1 rounded hover:bg-black/5 transition-colors"
           >
-            <Trash2 className="w-3 h-3" style={{ color: "var(--error)" }} />
+            <Trash2 className="w-3.5 h-3.5 sm:w-3 sm:h-3" style={{ color: "var(--error)" }} />
           </button>
         </div>
       </div>
@@ -138,21 +139,23 @@ function Column({
   onDrop,
   onEdit,
   onDelete,
+  hideBorder,
 }: {
   column: (typeof COLUMNS)[number];
   tasks: Task[];
   onDrop: (taskId: string, newStatus: string) => void;
   onEdit: (t: Task) => void;
   onDelete: (id: string) => void;
+  hideBorder?: boolean;
 }) {
   const [over, setOver] = useState(false);
 
   return (
     <div
-      className={`flex flex-col rounded-xl p-3 min-h-[300px] ${over ? "drag-over-column" : ""}`}
+      className={`flex flex-col rounded-xl p-3 min-h-[200px] sm:min-h-[300px] ${over ? "drag-over-column" : ""}`}
       style={{
-        background: "rgba(0,0,0,0.02)",
-        border: "1px solid var(--border)",
+        background: hideBorder ? "transparent" : "rgba(0,0,0,0.02)",
+        border: hideBorder ? "none" : "1px solid var(--border)",
         borderRadius: "0.75rem",
       }}
       onDragOver={(e) => {
@@ -167,7 +170,8 @@ function Column({
         if (taskId) onDrop(taskId, column.id);
       }}
     >
-      <div className="flex items-center justify-between mb-3 px-1">
+      {/* Column header hidden on mobile (tabs handle it) */}
+      <div className="hidden sm:flex items-center justify-between mb-3 px-1">
         <h3 className="text-base font-normal tracking-[-0.3px]" style={{ fontFamily: "var(--font-serif)" }}>{column.label}</h3>
         <span
           className="text-xs px-1.5 py-0.5 rounded"
@@ -182,6 +186,11 @@ function Column({
             <TaskCard key={t.id} task={t} onEdit={onEdit} onDelete={onDelete} />
           ))}
         </AnimatePresence>
+        {tasks.length === 0 && (
+          <p className="text-xs text-center py-8 sm:py-12" style={{ color: "var(--muted)" }}>
+            No tasks
+          </p>
+        )}
       </div>
     </div>
   );
@@ -234,24 +243,30 @@ function TaskModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
       style={{ background: "rgba(0,0,0,0.3)", backdropFilter: "blur(4px)" }}
       onClick={onClose}
     >
       <motion.form
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
+        initial={{ y: "100%", opacity: 1 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: "100%", opacity: 1 }}
+        transition={{ type: "spring", damping: 30, stiffness: 300 }}
         onClick={(e) => e.stopPropagation()}
         onSubmit={handleSubmit}
-        className="w-full max-w-md rounded-xl p-5 space-y-4"
+        className="w-full sm:max-w-md rounded-t-2xl sm:rounded-xl p-5 space-y-4"
         style={{
           background: "var(--card)",
           border: "1px solid var(--border)",
           color: "var(--foreground)",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
+          boxShadow: "0 -4px 32px rgba(0,0,0,0.12)",
         }}
       >
+        {/* Drag handle for mobile sheet */}
+        <div className="flex justify-center sm:hidden mb-1">
+          <div className="w-10 h-1 rounded-full" style={{ background: "rgba(0,0,0,0.15)" }} />
+        </div>
+
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold">
             {isEdit ? "Edit Task" : "New Task"}
@@ -266,7 +281,7 @@ function TaskModal({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Task title"
-          className="w-full px-3 py-2 rounded-lg text-sm outline-none"
+          className="w-full px-3 py-2.5 sm:py-2 rounded-lg text-sm outline-none"
           style={inputStyle}
           required
         />
@@ -276,7 +291,7 @@ function TaskModal({
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Description (optional)"
           rows={3}
-          className="w-full px-3 py-2 rounded-lg text-sm outline-none resize-none"
+          className="w-full px-3 py-2.5 sm:py-2 rounded-lg text-sm outline-none resize-none"
           style={inputStyle}
         />
 
@@ -288,7 +303,7 @@ function TaskModal({
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value)}
-              className="w-full px-2 py-1.5 rounded-lg text-sm outline-none"
+              className="w-full px-2 py-2 sm:py-1.5 rounded-lg text-sm outline-none"
               style={inputStyle}
             >
               {PRIORITIES.map((p) => (
@@ -305,7 +320,7 @@ function TaskModal({
             <select
               value={assignee}
               onChange={(e) => setAssignee(e.target.value)}
-              className="w-full px-2 py-1.5 rounded-lg text-sm outline-none"
+              className="w-full px-2 py-2 sm:py-1.5 rounded-lg text-sm outline-none"
               style={inputStyle}
             >
               <option value="">Unassigned</option>
@@ -321,7 +336,7 @@ function TaskModal({
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="w-full px-2 py-1.5 rounded-lg text-sm outline-none"
+              className="w-full px-2 py-2 sm:py-1.5 rounded-lg text-sm outline-none"
               style={inputStyle}
             >
               {COLUMNS.map((c) => (
@@ -331,18 +346,18 @@ function TaskModal({
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-1">
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1 pb-2 sm:pb-0">
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1.5 rounded-lg text-sm transition-colors hover:bg-black/5"
+            className="px-3 py-2.5 sm:py-1.5 rounded-lg text-sm transition-colors hover:bg-black/5 text-center"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={!title.trim()}
-            className="px-4 py-1.5 rounded-lg text-sm font-medium transition-opacity disabled:opacity-40"
+            className="px-4 py-2.5 sm:py-1.5 rounded-lg text-sm font-medium transition-opacity disabled:opacity-40 text-center"
             style={{ background: "rgba(0,0,0,0.08)" }}
           >
             {isEdit ? "Save" : "Create"}
@@ -359,6 +374,7 @@ export default function HQPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [modal, setModal] = useState<Partial<Task> | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [mobileTab, setMobileTab] = useState("todo");
 
   const fetchTasks = useCallback(async () => {
     try {
@@ -457,26 +473,75 @@ export default function HQPage() {
     }
   }
 
+  const activeColumn = COLUMNS.find((c) => c.id === mobileTab) || COLUMNS[0];
+
   return (
     <LayoutGroup>
-      <div className="flex items-center justify-between mb-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
         <h1 className="text-3xl sm:text-4xl font-normal tracking-[-0.5px]" style={{ fontFamily: "var(--font-serif)" }}>Task Board</h1>
         <div className="glow-wrap" style={{ width: "auto", display: "inline-block" }}>
           <div className="glow-border" style={{ borderRadius: "0.5rem" }}>
             <div className="glow-spinner" />
             <button
               onClick={openCreate}
-              className="glow-content flex items-center gap-1.5 px-4 py-2 text-sm font-medium cursor-pointer"
+              className="glow-content flex items-center gap-1.5 px-3 sm:px-4 py-2 text-sm font-medium cursor-pointer"
               style={{ borderRadius: "calc(0.5rem - 1.5px)", background: "#ffffff" }}
             >
               <Plus className="w-4 h-4" />
-              Add Task
+              <span className="hidden sm:inline">Add Task</span>
+              <span className="sm:hidden">Add</span>
             </button>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
+      {/* Mobile: Tab bar + single column */}
+      <div className="sm:hidden">
+        <div className="flex gap-1 mb-4 overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
+          {COLUMNS.map((col) => {
+            const count = tasks.filter((t) => t.status === col.id).length;
+            const isActive = mobileTab === col.id;
+            return (
+              <button
+                key={col.id}
+                onClick={() => setMobileTab(col.id)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm whitespace-nowrap transition-colors shrink-0"
+                style={{
+                  background: isActive ? "rgba(0,0,0,0.07)" : "transparent",
+                  color: isActive ? "var(--foreground)" : "var(--muted)",
+                  fontWeight: isActive ? 600 : 400,
+                }}
+              >
+                {col.label}
+                {count > 0 && (
+                  <span
+                    className="text-xs px-1.5 py-0.5 rounded-full"
+                    style={{
+                      background: isActive ? "rgba(0,0,0,0.06)" : "rgba(0,0,0,0.04)",
+                      color: "var(--muted)",
+                    }}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <Column
+          column={activeColumn}
+          tasks={tasks.filter((t) => t.status === activeColumn.id)}
+          onDrop={handleDrop}
+          onEdit={openEdit}
+          onDelete={handleDelete}
+          hideBorder
+        />
+      </div>
+
+      {/* Desktop: 4-column grid */}
+      <div className="hidden sm:grid grid-cols-4 gap-4">
         {COLUMNS.map((col) => (
           <Column
             key={col.id}
