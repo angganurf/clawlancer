@@ -948,14 +948,14 @@ export default function ConnectPage() {
                 {
                   id: "claude-sonnet-4-5-20250929",
                   label: "Claude Sonnet 4.5",
-                  cost: "3 units/message",
+                  cost: "4 units/message",
                   desc: "Stronger reasoning for complex questions. Good balance of smarts and cost.",
                   recommended: false,
                 },
                 {
                   id: "claude-opus-4-6",
                   label: "Claude Opus 4.6",
-                  cost: "15 units/message",
+                  cost: "19 units/message",
                   desc: "Most powerful — best for deep analysis, coding, and multi-step tasks.",
                   recommended: false,
                 },
@@ -1023,7 +1023,7 @@ export default function ConnectPage() {
               All models are always available — just tell your bot &quot;use Sonnet&quot; or &quot;switch to Opus&quot; anytime.
             </p>
             <p className="text-xs mt-2" style={{ color: "#999" }}>
-              Example: On the Pro plan (500 units/day), Haiku gets ~500 messages/day, Sonnet ~165, Opus ~33.
+              Example: On the Pro plan (700 units/day), Haiku gets ~700 messages/day, Sonnet ~175, Opus ~36.
             </p>
             <p className="text-xs mt-3 px-3 py-2.5 rounded-lg" style={{
               ...glassStyle,

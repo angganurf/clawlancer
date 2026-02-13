@@ -227,6 +227,9 @@ export async function configureOpenClaw(
     scriptParts.push(
       '# Set model',
       `openclaw config set agents.defaults.model.primary '${openclawModel}' || true`,
+      '',
+      '# Set heartbeat interval to 1 hour (default 30m burns too many credits)',
+      'openclaw config set agents.defaults.heartbeat.every 1h || true',
       ''
     );
 

@@ -9,6 +9,15 @@ const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const COST_PER_UNIT = 0.004;
 
 /**
+ * Free daily buffer to cover automated heartbeat/background API calls.
+ * Heartbeats (~72 calls/day at 1-hour intervals) should never consume
+ * a user's visible daily limit. The RPC limits include this buffer
+ * (e.g. Starter internal limit = 300 = 200 display + 100 buffer).
+ * Display values subtract HEARTBEAT_BUFFER from both count and limit.
+ */
+const HEARTBEAT_BUFFER = 100;
+
+/**
  * Global daily spend cap in dollars. If total platform-wide usage exceeds
  * this threshold, only starter-tier (haiku) requests are allowed through.
  * Configurable via DAILY_SPEND_CAP_DOLLARS env var.
@@ -92,12 +101,12 @@ function friendlyStreamResponse(text: string, model: string) {
  *
  * The OpenClaw gateway on each VM calls this endpoint instead of Anthropic
  * directly. This gives us centralized rate limiting per tier:
- *   - Starter: 100 units/day
- *   - Pro:     500 units/day
- *   - Power:  2000 units/day
+ *   - Starter: 200 units/day  (internal RPC limit: 300 = 200 + heartbeat buffer)
+ *   - Pro:     700 units/day  (internal RPC limit: 800)
+ *   - Power:  2500 units/day  (internal RPC limit: 2600)
  *
  * All tiers have access to all models. Cost weights handle fairness:
- * Haiku=1, Sonnet=3, Opus=15 (reflects Anthropic pricing).
+ * Haiku=1, Sonnet=4, Opus=19 (reflects actual Anthropic pricing ratios).
  *
  * Auth: x-api-key header (gateway token, sent by Anthropic SDK on VMs).
  */
@@ -156,7 +165,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // --- Fail-safe: if tier is null, default to starter (100/day) ---
+    // --- Fail-safe: if tier is null, default to starter (200/day + buffer) ---
     const tier = vm.tier || "starter";
     if (!vm.tier) {
       logger.warn("VM has null tier — defaulting to starter", {
@@ -237,16 +246,21 @@ export async function POST(req: NextRequest) {
     }
 
     if (limitResult && !limitResult.allowed) {
+      const displayCount = Math.max(0, (limitResult.count ?? 0) - HEARTBEAT_BUFFER);
+      const displayLimit = Math.max(1, (limitResult.limit ?? 1) - HEARTBEAT_BUFFER);
       return friendlyAssistantResponse(
-        `You've hit your daily limit (${limitResult.count}/${limitResult.limit} units). Your limit resets at midnight UTC.\n\nWant to keep going? Grab a credit pack — they kick in instantly:\n\nhttps://instaclaw.io/dashboard?buy=credits`,
+        `You've hit your daily limit (${displayCount}/${displayLimit} units). Your limit resets at midnight UTC.\n\nWant to keep going? Grab a credit pack — they kick in instantly:\n\nhttps://instaclaw.io/dashboard?buy=credits`,
         requestedModel,
         isStreaming
       );
     }
 
     // --- Compute usage warning thresholds ---
-    const usageCount = limitResult?.count ?? 0;
-    const usageLimit = limitResult?.limit ?? 1;
+    // Subtract heartbeat buffer so users only see their own usage
+    const rawCount = limitResult?.count ?? 0;
+    const rawLimit = limitResult?.limit ?? 1;
+    const usageCount = Math.max(0, rawCount - HEARTBEAT_BUFFER);
+    const usageLimit = Math.max(1, rawLimit - HEARTBEAT_BUFFER);
     const usagePct = (usageCount / usageLimit) * 100;
 
     let usageWarning = "";

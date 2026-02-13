@@ -25,7 +25,7 @@ const tiers = [
     allInclusive: 29,
     byok: 14,
     description: "Perfect for getting started",
-    dailyUnits: 100,
+    dailyUnits: 200,
     features: [
       "Always-on AI that works while you sleep",
       "Learns your preferences over time",
@@ -44,9 +44,9 @@ const tiers = [
     allInclusive: 99,
     byok: 39,
     description: "For everyday use",
-    dailyUnits: 500,
+    dailyUnits: 700,
     features: [
-      "5x more daily AI capacity",
+      "3.5x more daily AI capacity",
       "Handles complex, multi-step tasks",
       "Priority support when you need it",
     ],
@@ -64,9 +64,9 @@ const tiers = [
     allInclusive: 299,
     byok: 99,
     description: "For heavy workflows",
-    dailyUnits: 2000,
+    dailyUnits: 2500,
     features: [
-      "20x capacity for power users",
+      "12.5x capacity for power users",
       "Run multiple tasks at once",
       "Dedicated 1-on-1 support",
     ],
@@ -539,7 +539,7 @@ export default function PlanPage() {
                       {tier.dailyUnits.toLocaleString()} units/day
                     </p>
                     <p className="text-[10px] mt-0.5" style={{ color: "#999" }}>
-                      ~{tier.dailyUnits.toLocaleString()} Haiku or ~{Math.floor(tier.dailyUnits / 3)} Sonnet messages
+                      ~{tier.dailyUnits.toLocaleString()} Haiku or ~{Math.floor(tier.dailyUnits / 4)} Sonnet messages
                     </p>
                   </div>
                 ) : (

@@ -4,10 +4,13 @@ import { getSupabase } from "@/lib/supabase";
 import { logger } from "@/lib/logger";
 
 const TIER_LIMITS: Record<string, number> = {
-  starter: 100,
-  pro: 500,
-  power: 2000,
+  starter: 200,
+  pro: 700,
+  power: 2500,
 };
+
+/** Free daily buffer covering automated heartbeat API calls (~72/day). */
+const HEARTBEAT_BUFFER = 100;
 
 export async function GET() {
   const session = await auth();
@@ -27,7 +30,7 @@ export async function GET() {
       today: 0,
       week: 0,
       month: 0,
-      dailyLimit: 100,
+      dailyLimit: 200,
       creditBalance: 0,
     });
   }
@@ -66,7 +69,7 @@ export async function GET() {
         .gte("usage_date", monthAgoStr),
     ]);
 
-    const today = todayRes.data?.message_count ?? 0;
+    const today = Math.max(0, (todayRes.data?.message_count ?? 0) - HEARTBEAT_BUFFER);
     const week = (weekRes.data ?? []).reduce(
       (sum: number, row: { message_count: number }) => sum + row.message_count,
       0
@@ -82,7 +85,7 @@ export async function GET() {
       today,
       week,
       month,
-      dailyLimit: TIER_LIMITS[tier] ?? 100,
+      dailyLimit: TIER_LIMITS[tier] ?? 200,
       creditBalance: vm.credit_balance ?? 0,
     });
   } catch (err) {
@@ -91,7 +94,7 @@ export async function GET() {
       today: 0,
       week: 0,
       month: 0,
-      dailyLimit: TIER_LIMITS[vm.tier || "starter"] ?? 100,
+      dailyLimit: TIER_LIMITS[vm.tier || "starter"] ?? 200,
       creditBalance: 0,
     });
   }
