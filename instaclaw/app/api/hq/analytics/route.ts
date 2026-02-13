@@ -44,7 +44,7 @@ export async function GET() {
       .select("id", { count: "exact", head: true })
       .gte("created_at", sevenDaysAgo);
 
-    const [overview, daily, topPages, referrers, recentEvents, geoCountries, geoCities, signupsResult] = await Promise.all([
+    const [overview, daily, topPages, referrers, recentEvents, geoCountries, geoCities, bounceRate, newVsReturning, sessionDuration, signupsResult] = await Promise.all([
       // Overview KPIs — last 7 days
       hogql(
         `SELECT
@@ -144,12 +144,63 @@ export async function GET() {
         LIMIT 15`,
         apiKey
       ),
+      // Bounce rate — sessions with only 1 pageview
+      hogql(
+        `SELECT
+          count() as total_sessions,
+          countIf(pv_count = 1) as bounced_sessions
+        FROM (
+          SELECT properties.$session_id as sid, count() as pv_count
+          FROM events
+          WHERE event = '$pageview'
+            AND timestamp >= now() - interval 7 day
+            AND properties.$session_id IS NOT NULL
+          GROUP BY sid
+        )`,
+        apiKey
+      ),
+      // New vs returning visitors — last 7 days
+      hogql(
+        `SELECT
+          countIf(first_seen >= now() - interval 7 day) as new_visitors,
+          countIf(first_seen < now() - interval 7 day) as returning_visitors
+        FROM (
+          SELECT distinct_id, min(timestamp) as first_seen
+          FROM events
+          WHERE event = '$pageview'
+          GROUP BY distinct_id
+          HAVING max(timestamp) >= now() - interval 7 day
+        )`,
+        apiKey
+      ),
+      // Average session duration (seconds) — last 7 days
+      hogql(
+        `SELECT avg(duration) as avg_duration
+        FROM (
+          SELECT
+            properties.$session_id as sid,
+            dateDiff('second', min(timestamp), max(timestamp)) as duration
+          FROM events
+          WHERE timestamp >= now() - interval 7 day
+            AND properties.$session_id IS NOT NULL
+          GROUP BY sid
+          HAVING duration > 0
+        )`,
+        apiKey
+      ),
       signupsPromise,
     ]);
+
+    const [totalSessions, bouncedSessions] = bounceRate.results?.[0] || [0, 0];
+    const [newVisitors, returningVisitors] = newVsReturning.results?.[0] || [0, 0];
+    const [avgSessionDuration] = sessionDuration.results?.[0] || [0];
 
     return NextResponse.json({
       overview: overview.results?.[0] || [0, 0, 0],
       signups7d: signupsResult.count ?? 0,
+      bounceRate: { totalSessions, bouncedSessions },
+      newVsReturning: { newVisitors, returningVisitors },
+      avgSessionDuration: Math.round(avgSessionDuration || 0),
       daily: daily.results || [],
       topPages: topPages.results || [],
       referrers: referrers.results || [],

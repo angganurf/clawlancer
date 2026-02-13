@@ -6,6 +6,9 @@ import {
   Users,
   TrendingUp,
   UserCheck,
+  LogOut,
+  UserPlus,
+  Clock,
   RefreshCw,
   Loader2,
   AlertCircle,
@@ -19,6 +22,9 @@ import { WorldMap } from "@/components/hq/world-map";
 interface AnalyticsData {
   overview: [number, number, number]; // pageviews, sessions, unique_visitors
   signups7d: number;
+  bounceRate: { totalSessions: number; bouncedSessions: number };
+  newVsReturning: { newVisitors: number; returningVisitors: number };
+  avgSessionDuration: number; // seconds
   daily: [string, number][]; // [day, views]
   topPages: [string, number, number][]; // [path, views, uniques]
   referrers: [string, number][]; // [referrer, visits]
@@ -208,11 +214,25 @@ export default function AnalyticsPage() {
     ? ((data.signups7d / uniqueVisitors) * 100).toFixed(1)
     : "0";
 
+  const bounceRatePct = data.bounceRate.totalSessions > 0
+    ? ((data.bounceRate.bouncedSessions / data.bounceRate.totalSessions) * 100).toFixed(1)
+    : "0";
+  const { newVisitors, returningVisitors } = data.newVsReturning;
+  const avgDurMin = Math.floor(data.avgSessionDuration / 60);
+  const avgDurSec = data.avgSessionDuration % 60;
+  const avgDurStr = avgDurMin > 0 ? `${avgDurMin}m ${avgDurSec}s` : `${avgDurSec}s`;
+
   const kpis = [
     { label: "Pageviews", value: pageviews.toLocaleString(), icon: Eye },
     { label: "Unique Visitors", value: uniqueVisitors.toLocaleString(), icon: Users },
     { label: "Sessions", value: sessions.toLocaleString(), icon: TrendingUp },
     { label: "Conversion Rate", value: `${conversionRate}%`, sub: `${data.signups7d} signups`, icon: UserCheck },
+  ];
+
+  const kpis2 = [
+    { label: "Bounce Rate", value: `${bounceRatePct}%`, sub: `${data.bounceRate.bouncedSessions.toLocaleString()} of ${data.bounceRate.totalSessions.toLocaleString()} sessions`, icon: LogOut },
+    { label: "New vs Returning", value: newVisitors.toLocaleString(), sub: `new · ${returningVisitors.toLocaleString()} returning`, icon: UserPlus },
+    { label: "Avg Session", value: avgDurStr, sub: "time on site", icon: Clock },
   ];
 
   const maxDaily = Math.max(...data.daily.map(([, v]) => v), 1);
@@ -292,6 +312,28 @@ export default function AnalyticsPage() {
               {"sub" in kpi && kpi.sub && (
                 <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>{kpi.sub}</p>
               )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Engagement KPIs */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+        {kpis2.map((kpi) => {
+          const Icon = kpi.icon;
+          return (
+            <div key={kpi.label} className="glass rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Icon className="w-4 h-4" style={{ color: "var(--muted)" }} />
+                <span className="text-xs" style={{ color: "var(--muted)" }}>{kpi.label}</span>
+              </div>
+              <p
+                className="text-2xl sm:text-3xl font-normal tracking-[-0.5px]"
+                style={{ fontFamily: "var(--font-serif)" }}
+              >
+                {kpi.value}
+              </p>
+              <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>{kpi.sub}</p>
             </div>
           );
         })}
