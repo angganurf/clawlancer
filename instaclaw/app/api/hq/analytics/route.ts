@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyHQAuth } from "@/lib/hq-auth";
+import { getSupabase } from "@/lib/supabase";
 
 const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
 
@@ -35,7 +36,15 @@ export async function GET() {
   }
 
   try {
-    const [overview, daily, topPages, referrers, recentEvents, geoCountries, geoCities] = await Promise.all([
+    // Signups in last 7 days (from Supabase, runs in parallel with PostHog)
+    const supabase = getSupabase();
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const signupsPromise = supabase
+      .from("instaclaw_users")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", sevenDaysAgo);
+
+    const [overview, daily, topPages, referrers, recentEvents, geoCountries, geoCities, signupsResult] = await Promise.all([
       // Overview KPIs — last 7 days
       hogql(
         `SELECT
@@ -135,10 +144,12 @@ export async function GET() {
         LIMIT 15`,
         apiKey
       ),
+      signupsPromise,
     ]);
 
     return NextResponse.json({
       overview: overview.results?.[0] || [0, 0, 0],
+      signups7d: signupsResult.count ?? 0,
       daily: daily.results || [],
       topPages: topPages.results || [],
       referrers: referrers.results || [],

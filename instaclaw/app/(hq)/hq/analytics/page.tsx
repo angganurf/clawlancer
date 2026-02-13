@@ -5,7 +5,7 @@ import {
   Eye,
   Users,
   TrendingUp,
-  Clock,
+  UserCheck,
   RefreshCw,
   Loader2,
   AlertCircle,
@@ -18,6 +18,7 @@ import { WorldMap } from "@/components/hq/world-map";
 
 interface AnalyticsData {
   overview: [number, number, number]; // pageviews, sessions, unique_visitors
+  signups7d: number;
   daily: [string, number][]; // [day, views]
   topPages: [string, number, number][]; // [path, views, uniques]
   referrers: [string, number][]; // [referrer, visits]
@@ -203,13 +204,15 @@ export default function AnalyticsPage() {
   if (!data) return null;
 
   const [pageviews, sessions, uniqueVisitors] = data.overview;
-  const pagesPerSession = sessions > 0 ? (pageviews / sessions).toFixed(1) : "0";
+  const conversionRate = uniqueVisitors > 0
+    ? ((data.signups7d / uniqueVisitors) * 100).toFixed(1)
+    : "0";
 
   const kpis = [
     { label: "Pageviews", value: pageviews.toLocaleString(), icon: Eye },
     { label: "Unique Visitors", value: uniqueVisitors.toLocaleString(), icon: Users },
     { label: "Sessions", value: sessions.toLocaleString(), icon: TrendingUp },
-    { label: "Pages / Session", value: pagesPerSession, icon: Clock },
+    { label: "Conversion Rate", value: `${conversionRate}%`, sub: `${data.signups7d} signups`, icon: UserCheck },
   ];
 
   const maxDaily = Math.max(...data.daily.map(([, v]) => v), 1);
@@ -286,6 +289,9 @@ export default function AnalyticsPage() {
               >
                 {kpi.value}
               </p>
+              {"sub" in kpi && kpi.sub && (
+                <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>{kpi.sub}</p>
+              )}
             </div>
           );
         })}
