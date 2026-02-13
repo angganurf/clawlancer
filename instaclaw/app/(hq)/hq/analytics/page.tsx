@@ -180,8 +180,8 @@ export default function AnalyticsPage() {
               return (
                 <div
                   key={day}
-                  className="flex-1 relative group"
-                  style={{ height: "100%" }}
+                  className="relative group"
+                  style={{ height: "100%", flex: "1 1 0%", maxWidth: 40 }}
                 >
                   <div
                     className="absolute bottom-0 left-0 right-0 rounded-t transition-colors"
