@@ -168,7 +168,7 @@ function Column({
       }}
     >
       <div className="flex items-center justify-between mb-3 px-1">
-        <h3 className="text-sm font-semibold">{column.label}</h3>
+        <h3 className="text-base font-normal tracking-[-0.3px]" style={{ fontFamily: "var(--font-serif)" }}>{column.label}</h3>
         <span
           className="text-xs px-1.5 py-0.5 rounded"
           style={{ background: "rgba(0,0,0,0.04)", color: "var(--muted)" }}
@@ -460,7 +460,7 @@ export default function HQPage() {
   return (
     <LayoutGroup>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold">Task Board</h1>
+        <h1 className="text-3xl sm:text-4xl font-normal tracking-[-0.5px]" style={{ fontFamily: "var(--font-serif)" }}>Task Board</h1>
         <button
           onClick={openCreate}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-snappy transition-colors hover:bg-black/5"
