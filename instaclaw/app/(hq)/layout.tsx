@@ -4,11 +4,12 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Lock, Loader2, LayoutGrid, BarChart3 } from "lucide-react";
+import { Lock, Loader2, LayoutGrid, BarChart3, DollarSign } from "lucide-react";
 
 const NAV_TABS = [
   { href: "/hq", label: "Board", icon: LayoutGrid },
   { href: "/hq/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/hq/margins", label: "Margins", icon: DollarSign },
 ] as const;
 
 export default function HQLayout({ children }: { children: React.ReactNode }) {
