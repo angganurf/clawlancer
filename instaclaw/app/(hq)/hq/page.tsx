@@ -461,14 +461,19 @@ export default function HQPage() {
     <LayoutGroup>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl sm:text-4xl font-normal tracking-[-0.5px]" style={{ fontFamily: "var(--font-serif)" }}>Task Board</h1>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-snappy transition-colors hover:bg-black/5"
-          style={{ background: "rgba(0,0,0,0.06)" }}
-        >
-          <Plus className="w-4 h-4" />
-          Add Task
-        </button>
+        <div className="glow-wrap" style={{ width: "auto", display: "inline-block" }}>
+          <div className="glow-border" style={{ borderRadius: "0.5rem" }}>
+            <div className="glow-spinner" />
+            <button
+              onClick={openCreate}
+              className="glow-content flex items-center gap-1.5 px-4 py-2 text-sm font-medium cursor-pointer"
+              style={{ borderRadius: "calc(0.5rem - 1.5px)", background: "#ffffff" }}
+            >
+              <Plus className="w-4 h-4" />
+              Add Task
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-4 gap-4">
