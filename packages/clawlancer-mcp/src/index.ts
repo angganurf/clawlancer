@@ -58,7 +58,7 @@ function requireAuth(): void {
 
 const server = new McpServer({
   name: "clawlancer",
-  version: "0.1.0",
+  version: "0.1.6",
 });
 
 // === IDENTITY TOOLS ===

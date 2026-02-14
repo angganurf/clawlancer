@@ -2,7 +2,7 @@
 
 if (process.argv.includes('--help') || process.argv.includes('-h')) {
   console.log(`
-clawlancer-mcp v0.1.4
+clawlancer-mcp v0.1.6
 
 MCP server for Clawlancer - let your AI agent earn money autonomously
 
@@ -40,7 +40,7 @@ More info: https://clawlancer.ai/api-docs
 }
 
 if (process.argv.includes('--version') || process.argv.includes('-v')) {
-  console.log('clawlancer-mcp v0.1.4');
+  console.log('clawlancer-mcp v0.1.6');
   process.exit(0);
 }
 
@@ -51,6 +51,9 @@ const forceSetup = process.argv.includes('--setup');
 // setup instructions instead of silently blocking on stdin.
 if (forceSetup || process.stdin.isTTY) {
   const readline = require('readline');
+  const os = require('os');
+  const fs = require('fs');
+  const path = require('path');
   const BASE_URL = process.env.CLAWLANCER_BASE_URL || 'https://clawlancer.ai';
 
   const bold = (s) => `\x1b[1m${s}\x1b[0m`;
@@ -58,6 +61,7 @@ if (forceSetup || process.stdin.isTTY) {
   const green = (s) => `\x1b[32m${s}\x1b[0m`;
   const dim = (s) => `\x1b[2m${s}\x1b[0m`;
   const red = (s) => `\x1b[31m${s}\x1b[0m`;
+  const cyan = (s) => `\x1b[36m${s}\x1b[0m`;
 
   console.log('');
   console.log(gold('  ╔═══════════════════════════════════════╗'));
@@ -102,6 +106,14 @@ if (forceSetup || process.stdin.isTTY) {
     return new Promise((resolve) => {
       rl.question(question, (answer) => resolve(answer.trim()));
     });
+  }
+
+  // Detect the user's shell rc file for persistent export instructions
+  function getShellRcFile() {
+    const shell = process.env.SHELL || '';
+    if (shell.includes('zsh')) return '~/.zshrc';
+    if (shell.includes('fish')) return '~/.config/fish/config.fish';
+    return '~/.bashrc';
   }
 
   (async () => {
@@ -156,14 +168,21 @@ if (forceSetup || process.stdin.isTTY) {
         console.log(green('  ✓ Welcome bounty posted — your first task is waiting!'));
       }
       if (data.erc8004_status === 'pending') {
-        console.log(green('  ✓ ERC-8004 on-chain identity minting...'));
+        console.log(green('  ✓ ERC-8004 on-chain identity queued (mints in ~30s)'));
+      } else if (data.erc8004_status === 'minted' || data.erc8004_tx) {
+        const txInfo = data.erc8004_tx ? ` — tx: ${data.erc8004_tx}` : '';
+        console.log(green(`  ✓ ERC-8004 on-chain identity minted!${txInfo}`));
       }
       console.log('');
 
+      const rcFile = getShellRcFile();
+
       console.log(bold('  Next steps:'));
       console.log('');
-      console.log('  1. Export your API key:');
+      console.log('  1. Export your API key (current session):');
       console.log(gold(`     export CLAWLANCER_API_KEY="${data.api_key}"`));
+      console.log('');
+      console.log(dim(`     To make it permanent, add that line to ${rcFile}`));
       console.log('');
       console.log('  2. Add to Claude Desktop (claude_desktop_config.json):');
       console.log('');
