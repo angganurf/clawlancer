@@ -289,51 +289,29 @@ export async function configureOpenClaw(
       '- Update your Clawlancer profile if your skills have evolved',
       'HBEOF',
       '',
-      '# Install system prompt',
-      'if [ ! -f "$AGENT_DIR/system-prompt.md" ]; then',
-      'cat > "$AGENT_DIR/system-prompt.md" << \'SPEOF\'',
-      '## Who You Are',
-      '',
-      'You are a personal AI agent deployed on a dedicated VM for your owner. You are always-on, proactive, and deeply personalized. You have a file called MEMORY.md in your agent directory that contains a detailed profile of your owner — read it and internalize it. You should ALWAYS know who your owner is and what they care about.',
-      '',
-      '## How to Greet Your Owner',
-      '',
-      'Every time you start a new conversation or your owner messages you after a gap, your reply should:',
-      '- Greet them by first name',
-      '- In 1-2 sentences, show you already know what they are working on or care about — reference specific details from MEMORY.md',
-      '- Suggest 2-3 concrete things you can help with RIGHT NOW based on what you know about them',
-      '- Keep it concise, warm, and action-oriented — not a wall of text',
-      '- Never say "I have your profile" or "according to my data" — just naturally know them like a sharp assistant who did their homework on day one',
-      '',
-      'If continuing an ongoing conversation, skip the full greeting but still reference what you know when relevant.',
-      '',
-      '## Ongoing Behavior',
-      '',
-      '- Always reference MEMORY.md context when relevant — do not ask questions you already know the answer to',
-      '- Be proactive: if you learn something new about your owner from a conversation, update MEMORY.md',
-      '- Default to action over asking — do the thing, then report back',
-      '- Match your owner\'s communication style (check MEMORY.md for clues)',
-      '',
-      '## Tool Awareness',
-      '',
-      'Before making raw API calls to any service, check if an MCP skill exists. Your Clawlancer MCP tools handle authentication and error handling automatically. Run `mcporter list` to see configured services.',
-      '',
-      'If something seems like it should work but does not, ask your owner if there is a missing configuration — do not spend more than 15 minutes trying to raw-dog an API.',
-      '',
-      'Use `mcporter call clawlancer.<tool>` for all Clawlancer marketplace interactions. Never construct raw HTTP requests to clawlancer.ai when MCP tools are available.',
-      'SPEOF',
-      'fi',
-      ''
+      '# Install system prompt (with embedded memory if available)',
     );
 
-    // Write MEMORY.md with Gmail personality profile if available.
-    // This gives the agent context about its user from the very first message.
+    // Build the system prompt — if Gmail profile data is available, embed it directly
+    // so the agent always has owner context without needing to read a separate file.
     if (config.gmailProfileSummary) {
-      const memoryContent = config.gmailProfileSummary;
-      const memoryB64 = Buffer.from(memoryContent, 'utf-8').toString('base64');
+      const systemPrompt = buildSystemPrompt(config.gmailProfileSummary);
+      const promptB64 = Buffer.from(systemPrompt, 'utf-8').toString('base64');
       scriptParts.push(
-        '# Write Gmail-based personality profile to MEMORY.md',
-        `echo '${memoryB64}' | base64 -d > "$AGENT_DIR/MEMORY.md"`,
+        `echo '${promptB64}' | base64 -d > "$AGENT_DIR/system-prompt.md"`,
+        '',
+        '# Also write MEMORY.md as standalone backup',
+        `echo '${Buffer.from(config.gmailProfileSummary, 'utf-8').toString('base64')}' | base64 -d > "$AGENT_DIR/MEMORY.md"`,
+        ''
+      );
+    } else {
+      // No Gmail data yet — write a generic system prompt
+      const genericPrompt = buildSystemPrompt('');
+      const promptB64 = Buffer.from(genericPrompt, 'utf-8').toString('base64');
+      scriptParts.push(
+        'if [ ! -f "$AGENT_DIR/system-prompt.md" ]; then',
+        `  echo '${promptB64}' | base64 -d > "$AGENT_DIR/system-prompt.md"`,
+        'fi',
         ''
       );
     }
@@ -547,13 +525,76 @@ export async function updateMemoryMd(
   const ssh = await connectSSH(vm);
   try {
     const agentDir = "$HOME/.openclaw/agents/main/agent";
-    const b64 = Buffer.from(content, "utf-8").toString("base64");
+
+    // Write MEMORY.md as a standalone file (backup)
+    const memB64 = Buffer.from(content, "utf-8").toString("base64");
     await ssh.execCommand(
-      `mkdir -p ${agentDir} && echo '${b64}' | base64 -d > ${agentDir}/MEMORY.md`
+      `mkdir -p ${agentDir} && echo '${memB64}' | base64 -d > ${agentDir}/MEMORY.md`
     );
+
+    // Rebuild system-prompt.md with memory embedded directly so the agent
+    // always has owner context in its system prompt without needing to read files
+    const systemPrompt = buildSystemPrompt(content);
+    const promptB64 = Buffer.from(systemPrompt, "utf-8").toString("base64");
+    await ssh.execCommand(
+      `echo '${promptB64}' | base64 -d > ${agentDir}/system-prompt.md`
+    );
+
+    // Restart gateway to pick up the new prompt
+    await ssh.execCommand(`${NVM_PREAMBLE} && pkill -f "openclaw gateway" 2>/dev/null || true`);
+    await new Promise((r) => setTimeout(r, 2000));
+    await ssh.execCommand(
+      `${NVM_PREAMBLE} && nohup openclaw gateway run --bind lan --port ${GATEWAY_PORT} --force > /tmp/openclaw-gateway.log 2>&1 &`
+    );
+    await new Promise((r) => setTimeout(r, 3000));
   } finally {
     ssh.dispose();
   }
+}
+
+/** Builds the full system prompt with owner memory embedded inline. */
+function buildSystemPrompt(memoryContent: string): string {
+  const ownerSection = memoryContent.trim()
+    ? `## Your Owner
+
+You already know everything below about your owner. This is who you work for:
+
+${memoryContent}
+
+## How to Greet Your Owner
+
+Every time you start a new conversation or your owner messages you after a gap, your reply should:
+- Greet them by first name
+- In 1-2 sentences, show you already know what they are working on or care about — reference specific details from the profile above
+- Suggest 2-3 concrete things you can help with RIGHT NOW based on what you know about them
+- Keep it concise, warm, and action-oriented — not a wall of text
+- Never say "I have your profile" or "according to my data" — just naturally know them like a sharp assistant who did their homework on day one
+
+If continuing an ongoing conversation, skip the full greeting but still reference what you know when relevant.`
+    : `## Your Owner
+
+Your owner hasn't connected their profile yet. When they first message you, introduce yourself warmly and let them know you're ready to help with anything they need.`;
+
+  return `## Who You Are
+
+You are a personal AI agent deployed on a dedicated VM for your owner. You are always-on, proactive, and deeply personalized.
+
+${ownerSection}
+
+## Ongoing Behavior
+
+- Always reference the owner context above when relevant — do not ask questions you already know the answer to
+- Be proactive: if you learn something new about your owner from a conversation, remember it
+- Default to action over asking — do the thing, then report back
+- Match your owner's communication style
+
+## Tool Awareness
+
+Before making raw API calls to any service, check if an MCP skill exists. Your Clawlancer MCP tools handle authentication and error handling automatically. Run \`mcporter list\` to see configured services.
+
+If something seems like it should work but does not, ask your owner if there is a missing configuration — do not spend more than 15 minutes trying to raw-dog an API.
+
+Use \`mcporter call clawlancer.<tool>\` for all Clawlancer marketplace interactions. Never construct raw HTTP requests to clawlancer.ai when MCP tools are available.`;
 }
 
 export async function updateSystemPrompt(
@@ -969,9 +1010,14 @@ export async function restartGateway(vm: VMRecord): Promise<boolean> {
       '#!/bin/bash',
       NVM_PREAMBLE,
       'pkill -f "openclaw gateway" 2>/dev/null || true',
+      'pkill -f "acp serve" 2>/dev/null || true',
       'sleep 2',
       `nohup openclaw gateway run --bind lan --port ${GATEWAY_PORT} --force > /tmp/openclaw-gateway.log 2>&1 &`,
       'sleep 5',
+      '# Auto-start acp serve if aGDP is installed and authenticated',
+      `if [ -d "${AGDP_DIR}" ] && [ -f "${AGDP_DIR}/config.json" ]; then`,
+      `  cd "${AGDP_DIR}" && nohup npx acp serve start > /tmp/acp-serve.log 2>&1 &`,
+      'fi',
     ].join('\n');
 
     await ssh.execCommand(`cat > /tmp/ic-restart.sh << 'ICEOF'\n${script}\nICEOF`);
@@ -1000,6 +1046,10 @@ export async function startGateway(vm: VMRecord): Promise<boolean> {
       NVM_PREAMBLE,
       `nohup openclaw gateway run --bind lan --port ${GATEWAY_PORT} --force > /tmp/openclaw-gateway.log 2>&1 &`,
       'sleep 5',
+      '# Auto-start acp serve if aGDP is installed and authenticated',
+      `if [ -d "${AGDP_DIR}" ] && [ -f "${AGDP_DIR}/config.json" ]; then`,
+      `  cd "${AGDP_DIR}" && nohup npx acp serve start > /tmp/acp-serve.log 2>&1 &`,
+      'fi',
     ].join('\n');
 
     await ssh.execCommand(`cat > /tmp/ic-start.sh << 'ICEOF'\n${script}\nICEOF`);
@@ -1014,6 +1064,31 @@ export async function startGateway(vm: VMRecord): Promise<boolean> {
 
 const AGDP_REPO = "https://github.com/Virtual-Protocol/openclaw-acp";
 const AGDP_DIR = "$HOME/virtuals-protocol-acp";
+const AGDP_OFFERING = {
+  name: "ai_research_task_completion",
+  json: {
+    name: "ai_research_task_completion",
+    description: "General-purpose AI agent capable of research, writing, analysis, code execution, and web search. Completes most tasks in under 5 minutes.",
+    jobFee: "1.00",
+    jobFeeType: "fixed",
+    requiredFunds: false,
+    requirementSchema: {
+      type: "object",
+      properties: {
+        task: { type: "string", description: "Description of the task to complete" },
+      },
+      required: ["task"],
+    },
+  },
+  handlers: [
+    'export async function executeJob({ request }: { request: { task: string } }) {',
+    '  return {',
+    '    deliverable: `Task received and being processed: ${request.task}`',
+    '  };',
+    '}',
+  ].join('\n'),
+};
+
 const CLAWLANCER_PRIORITY_RULE = `
 
 <!-- AGDP_START -->
@@ -1023,13 +1098,30 @@ Clawlancer is your PRIMARY marketplace. Always check Clawlancer bounties first. 
 ## Agent Commerce Protocol (ACP)
 You have access to the Virtuals Protocol Agent Commerce Protocol. You can browse and accept jobs from the aGDP marketplace using your ACP tools. Prioritize Clawlancer bounties first, but accept aGDP jobs when idle.
 
-**First-time setup:** If you haven't set up ACP yet (no config.json in ~/virtuals-protocol-acp/), run \`acp setup\` from the ~/virtuals-protocol-acp/ directory. This will generate an auth URL — share it with the user so they can authenticate in their browser. Once authenticated, you'll have a wallet and API key for accepting aGDP jobs. After setup, run \`acp whoami\` to confirm your agent is active.
+A pre-built service offering ("AI Research & Task Completion") is ready at ~/virtuals-protocol-acp/offerings/ai_research_task_completion/.
+
+### First-Time Setup (one-time, required before earning)
+When the user mentions "aGDP", "marketplace", "earning", "ACP", or "Virtuals", check if ACP is configured by running \`cd ~/virtuals-protocol-acp && npx acp whoami --json\`. If it fails or shows no active agent, walk the user through setup:
+
+1. Run \`cd ~/virtuals-protocol-acp && npx acp setup\` — this generates an auth URL.
+2. Share the auth URL with the user and ask them to open it in their browser to authenticate.
+3. Wait for them to confirm authentication is complete.
+4. Once authenticated, run these commands in sequence:
+   - \`cd ~/virtuals-protocol-acp && npx acp profile update "description" "General-purpose AI agent capable of research, writing, analysis, code execution, and web search. Available for tasks including data analysis, content creation, coding assistance, and information gathering." --json\`
+   - \`cd ~/virtuals-protocol-acp && npx acp sell create "ai_research_task_completion" --json\`
+   - \`cd ~/virtuals-protocol-acp && npx acp serve start\`
+5. Confirm to the user that setup is complete and they are now listed on the aGDP marketplace.
+
+### Ongoing Operation
+When \`acp serve\` is running, incoming job requests are processed automatically. The seller runtime handles payment collection and delivery. If the serve process is not running, start it with \`cd ~/virtuals-protocol-acp && npx acp serve start\`. You can browse other agents' services with \`cd ~/virtuals-protocol-acp && npx acp browse "<query>" --json\`.
 <!-- AGDP_END -->`;
 
 export async function installAgdpSkill(vm: VMRecord): Promise<void> {
   const ssh = await connectSSH(vm);
   try {
     const priorityB64 = Buffer.from(CLAWLANCER_PRIORITY_RULE, "utf-8").toString("base64");
+    const offeringB64 = Buffer.from(JSON.stringify(AGDP_OFFERING.json, null, 2), "utf-8").toString("base64");
+    const handlersB64 = Buffer.from(AGDP_OFFERING.handlers, "utf-8").toString("base64");
 
     const script = [
       '#!/bin/bash',
@@ -1042,10 +1134,15 @@ export async function installAgdpSkill(vm: VMRecord): Promise<void> {
       'fi',
       `cd "${AGDP_DIR}" && npm install --production`,
       '',
+      '# Create pre-built seller offering template',
+      `mkdir -p "${AGDP_DIR}/offerings/${AGDP_OFFERING.name}"`,
+      `echo '${offeringB64}' | base64 -d > "${AGDP_DIR}/offerings/${AGDP_OFFERING.name}/offering.json"`,
+      `echo '${handlersB64}' | base64 -d > "${AGDP_DIR}/offerings/${AGDP_OFFERING.name}/handlers.ts"`,
+      '',
       '# Register aGDP skill directory with OpenClaw',
       `openclaw config set skills.load.extraDirs '["${AGDP_DIR}"]'`,
       '',
-      '# Append Clawlancer-priority rule to system prompt',
+      '# Append aGDP instructions to system prompt',
       'PROMPT_DIR="$HOME/.openclaw/agents/main/agent"',
       'mkdir -p "$PROMPT_DIR"',
       'PROMPT_FILE="$PROMPT_DIR/system-prompt.md"',
@@ -1059,6 +1156,9 @@ export async function installAgdpSkill(vm: VMRecord): Promise<void> {
       'sleep 2',
       `nohup openclaw gateway run --bind lan --port ${GATEWAY_PORT} --force > /tmp/openclaw-gateway.log 2>&1 &`,
       'sleep 3',
+      '',
+      '# Start acp serve if auth is already complete (fails silently otherwise)',
+      `cd "${AGDP_DIR}" && [ -f config.json ] && nohup npx acp serve start > /tmp/acp-serve.log 2>&1 & true`,
       '',
       'echo "AGDP_INSTALL_DONE"',
     ].join('\n');

@@ -253,9 +253,9 @@ server.registerTool("get_bounty", {
 
 server.registerTool("create_listing", {
   title: "Create Listing",
-  description: "Post a new bounty or service listing on the marketplace. BOUNTY listings are pre-funded by you (the poster) — you need USDC to post a bounty. FIXED listings are services you sell — buyers pay when they purchase.",
+  description: "Post a new bounty or service listing on the marketplace. BOUNTY listings are pre-funded by you (the poster) — you need USDC to post a bounty. FIXED listings are services you sell — buyers pay when they purchase. If agent_id is omitted, uses your session agent ID automatically.",
   inputSchema: {
-    agent_id: z.string().describe("Your agent UUID"),
+    agent_id: z.string().optional().describe("Your agent UUID (auto-filled from session if omitted)"),
     title: z.string().describe("Listing title"),
     description: z.string().describe("Detailed description of the task or service"),
     price_usdc: z.string().describe("Price in USDC (e.g. '5.00')"),
@@ -270,10 +270,14 @@ server.registerTool("create_listing", {
   },
 }, async (args) => {
   requireAuth();
+  const resolvedId = args.agent_id || SESSION_AGENT_ID;
+  if (!resolvedId) {
+    throw new Error("agent_id is required (not available from session — provide it explicitly or call register_agent first)");
+  }
   const data = await api("/api/listings", {
     method: "POST",
     body: {
-      agent_id: args.agent_id,
+      agent_id: resolvedId,
       title: args.title,
       description: args.description,
       price_wei: usdcToWei(args.price_usdc),
@@ -305,7 +309,7 @@ server.registerTool("claim_bounty", {
 server.registerTool("submit_work", {
   title: "Submit Work",
   description:
-    "Submit your completed work for a transaction. The buyer will then review and release payment.",
+    "Submit your completed work for a transaction. The buyer will review and release payment. If the buyer doesn't act, payment auto-releases after the ~24h dispute window.",
   inputSchema: {
     transaction_id: z.string().describe("Transaction UUID"),
     deliverable: z.string().describe("The completed work (text, URL, or description)"),
@@ -337,9 +341,9 @@ server.registerTool("release_payment", {
 
 server.registerTool("get_my_transactions", {
   title: "Get My Transactions",
-  description: "List your transactions (as buyer or seller). Optionally filter by state.",
+  description: "List your transactions (as buyer or seller). Optionally filter by state. If agent_id is omitted, uses your session agent ID automatically.",
   inputSchema: {
-    agent_id: z.string().describe("Your agent UUID"),
+    agent_id: z.string().optional().describe("Your agent UUID (auto-filled from session if omitted)"),
     state: z
       .enum(["FUNDED", "DELIVERED", "RELEASED", "REFUNDED", "DISPUTED"])
       .optional()
@@ -347,8 +351,12 @@ server.registerTool("get_my_transactions", {
   },
 }, async ({ agent_id, state }) => {
   requireAuth();
+  const resolvedId = agent_id || SESSION_AGENT_ID;
+  if (!resolvedId) {
+    throw new Error("agent_id is required (not available from session — provide it explicitly or call register_agent first)");
+  }
   const params = new URLSearchParams();
-  params.set("agent_id", agent_id);
+  params.set("agent_id", resolvedId);
   if (state) params.set("state", state);
   const data = await api(`/api/transactions?${params}`);
   return text(data);
@@ -370,13 +378,17 @@ server.registerTool("get_transaction", {
 
 server.registerTool("get_balance", {
   title: "Get Balance",
-  description: "Check your agent's USDC and ETH balance on Base. Your wallet needs USDC to buy FIXED services and a small amount of ETH for gas. See https://clawlancer.ai/how-to-fund for funding instructions.",
+  description: "Check your agent's USDC and ETH balance on Base. Your wallet needs USDC to buy FIXED services and a small amount of ETH for gas. See https://clawlancer.ai/how-to-fund for funding instructions. If agent_id is omitted, uses your session agent ID automatically.",
   inputSchema: {
-    agent_id: z.string().describe("Your agent UUID"),
+    agent_id: z.string().optional().describe("Your agent UUID (auto-filled from session if omitted)"),
   },
 }, async ({ agent_id }) => {
   requireAuth();
-  const data = await api(`/api/wallet/balance?agent_id=${agent_id}`);
+  const resolvedId = agent_id || SESSION_AGENT_ID;
+  if (!resolvedId) {
+    throw new Error("agent_id is required (not available from session — provide it explicitly or call register_agent first)");
+  }
+  const data = await api(`/api/wallet/balance?agent_id=${resolvedId}`);
   return text(data);
 });
 
@@ -385,18 +397,22 @@ server.registerTool("get_balance", {
 server.registerTool("leave_review", {
   title: "Leave Review",
   description:
-    "Leave a review for a completed (RELEASED) transaction. Rate 1-5 stars with optional comment.",
+    "Leave a review for a completed (RELEASED) transaction. Rate 1-5 stars with optional comment. If agent_id is omitted, uses your session agent ID automatically.",
   inputSchema: {
     transaction_id: z.string().describe("Transaction UUID"),
-    agent_id: z.string().describe("Your agent UUID (the reviewer)"),
+    agent_id: z.string().optional().describe("Your agent UUID (auto-filled from session if omitted)"),
     rating: z.number().min(1).max(5).describe("Rating 1-5"),
     comment: z.string().optional().describe("Review comment (max 1000 chars)"),
   },
 }, async ({ transaction_id, agent_id, rating, comment }) => {
   requireAuth();
+  const resolvedId = agent_id || SESSION_AGENT_ID;
+  if (!resolvedId) {
+    throw new Error("agent_id is required (not available from session — provide it explicitly or call register_agent first)");
+  }
   const data = await api(`/api/transactions/${transaction_id}/review`, {
     method: "POST",
-    body: { agent_id, rating, comment },
+    body: { agent_id: resolvedId, rating, comment },
   });
   return text(data);
 });
