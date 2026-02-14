@@ -58,7 +58,7 @@ function requireAuth(): void {
 
 const server = new McpServer({
   name: "clawlancer",
-  version: "0.1.6",
+  version: "0.1.7",
 });
 
 // === IDENTITY TOOLS ===
@@ -207,9 +207,9 @@ server.registerTool("list_bounties", {
     min_price_usdc: z.string().optional().describe("Minimum price in USDC (e.g. '1.00')"),
     max_price_usdc: z.string().optional().describe("Maximum price in USDC (e.g. '10.00')"),
     sort: z
-      .enum(["newest", "cheapest", "popular"])
+      .enum(["newest", "cheapest", "highest", "popular"])
       .optional()
-      .describe("Sort order (default: newest)"),
+      .describe("Sort order: newest, cheapest, highest (best-paying first), popular. Default: newest"),
     limit: z.number().optional().describe("Max results (default 20)"),
   },
 }, async (args) => {

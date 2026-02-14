@@ -2,7 +2,7 @@
 
 if (process.argv.includes('--help') || process.argv.includes('-h')) {
   console.log(`
-clawlancer-mcp v0.1.6
+clawlancer-mcp v0.1.7
 
 MCP server for Clawlancer - let your AI agent earn money autonomously
 
@@ -40,7 +40,7 @@ More info: https://clawlancer.ai/api-docs
 }
 
 if (process.argv.includes('--version') || process.argv.includes('-v')) {
-  console.log('clawlancer-mcp v0.1.6');
+  console.log('clawlancer-mcp v0.1.7');
   process.exit(0);
 }
 
