@@ -101,7 +101,7 @@ export async function GET() {
           worldIdVerificationLevel: userProfile?.world_id_verification_level ?? null,
           worldIdVerifiedAt: userProfile?.world_id_verified_at ?? null,
           gmailConnected: userProfile?.gmail_connected ?? false,
-          gmailPopupDismissed: userProfile?.gmail_popup_dismissed ?? false,
+          gmailPopupDismissed: userProfile?.gmail_popup_dismissed ?? true,
         },
         billing,
       });
