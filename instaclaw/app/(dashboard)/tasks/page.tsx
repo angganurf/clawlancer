@@ -547,18 +547,21 @@ function TaskCard({
   const isFailed = task.status === "failed";
   const isProcessing = task.status === "in_progress";
   const isCompleted = task.status === "completed";
+  const isActive = task.status === "active";
 
   const streakLabel =
-    task.streak > 1
-      ? task.frequency?.includes("week")
-        ? `\u{1F525} ${task.streak} weeks`
-        : `\u{1F525} ${task.streak} days`
-      : null;
+    task.streak === 0
+      ? "\u{1F525} New"
+      : task.streak > 1
+        ? task.frequency?.includes("week")
+          ? `\u{1F525} ${task.streak} weeks`
+          : `\u{1F525} ${task.streak} days`
+        : `\u{1F525} ${task.streak} day`;
 
   const timingParts: string[] = [];
   if (task.frequency) timingParts.push(task.frequency);
-  if (streakLabel) timingParts.push(streakLabel);
-  if (task.status === "queued" && task.next_run_at) {
+  if (task.is_recurring) timingParts.push(streakLabel);
+  if (task.next_run_at) {
     timingParts.push(`Next: ${timeAgo(task.next_run_at)}`);
   } else if (task.last_run_at) {
     timingParts.push(`Last: ${timeAgo(task.last_run_at)} \u2705`);
@@ -579,15 +582,26 @@ function TaskCard({
         className="p-4 sm:p-5 flex items-start gap-4 cursor-pointer group"
         onClick={onToggleExpand}
       >
-        {/* Checkbox */}
+        {/* Checkbox / status indicator */}
         <div
           className="shrink-0 mt-0.5"
           onClick={(e) => {
             e.stopPropagation();
-            if (!isProcessing) onToggleComplete();
+            if (!isProcessing && !isActive) onToggleComplete();
           }}
         >
-          {isCompleted ? (
+          {isActive ? (
+            /* Recurring active: pulsing green dot — NOT a checkmark */
+            <div
+              className="w-6 h-6 rounded-full flex items-center justify-center"
+              style={{ border: "2px solid #16a34a" }}
+            >
+              <span
+                className="w-3 h-3 rounded-full animate-pulse"
+                style={{ background: "#16a34a" }}
+              />
+            </div>
+          ) : isCompleted ? (
             <div
               className="w-6 h-6 rounded-full flex items-center justify-center cursor-pointer transition-opacity hover:opacity-70"
               style={{ background: "var(--foreground)" }}

@@ -180,18 +180,31 @@ async function executeRerun(
     }
 
     const parsed = parseTaskResponse(rawResponse);
+    const now = new Date().toISOString();
+
+    // Fetch current streak to increment
+    const { data: current } = await supabase
+      .from("instaclaw_tasks")
+      .select("streak")
+      .eq("id", taskId)
+      .single();
+    const newStreak = (current?.streak ?? 0) + 1;
 
     await supabase
       .from("instaclaw_tasks")
       .update({
         title: parsed.title,
-        status: "completed",
+        status: parsed.recurring ? "active" : "completed",
         is_recurring: parsed.recurring,
         frequency: parsed.frequency,
         result: parsed.result,
         tools_used: parsed.tools,
         error_message: null,
-        last_run_at: new Date().toISOString(),
+        last_run_at: now,
+        streak: newStreak,
+        ...(parsed.recurring && parsed.frequency
+          ? { next_run_at: computeNextRun(parsed.frequency) }
+          : {}),
       })
       .eq("id", taskId);
   } catch (err) {
@@ -248,4 +261,21 @@ function parseTaskResponse(rawResponse: string) {
     tools: [],
     result: rawResponse,
   };
+}
+
+/* ─── Next Run Calculator ────────────────────────────────── */
+
+function computeNextRun(frequency: string): string {
+  const now = new Date();
+  const lower = frequency.toLowerCase();
+  if (lower.includes("hour")) {
+    now.setHours(now.getHours() + 1);
+  } else if (lower.includes("daily") || lower === "day") {
+    now.setDate(now.getDate() + 1);
+  } else if (lower.includes("week")) {
+    now.setDate(now.getDate() + 7);
+  } else {
+    now.setDate(now.getDate() + 1);
+  }
+  return now.toISOString();
 }
