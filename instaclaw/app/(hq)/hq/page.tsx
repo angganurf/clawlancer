@@ -622,68 +622,53 @@ export default function HQPage() {
     }
   }
 
-  async function handleMoveUp(taskId: string) {
+  async function reorderColumn(taskId: string, direction: "up" | "down") {
     const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
 
-    // Get sorted tasks in the same column
     const columnTasks = tasks
       .filter((t) => t.status === task.status)
       .sort((a, b) => a.position - b.position);
 
     const idx = columnTasks.findIndex((t) => t.id === taskId);
-    if (idx <= 0) return;
+    if (direction === "up" && idx <= 0) return;
+    if (direction === "down" && idx >= columnTasks.length - 1) return;
 
-    const above = columnTasks[idx - 1];
+    const newIdx = direction === "up" ? idx - 1 : idx + 1;
+    const reordered = [...columnTasks];
+    const [moved] = reordered.splice(idx, 1);
+    reordered.splice(newIdx, 0, moved);
 
-    // Swap positions optimistically
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id === taskId) return { ...t, position: above.position };
-        if (t.id === above.id) return { ...t, position: task.position };
-        return t;
-      })
-    );
+    // Assign fresh sequential positions so it works even when all are 0
+    const updates = reordered.map((t, i) => ({ id: t.id, position: i }));
+
+    setTasks((prev) => {
+      const posMap = new Map(updates.map((u) => [u.id, u.position]));
+      return prev.map((t) =>
+        posMap.has(t.id) ? { ...t, position: posMap.get(t.id)! } : t
+      );
+    });
 
     try {
-      await Promise.all([
-        api(`/api/hq/tasks/${taskId}`, { method: "PATCH", body: JSON.stringify({ position: above.position }) }),
-        api(`/api/hq/tasks/${above.id}`, { method: "PATCH", body: JSON.stringify({ position: task.position }) }),
-      ]);
+      await Promise.all(
+        updates.map((u) =>
+          api(`/api/hq/tasks/${u.id}`, {
+            method: "PATCH",
+            body: JSON.stringify({ position: u.position }),
+          })
+        )
+      );
     } catch {
       fetchTasks();
     }
   }
 
-  async function handleMoveDown(taskId: string) {
-    const task = tasks.find((t) => t.id === taskId);
-    if (!task) return;
+  function handleMoveUp(taskId: string) {
+    reorderColumn(taskId, "up");
+  }
 
-    const columnTasks = tasks
-      .filter((t) => t.status === task.status)
-      .sort((a, b) => a.position - b.position);
-
-    const idx = columnTasks.findIndex((t) => t.id === taskId);
-    if (idx >= columnTasks.length - 1) return;
-
-    const below = columnTasks[idx + 1];
-
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id === taskId) return { ...t, position: below.position };
-        if (t.id === below.id) return { ...t, position: task.position };
-        return t;
-      })
-    );
-
-    try {
-      await Promise.all([
-        api(`/api/hq/tasks/${taskId}`, { method: "PATCH", body: JSON.stringify({ position: below.position }) }),
-        api(`/api/hq/tasks/${below.id}`, { method: "PATCH", body: JSON.stringify({ position: task.position }) }),
-      ]);
-    } catch {
-      fetchTasks();
-    }
+  function handleMoveDown(taskId: string) {
+    reorderColumn(taskId, "down");
   }
 
   async function handleDrop(taskId: string, newStatus: string) {
