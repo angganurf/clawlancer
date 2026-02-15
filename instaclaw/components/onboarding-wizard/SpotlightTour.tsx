@@ -174,23 +174,32 @@ export default function SpotlightTour({
       }
 
       // Wait for DOM to settle after navigation/dropdown
-      const delay = step.navigateTo ? 400 : step.preAction === "open-more" ? 200 : 50;
+      const initialDelay = step.navigateTo ? 400 : step.preAction === "open-more" ? 200 : 50;
 
       if (retryRef.current) clearTimeout(retryRef.current);
 
-      retryRef.current = setTimeout(() => {
-        // Smooth-scroll the target element into view before positioning
+      // Poll for element until it appears (handles async data-fetching pages)
+      let attempts = 0;
+      const maxAttempts = 10;
+
+      const tryPosition = () => {
+        attempts++;
         const el = document.querySelector(step.selector);
+
+        if (!el && attempts < maxAttempts) {
+          // Element not in DOM yet, retry in 200ms
+          retryRef.current = setTimeout(tryPosition, 200);
+          return;
+        }
+
         if (el) {
           const rect = el.getBoundingClientRect();
           const inView = rect.top >= 80 && rect.bottom <= window.innerHeight - 280;
           if (!inView) {
             el.scrollIntoView({ behavior: "smooth", block: "center" });
-            // Wait for scroll to finish before positioning spotlight
             retryRef.current = setTimeout(() => {
               updatePosition();
               setIsTransitioning(false);
-              // One more retry to catch any layout shift
               retryRef.current = setTimeout(() => updatePosition(), 200);
             }, 500);
             return;
@@ -199,22 +208,11 @@ export default function SpotlightTour({
 
         updatePosition();
         setIsTransitioning(false);
+        // One final position check after paint
+        retryRef.current = setTimeout(() => updatePosition(), 200);
+      };
 
-        // Retry once more if element wasn't found (navigation delay)
-        retryRef.current = setTimeout(() => {
-          const retryEl = document.querySelector(step.selector);
-          if (retryEl) {
-            const retryRect = retryEl.getBoundingClientRect();
-            const retryInView = retryRect.top >= 80 && retryRect.bottom <= window.innerHeight - 280;
-            if (!retryInView) {
-              retryEl.scrollIntoView({ behavior: "smooth", block: "center" });
-              retryRef.current = setTimeout(() => updatePosition(), 500);
-              return;
-            }
-          }
-          updatePosition();
-        }, 300);
-      }, delay);
+      retryRef.current = setTimeout(tryPosition, initialDelay);
     };
 
     setup();
@@ -276,9 +274,10 @@ export default function SpotlightTour({
 
   return (
     <>
-      {/* Click blocker layer */}
+      {/* Persistent dark overlay — stays visible during page transitions */}
       <div
         className="fixed inset-0 z-[9997]"
+        style={{ background: "rgba(0,0,0,0.5)" }}
         onClick={(e) => e.stopPropagation()}
       />
 
