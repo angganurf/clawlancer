@@ -1,4 +1,5 @@
 import { logger } from "../logger";
+import { getConfigProtectionScript } from "../cloud-init";
 import type { CloudProvider, ServerConfig, ServerResult } from "./types";
 
 const HETZNER_BASE = "https://api.hetzner.cloud/v1";
@@ -171,6 +172,9 @@ if systemctl is-active ssh.service &>/dev/null; then systemctl restart ssh; fi
 
 # Enable loginctl linger so systemd user services survive SSH disconnect
 loginctl enable-linger "\${OPENCLAW_USER}" 2>/dev/null || true
+
+# Install config protection scripts
+${getConfigProtectionScript()}
 
 touch /tmp/.instaclaw-personalized
 `;

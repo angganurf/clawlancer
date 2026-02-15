@@ -11,6 +11,112 @@
 
 export const CLOUD_INIT_SENTINEL = "/var/lib/cloud/instance/boot-finished";
 
+/**
+ * Returns a bash script block that installs the config protection scripts
+ * (openclaw-config-merge, openclaw-config-watchdog, and cron jobs).
+ * Used by both fresh-install cloud-init and snapshot personalization scripts.
+ */
+export function getConfigProtectionScript(): string {
+  return `
+# ── Config protection: merge script ──
+cat > /usr/local/bin/openclaw-config-merge <<'MERGESCRIPT'
+#!/bin/bash
+set -euo pipefail
+CONFIG="/home/openclaw/.openclaw/openclaw.json"
+BACKUP="\${CONFIG}.pre-merge-\$(date +%s)"
+if [ -z "\${1:-}" ]; then
+  echo "Usage: openclaw-config-merge '{\\\"key\\\": \\\"value\\\"}'"
+  echo "Merges the provided JSON into ~/.openclaw/openclaw.json"
+  exit 1
+fi
+NEW_JSON="\$1"
+if ! echo "\$NEW_JSON" | python3 -m json.tool > /dev/null 2>&1; then
+  echo "ERROR: Invalid JSON provided"; exit 1
+fi
+if [ ! -f "\$CONFIG" ]; then
+  echo "ERROR: Config file not found at \$CONFIG"; exit 1
+fi
+if ! python3 -m json.tool "\$CONFIG" > /dev/null 2>&1; then
+  echo "ERROR: Existing config is not valid JSON"; exit 1
+fi
+cp "\$CONFIG" "\$BACKUP"
+echo "Backup saved to \$BACKUP"
+python3 -c "
+import json, sys
+def deep_merge(base, overlay):
+    for key, value in overlay.items():
+        if key in base and isinstance(base[key], dict) and isinstance(value, dict):
+            deep_merge(base[key], value)
+        elif key in base and isinstance(base[key], list) and isinstance(value, list):
+            base[key] = base[key] + [i for i in value if i not in base[key]]
+        else:
+            base[key] = value
+    return base
+with open('\$CONFIG', 'r') as f:
+    existing = json.load(f)
+new_data = json.loads(sys.argv[1])
+merged = deep_merge(existing, new_data)
+if 'gateway' in existing and 'gateway' not in merged:
+    print('ERROR: Merge would remove critical gateway config'); sys.exit(1)
+with open('\$CONFIG', 'w') as f:
+    json.dump(merged, f, indent=2)
+print('Config merged successfully')
+" "\$NEW_JSON"
+chown openclaw:openclaw "\$CONFIG"
+chmod 600 "\$CONFIG"
+echo "Done. Restart gateway if needed: openclaw gateway restart"
+MERGESCRIPT
+chmod +x /usr/local/bin/openclaw-config-merge
+
+# ── Config protection: watchdog script ──
+cat > /usr/local/bin/openclaw-config-watchdog <<'WATCHDOG'
+#!/bin/bash
+CONFIG="/home/openclaw/.openclaw/openclaw.json"
+MIN_SIZE=500
+LOG="/var/log/openclaw-watchdog.log"
+needs_restore=false
+if [ ! -f "\$CONFIG" ]; then
+  echo "\$(date -u +%Y-%m-%dT%H:%M:%SZ): Config file MISSING" >> "\$LOG"
+  needs_restore=true
+elif [ \$(stat -c%s "\$CONFIG") -lt \$MIN_SIZE ]; then
+  echo "\$(date -u +%Y-%m-%dT%H:%M:%SZ): Config suspiciously small (\$(stat -c%s "\$CONFIG") bytes)" >> "\$LOG"
+  needs_restore=true
+else
+  if ! python3 -c "import json; cfg=json.load(open('\$CONFIG')); assert cfg.get('gateway',{}).get('mode')" 2>/dev/null; then
+    echo "\$(date -u +%Y-%m-%dT%H:%M:%SZ): Config missing gateway.mode" >> "\$LOG"
+    needs_restore=true
+  fi
+fi
+if [ "\$needs_restore" = false ]; then exit 0; fi
+for backup in "\$CONFIG".hourly-{23,22,21,20,19,18,17,16,15,14,13,12,11,10,09,08,07,06,05,04,03,02,01,00} "\$CONFIG".bak "\$CONFIG".bak.{1,2,3,4,5} "\$CONFIG".pre-merge-*; do
+  if [ -f "\$backup" ] && [ \$(stat -c%s "\$backup") -ge \$MIN_SIZE ]; then
+    if python3 -c "import json; cfg=json.load(open('\$backup')); assert cfg.get('gateway',{}).get('mode')" 2>/dev/null; then
+      cp "\$backup" "\$CONFIG"
+      chown openclaw:openclaw "\$CONFIG"
+      chmod 600 "\$CONFIG"
+      echo "\$(date -u +%Y-%m-%dT%H:%M:%SZ): RESTORED config from \$backup" >> "\$LOG"
+      if command -v machinectl &>/dev/null; then
+        machinectl shell openclaw@.host /bin/bash -c 'export NVM_DIR="\$HOME/.nvm" && [ -s "\$NVM_DIR/nvm.sh" ] && . "\$NVM_DIR/nvm.sh" && openclaw gateway restart' >> "\$LOG" 2>&1 || true
+      fi
+      echo "\$(date -u +%Y-%m-%dT%H:%M:%SZ): Gateway restart attempted" >> "\$LOG"
+      exit 0
+    fi
+  fi
+done
+echo "\$(date -u +%Y-%m-%dT%H:%M:%SZ): CRITICAL -- No valid backup found" >> "\$LOG"
+exit 1
+WATCHDOG
+chmod +x /usr/local/bin/openclaw-config-watchdog
+
+# ── Config protection: cron jobs (hourly backup + 5-min watchdog) ──
+su - openclaw -c '
+(crontab -l 2>/dev/null | grep -v "openclaw-config-watchdog\\|openclaw.json.hourly"; \\
+ echo "0 * * * * cp /home/openclaw/.openclaw/openclaw.json /home/openclaw/.openclaw/openclaw.json.hourly-\\$(date +\\%H) 2>/dev/null"; \\
+ echo "*/5 * * * * sudo /usr/local/bin/openclaw-config-watchdog 2>&1") | crontab -
+'
+`;
+}
+
 export function getInstallOpenClawUserData(): string {
   const script = `#!/bin/bash
 set -euo pipefail
@@ -248,8 +354,121 @@ Before making raw API calls to any service, check if an MCP skill exists. Your C
 If something seems like it should work but does not, ask your owner if there is a missing configuration. Do not spend more than 15 minutes trying to raw-dog an API.
 
 Use mcporter call clawlancer.<tool> for all Clawlancer marketplace interactions. Never construct raw HTTP requests to clawlancer.ai when MCP tools are available.
+
+## CRITICAL: Config File Protection
+
+~/.openclaw/openclaw.json contains your gateway config, Telegram bot token, authentication, and model settings. If this file is overwritten or corrupted, your entire system will go down.
+
+**NEVER use cat >, echo >, tee, or any command that OVERWRITES ~/.openclaw/openclaw.json.**
+**NEVER write a new JSON file to that path. It will destroy your gateway, Telegram, and auth config.**
+
+To safely add skills or modify config, ALWAYS use the merge script:
+  openclaw-config-merge '{"skills":{"load":{"extraDirs":["/path/to/new/skill"]}}}'
+
+This safely merges new settings into the existing config without destroying anything.
+
+If a README or documentation says to "add" or "set" something in openclaw.json, ALWAYS use openclaw-config-merge. NEVER write the file directly.
+
+After merging config, restart the gateway: openclaw gateway restart
 PROMPTEOF
 chown -R "\${OPENCLAW_USER}:\${OPENCLAW_USER}" "\${AGENT_DIR}"
+
+# ── 8f. Install openclaw-config-merge script ──
+cat > /usr/local/bin/openclaw-config-merge <<'MERGESCRIPT'
+#!/bin/bash
+set -euo pipefail
+CONFIG="/home/openclaw/.openclaw/openclaw.json"
+BACKUP="\${CONFIG}.pre-merge-\$(date +%s)"
+if [ -z "\${1:-}" ]; then
+  echo "Usage: openclaw-config-merge '{\"key\": \"value\"}'"
+  echo "Merges the provided JSON into ~/.openclaw/openclaw.json"
+  exit 1
+fi
+NEW_JSON="\$1"
+if ! echo "\$NEW_JSON" | python3 -m json.tool > /dev/null 2>&1; then
+  echo "ERROR: Invalid JSON provided"; exit 1
+fi
+if [ ! -f "\$CONFIG" ]; then
+  echo "ERROR: Config file not found at \$CONFIG"; exit 1
+fi
+if ! python3 -m json.tool "\$CONFIG" > /dev/null 2>&1; then
+  echo "ERROR: Existing config is not valid JSON"; exit 1
+fi
+cp "\$CONFIG" "\$BACKUP"
+echo "Backup saved to \$BACKUP"
+python3 -c "
+import json, sys
+def deep_merge(base, overlay):
+    for key, value in overlay.items():
+        if key in base and isinstance(base[key], dict) and isinstance(value, dict):
+            deep_merge(base[key], value)
+        elif key in base and isinstance(base[key], list) and isinstance(value, list):
+            base[key] = base[key] + [i for i in value if i not in base[key]]
+        else:
+            base[key] = value
+    return base
+with open('\$CONFIG', 'r') as f:
+    existing = json.load(f)
+new_data = json.loads(sys.argv[1])
+merged = deep_merge(existing, new_data)
+if 'gateway' in existing and 'gateway' not in merged:
+    print('ERROR: Merge would remove critical gateway config'); sys.exit(1)
+with open('\$CONFIG', 'w') as f:
+    json.dump(merged, f, indent=2)
+print('Config merged successfully')
+" "\$NEW_JSON"
+chown openclaw:openclaw "\$CONFIG"
+chmod 600 "\$CONFIG"
+echo "Done. Restart gateway if needed: openclaw gateway restart"
+MERGESCRIPT
+chmod +x /usr/local/bin/openclaw-config-merge
+
+# ── 8g. Install openclaw-config-watchdog ──
+cat > /usr/local/bin/openclaw-config-watchdog <<'WATCHDOG'
+#!/bin/bash
+CONFIG="/home/openclaw/.openclaw/openclaw.json"
+MIN_SIZE=500
+LOG="/var/log/openclaw-watchdog.log"
+needs_restore=false
+if [ ! -f "\$CONFIG" ]; then
+  echo "\$(date -u +%Y-%m-%dT%H:%M:%SZ): Config file MISSING" >> "\$LOG"
+  needs_restore=true
+elif [ \$(stat -c%s "\$CONFIG") -lt \$MIN_SIZE ]; then
+  echo "\$(date -u +%Y-%m-%dT%H:%M:%SZ): Config suspiciously small (\$(stat -c%s "\$CONFIG") bytes)" >> "\$LOG"
+  needs_restore=true
+else
+  if ! python3 -c "import json; cfg=json.load(open('\$CONFIG')); assert cfg.get('gateway',{}).get('mode')" 2>/dev/null; then
+    echo "\$(date -u +%Y-%m-%dT%H:%M:%SZ): Config missing gateway.mode" >> "\$LOG"
+    needs_restore=true
+  fi
+fi
+if [ "\$needs_restore" = false ]; then exit 0; fi
+for backup in "\$CONFIG".hourly-{23,22,21,20,19,18,17,16,15,14,13,12,11,10,09,08,07,06,05,04,03,02,01,00} "\$CONFIG".bak "\$CONFIG".bak.{1,2,3,4,5} "\$CONFIG".pre-merge-*; do
+  if [ -f "\$backup" ] && [ \$(stat -c%s "\$backup") -ge \$MIN_SIZE ]; then
+    if python3 -c "import json; cfg=json.load(open('\$backup')); assert cfg.get('gateway',{}).get('mode')" 2>/dev/null; then
+      cp "\$backup" "\$CONFIG"
+      chown openclaw:openclaw "\$CONFIG"
+      chmod 600 "\$CONFIG"
+      echo "\$(date -u +%Y-%m-%dT%H:%M:%SZ): RESTORED config from \$backup" >> "\$LOG"
+      if command -v machinectl &>/dev/null; then
+        machinectl shell openclaw@.host /bin/bash -c 'export NVM_DIR="\$HOME/.nvm" && [ -s "\$NVM_DIR/nvm.sh" ] && . "\$NVM_DIR/nvm.sh" && openclaw gateway restart' >> "\$LOG" 2>&1 || true
+      fi
+      echo "\$(date -u +%Y-%m-%dT%H:%M:%SZ): Gateway restart attempted" >> "\$LOG"
+      exit 0
+    fi
+  fi
+done
+echo "\$(date -u +%Y-%m-%dT%H:%M:%SZ): CRITICAL -- No valid backup found" >> "\$LOG"
+exit 1
+WATCHDOG
+chmod +x /usr/local/bin/openclaw-config-watchdog
+
+# ── 8h. Set up config backup and watchdog cron jobs ──
+su - "\${OPENCLAW_USER}" -c '
+(crontab -l 2>/dev/null | grep -v "openclaw-config-watchdog\\|openclaw.json.hourly"; \
+ echo "0 * * * * cp /home/openclaw/.openclaw/openclaw.json /home/openclaw/.openclaw/openclaw.json.hourly-\$(date +\\%H) 2>/dev/null"; \
+ echo "*/5 * * * * sudo /usr/local/bin/openclaw-config-watchdog 2>&1") | crontab -
+'
 
 # ── 9. Configure fail2ban ──
 rm -f /var/lib/fail2ban/fail2ban.sqlite3 2>/dev/null || true
