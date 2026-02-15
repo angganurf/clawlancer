@@ -183,7 +183,7 @@ export default function SpotlightTour({
         const el = document.querySelector(step.selector);
         if (el) {
           const rect = el.getBoundingClientRect();
-          const inView = rect.top >= 80 && rect.bottom <= window.innerHeight - 120;
+          const inView = rect.top >= 80 && rect.bottom <= window.innerHeight - 280;
           if (!inView) {
             el.scrollIntoView({ behavior: "smooth", block: "center" });
             // Wait for scroll to finish before positioning spotlight
@@ -205,7 +205,7 @@ export default function SpotlightTour({
           const retryEl = document.querySelector(step.selector);
           if (retryEl) {
             const retryRect = retryEl.getBoundingClientRect();
-            const retryInView = retryRect.top >= 80 && retryRect.bottom <= window.innerHeight - 120;
+            const retryInView = retryRect.top >= 80 && retryRect.bottom <= window.innerHeight - 280;
             if (!retryInView) {
               retryEl.scrollIntoView({ behavior: "smooth", block: "center" });
               retryRef.current = setTimeout(() => updatePosition(), 500);
