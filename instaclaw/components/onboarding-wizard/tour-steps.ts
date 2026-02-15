@@ -29,7 +29,7 @@ const tourSteps: TourStep[] = [
     selector: '[data-tour="dash-credits"]',
     title: "Credits & Buy More",
     description:
-      "If you hit your daily limit, credits keep you going. Tap the orange \"Buy Credits\" button to grab a pack. They kick in instantly and never expire. If you're running low often, upgrading your plan is usually the better deal.",
+      "If you hit your daily limit, credits keep you going. Tap the orange \"Buy Credits\" button to grab a pack. They kick in instantly and never expire. If you find yourself running low often, upgrading your plan is usually the better deal.",
     navigateTo: "/dashboard",
   },
   {
@@ -72,7 +72,7 @@ const tourSteps: TourStep[] = [
     selector: '[data-tour="dash-pro-tip"]',
     title: "Pro Tip: Talk to Your Bot",
     description:
-      "Almost everything you see on this dashboard, like switching models, checking usage, and managing settings, you can do just by chatting with your bot in Telegram or in the Command Center. The dashboard gives you a visual overview, but your bot can handle it all conversationally.",
+      "Almost everything on this dashboard, you can do just by chatting with your bot. And here's what makes it special: your agent has persistent memory. It learns your preferences, remembers past work, and gets smarter every day the more you use it.",
     navigateTo: "/dashboard",
     large: true,
   },
@@ -82,7 +82,7 @@ const tourSteps: TourStep[] = [
     selector: '[data-tour="nav-command-center"]',
     title: "Command Center",
     description:
-      "Now let's check out the Command Center. This is where you'll spend most of your time. Give your agent tasks, have conversations, and find everything it creates.",
+      "Now let's check out the Command Center. This is where the magic happens. Give your agent any task, have conversations, and find everything it creates. Just tell it what you need and it figures out the rest.",
   },
   {
     selector: '[data-tour="tab-tasks"]',
@@ -95,7 +95,7 @@ const tourSteps: TourStep[] = [
     selector: '[data-tour="tab-chat"]',
     title: "Chat Tab",
     description:
-      "Think of this as texting your agent. Ask questions, brainstorm ideas, or get quick answers, just like chatting with a coworker.",
+      "Think of this as texting your agent. Ask questions, brainstorm ideas, or get quick answers, just like you would with a coworker.",
   },
   {
     selector: '[data-tour="tab-library"]',
@@ -184,7 +184,7 @@ const tourSteps: TourStep[] = [
     selector: '[data-tour="input-bar"]',
     title: "One Last Thing: Recurring Tasks",
     description:
-      "Here's the real power move. Type something like \"Every morning at 8am, summarize the top AI news\" and your agent will run it on schedule and send results straight to your Telegram. Set it and forget it.",
+      "Here's the real power move. Type something like \"Every morning at 8am, summarize the top AI news\" and your agent runs it on schedule, delivering results to your Telegram. It gets smarter over time too, learning what matters to you and refining every result.",
     navigateTo: "/tasks",
     position: "top",
     large: true,

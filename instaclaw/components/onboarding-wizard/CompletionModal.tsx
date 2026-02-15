@@ -112,7 +112,7 @@ export default function CompletionModal({ gmailConnected, onDone, onSuggestion }
           className="text-sm text-center mb-5 leading-relaxed"
           style={{ color: "var(--muted)" }}
         >
-          Your agent is ready and waiting. Here are a few things you can try right now:
+          Your agent is ready and waiting. The more you use it, the smarter it gets. Here are a few things to try right now:
         </p>
 
         {/* Pro tip callout */}
@@ -134,7 +134,7 @@ export default function CompletionModal({ gmailConnected, onDone, onSuggestion }
               The best way to use InstaClaw
             </div>
             <div className="text-[12px] leading-relaxed" style={{ color: "var(--muted)" }}>
-              Want to install a skill, connect an API, or set something up? Just message your agent in <strong style={{ color: "var(--foreground)" }}>Telegram</strong> (or your preferred channel) and tell it what you want. It&apos;ll figure it out and ask you if it needs help along the way.
+              Message your agent through <strong style={{ color: "var(--foreground)" }}>Telegram</strong> or your connected platform for the best experience. Just tell it what you need and it handles everything, only checking in when it needs your input. Coming this week: our <strong style={{ color: "var(--foreground)" }}>iOS app</strong> puts the full Command Center in your pocket.
             </div>
           </div>
         </div>
