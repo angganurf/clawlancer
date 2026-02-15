@@ -142,9 +142,21 @@ export default function BotVerification({
             >
               <div className="flex gap-3">
                 <span className="text-xs font-semibold shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: "var(--foreground)", color: "var(--background)" }}>1</span>
-                <p className="text-xs leading-relaxed" style={{ color: "var(--muted)" }}>
-                  Open Telegram and go back to your <strong style={{ color: "var(--foreground)" }}>BotFather</strong> chat
-                </p>
+                <div>
+                  <p className="text-xs leading-relaxed" style={{ color: "var(--muted)" }}>
+                    Go back to your <strong style={{ color: "var(--foreground)" }}>BotFather</strong> chat in Telegram
+                  </p>
+                  <a
+                    href="https://t.me/BotFather"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 mt-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium cursor-pointer transition-all hover:opacity-90 active:scale-[0.97]"
+                    style={{ background: "var(--foreground)", color: "var(--background)" }}
+                  >
+                    Open BotFather
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
               </div>
               <div className="flex gap-3">
                 <span className="text-xs font-semibold shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: "var(--foreground)", color: "var(--background)" }}>2</span>

@@ -40,7 +40,8 @@ type TooltipPos = "top" | "bottom" | "left" | "right";
 
 function computeTooltipPosition(
   rect: Rect,
-  preferred?: string
+  preferred?: string,
+  keepMoreOpen?: boolean
 ): { pos: TooltipPos; style: React.CSSProperties } {
   const isMobile = window.innerWidth < 640;
 
@@ -60,6 +61,22 @@ function computeTooltipPosition(
 
   const vp = { w: window.innerWidth, h: window.innerHeight };
   const center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+
+  // For items inside the More dropdown, position tooltip below the entire dropdown
+  // so it doesn't cover sibling menu items
+  if (keepMoreOpen) {
+    const dropdown = document.querySelector('[data-tour="nav-more"]')?.closest(".relative")?.querySelector("[class*='absolute']");
+    const dropdownBottom = dropdown ? dropdown.getBoundingClientRect().bottom + TOOLTIP_GAP : rect.top + rect.height + TOOLTIP_GAP;
+
+    return {
+      pos: "bottom",
+      style: {
+        position: "fixed",
+        top: dropdownBottom,
+        right: Math.max(16, vp.w - (rect.left + rect.width + PADDING)),
+      },
+    };
+  }
 
   // Determine best position
   let pos: TooltipPos = "bottom";
@@ -129,7 +146,7 @@ export default function SpotlightTour({
     const rect = getElementRect(step.selector);
     if (rect) {
       setTargetRect(rect);
-      setTooltipInfo(computeTooltipPosition(rect, step.position));
+      setTooltipInfo(computeTooltipPosition(rect, step.position, step.keepMoreOpen));
     } else {
       setTargetRect(null);
       setTooltipInfo(null);
