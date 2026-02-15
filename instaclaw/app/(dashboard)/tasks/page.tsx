@@ -26,33 +26,175 @@ import {
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
-/* ─── Tool Brand Logos ────────────────────────────────────── */
+/* ─── Inline Tool Brand Icons ─────────────────────────────── */
 
-const ICON_V = "v3"; // cache-bust version
-const TOOL_LOGOS: Record<string, { logo: string; label: string; color: string }> = {
-  web_search:   { logo: `/tool-icons/web-search.svg?${ICON_V}`, label: "Web Search",    color: "#4285F4" },
-  brave_search: { logo: `/tool-icons/brave.svg?${ICON_V}`,      label: "Brave Search",  color: "#FB542B" },
-  search:       { logo: `/tool-icons/web-search.svg?${ICON_V}`, label: "Search",        color: "#4285F4" },
-  telegram:     { logo: `/tool-icons/telegram.svg?${ICON_V}`,   label: "Telegram",      color: "#2AABEE" },
-  discord:      { logo: `/tool-icons/discord.svg?${ICON_V}`,    label: "Discord",       color: "#5865F2" },
-  email:        { logo: `/tool-icons/gmail.svg?${ICON_V}`,      label: "Email",         color: "#EA4335" },
-  gmail:        { logo: `/tool-icons/gmail.svg?${ICON_V}`,      label: "Gmail",         color: "#EA4335" },
-  clawlancer:   { logo: `/tool-icons/instaclaw.svg?${ICON_V}`,  label: "Instaclaw",     color: "#DC6743" },
-  marketplace:  { logo: `/tool-icons/instaclaw.svg?${ICON_V}`,  label: "Marketplace",   color: "#DC6743" },
-  file:         { logo: `/tool-icons/file.svg?${ICON_V}`,       label: "Files",         color: "#34A853" },
-  code:         { logo: `/tool-icons/code.svg?${ICON_V}`,       label: "Code",          color: "#1e1e1e" },
-  database:     { logo: `/tool-icons/database.svg?${ICON_V}`,   label: "Database",      color: "#8b5cf6" },
-  calendar:     { logo: `/tool-icons/calendar.svg?${ICON_V}`,   label: "Calendar",      color: "#4285F4" },
-  image:        { logo: `/tool-icons/image.svg?${ICON_V}`,      label: "Image",         color: "#ec4899" },
+function TelegramMark({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M20 4.5L3 11.5c-.6.3-.6.8.1.9l4.4 1.4 1.7 5.3c.2.5.6.6 1 .3l2.4-2 4.7 3.5c.5.4 1 .2 1.2-.5L21.2 5.6c.2-.8-.3-1.3-1.2-.9l0 0zM9.5 14.2l7.5-5.2c.3-.2.3.1.1.2L10.5 15l-.4 3-1-3.5.4-.3z" fill="#fff"/>
+    </svg>
+  );
+}
+
+function DiscordMark({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M19.3 5.3a16.5 16.5 0 0 0-4.1-1.3c-.2.3-.4.8-.5 1.1a15.3 15.3 0 0 0-4.6 0c-.1-.3-.3-.8-.5-1.1a16.5 16.5 0 0 0-4.1 1.3A17 17 0 0 0 2.5 17.7a16.6 16.6 0 0 0 5 2.5c.4-.5.8-1.1 1.1-1.7-.6-.2-1.2-.5-1.8-.8l.4-.3a11.8 11.8 0 0 0 10.1 0l.4.3c-.6.3-1.2.6-1.8.8.3.6.7 1.2 1.1 1.7a16.5 16.5 0 0 0 5-2.5c.5-5.2-.8-9.7-3.5-13.4zM8.7 15c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.2 1.1 2.1 2.4c0 1.3-.9 2.4-2.1 2.4zm6.6 0c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.2 1.1 2.1 2.4c0 1.3-.9 2.4-2.1 2.4z" fill="#fff"/>
+    </svg>
+  );
+}
+
+function GmailMark({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M3 6.5V18h4V10l5 4 5-4v8h4V6.5l-2-1.5-7 5.5L5 5 3 6.5z" fill="#fff"/>
+    </svg>
+  );
+}
+
+function BraveMark({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M19 9.2l-.4-1.3.7-1.1-1.4-.4L17 5h-2.4L12 3.5 9.4 5H7l-.9 1.4-1.4.4.7 1.1L5 9.2s1.1 4.5 1.5 5.3c.4.8 1 1.7 1.7 2.3L12 19.5l3.8-2.7c.7-.6 1.3-1.5 1.7-2.3.4-.8 1.5-5.3 1.5-5.3zM14.5 14l-2.5 1.8L9.5 14l-.8-2 1.5-1.2h3.6l1.5 1.2-.8 2z" fill="#fff"/>
+    </svg>
+  );
+}
+
+function SearchMark({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <circle cx="10.5" cy="10.5" r="6" stroke="#fff" strokeWidth="2.5"/>
+      <line x1="15" y1="15" x2="20.5" y2="20.5" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function CodeMark({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M9 6l-5 6 5 6" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M15 6l5 6-5 6" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function CalendarMark({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <rect x="3" y="5" width="18" height="16" rx="2" stroke="#fff" strokeWidth="2"/>
+      <line x1="3" y1="10" x2="21" y2="10" stroke="#fff" strokeWidth="2"/>
+      <line x1="8" y1="3" x2="8" y2="7" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="16" y1="3" x2="16" y2="7" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function DatabaseMark({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <ellipse cx="12" cy="6" rx="8" ry="3" stroke="#fff" strokeWidth="2"/>
+      <path d="M4 6v5c0 1.7 3.6 3 8 3s8-1.3 8-3V6" stroke="#fff" strokeWidth="2"/>
+      <path d="M4 11v5c0 1.7 3.6 3 8 3s8-1.3 8-3v-5" stroke="#fff" strokeWidth="2"/>
+    </svg>
+  );
+}
+
+function FileMark({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M6 3h8l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" stroke="#fff" strokeWidth="2"/>
+      <path d="M14 3v5h5" stroke="#fff" strokeWidth="2"/>
+    </svg>
+  );
+}
+
+function ImageMark({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <rect x="3" y="3" width="18" height="18" rx="3" stroke="#fff" strokeWidth="2"/>
+      <circle cx="8.5" cy="8.5" r="2" fill="#fff"/>
+      <path d="M3 17l4.5-6 3 4 3.5-5 7 7H3z" fill="#fff"/>
+    </svg>
+  );
+}
+
+function StarMark({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M12 3l2.5 5.5H20l-4.5 3.5 1.7 5.5L12 14l-5.2 3.5 1.7-5.5L4 8.5h5.5z" fill="#fff"/>
+    </svg>
+  );
+}
+
+function WrenchMark({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+type ToolConfig = { mark: React.FC<{ size?: number }>; label: string; color: string };
+
+const TOOL_CONFIGS: Record<string, ToolConfig> = {
+  web_search:   { mark: SearchMark,   label: "Web Search",   color: "#4285F4" },
+  brave_search: { mark: BraveMark,    label: "Brave Search", color: "#FB542B" },
+  search:       { mark: SearchMark,   label: "Search",       color: "#4285F4" },
+  telegram:     { mark: TelegramMark, label: "Telegram",     color: "#2AABEE" },
+  discord:      { mark: DiscordMark,  label: "Discord",      color: "#5865F2" },
+  email:        { mark: GmailMark,    label: "Email",        color: "#EA4335" },
+  gmail:        { mark: GmailMark,    label: "Gmail",        color: "#EA4335" },
+  clawlancer:   { mark: StarMark,     label: "Instaclaw",    color: "#DC6743" },
+  marketplace:  { mark: StarMark,     label: "Marketplace",  color: "#DC6743" },
+  file:         { mark: FileMark,     label: "Files",        color: "#34A853" },
+  code:         { mark: CodeMark,     label: "Code",         color: "#24292e" },
+  database:     { mark: DatabaseMark, label: "Database",     color: "#8b5cf6" },
+  calendar:     { mark: CalendarMark, label: "Calendar",     color: "#4285F4" },
+  image:        { mark: ImageMark,    label: "Image",        color: "#ec4899" },
 };
 
-function getToolLogo(tool: string): { logo: string; label: string; color: string } {
+const DEFAULT_TOOL: ToolConfig = { mark: WrenchMark, label: "Tool", color: "#71717a" };
+
+function getToolConfig(tool: string): ToolConfig {
   const key = tool.toLowerCase().replace(/[\s_-]+/g, "_");
-  if (TOOL_LOGOS[key]) return TOOL_LOGOS[key];
-  for (const [k, v] of Object.entries(TOOL_LOGOS)) {
+  if (TOOL_CONFIGS[key]) return TOOL_CONFIGS[key];
+  for (const [k, v] of Object.entries(TOOL_CONFIGS)) {
     if (key.includes(k)) return v;
   }
-  return { logo: `/tool-icons/web-search.svg?${ICON_V}`, label: tool, color: "#71717a" };
+  return { ...DEFAULT_TOOL, label: tool };
+}
+
+function ToolOrb({ tool, size = 28 }: { tool: string; size?: number }) {
+  const { mark: Mark, label, color } = getToolConfig(tool);
+  const iconSize = Math.round(size * 0.58);
+  return (
+    <div
+      className="rounded-full relative shrink-0 flex items-center justify-center"
+      title={label}
+      style={{
+        width: size,
+        height: size,
+        background: `radial-gradient(circle at 35% 35%, ${color}, ${color}cc 60%, ${color}88 100%)`,
+        boxShadow: `
+          inset 0 -2px 4px rgba(0,0,0,0.2),
+          inset 0 2px 3px rgba(255,255,255,0.35),
+          0 2px 6px rgba(0,0,0,0.18)
+        `,
+      }}
+    >
+      <Mark size={iconSize} />
+      <div
+        className="absolute rounded-full pointer-events-none"
+        style={{
+          top: "8%",
+          left: "15%",
+          width: "45%",
+          height: "28%",
+          background: "linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 100%)",
+        }}
+      />
+    </div>
+  );
 }
 
 /* ─── Model Options ──────────────────────────────────────── */
@@ -915,42 +1057,16 @@ function TaskCard({
           )}
           {task.tools_used.length > 0 && (
             <div className="flex items-center -space-x-1.5">
-              {task.tools_used.slice(0, 4).map((tool) => {
-                const { logo, label, color } = getToolLogo(tool);
-                return (
-                  <div
-                    key={tool}
-                    className="w-7 h-7 rounded-full relative shrink-0 flex items-center justify-center"
-                    title={label}
-                    style={{
-                      background: `radial-gradient(circle at 35% 35%, ${color}dd, ${color}88 40%, rgba(0,0,0,0.3) 100%)`,
-                      boxShadow: `
-                        inset 0 -3px 6px rgba(0,0,0,0.25),
-                        inset 0 3px 6px rgba(255,255,255,0.4),
-                        inset 0 0 4px rgba(0,0,0,0.15),
-                        0 2px 8px rgba(0,0,0,0.2),
-                        0 1px 3px rgba(0,0,0,0.15)
-                      `,
-                    }}
-                  >
-                    <img src={logo} alt={label} className="w-4 h-4" style={{ position: "relative", zIndex: 1 }} />
-                    <div
-                      className="absolute top-[2px] left-[4px] w-[14px] h-[7px] rounded-full pointer-events-none"
-                      style={{
-                        background: "linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 100%)",
-                        zIndex: 2,
-                      }}
-                    />
-                  </div>
-                );
-              })}
+              {task.tools_used.slice(0, 4).map((tool) => (
+                <ToolOrb key={tool} tool={tool} size={28} />
+              ))}
               {task.tools_used.length > 4 && (
                 <div
                   className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-semibold"
                   style={{
-                    background: "radial-gradient(circle at 35% 35%, #e5e5e5dd, #d4d4d488 40%, rgba(0,0,0,0.15) 100%)",
-                    boxShadow: "inset 0 -3px 6px rgba(0,0,0,0.15), inset 0 3px 6px rgba(255,255,255,0.5), 0 2px 8px rgba(0,0,0,0.15)",
-                    color: "var(--muted)",
+                    background: "radial-gradient(circle at 35% 35%, #e5e5e5, #d4d4d4cc 60%, #a3a3a388 100%)",
+                    boxShadow: "inset 0 -2px 4px rgba(0,0,0,0.15), inset 0 2px 3px rgba(255,255,255,0.4), 0 2px 6px rgba(0,0,0,0.15)",
+                    color: "#666",
                   }}
                 >
                   +{task.tools_used.length - 4}
@@ -1098,7 +1214,7 @@ function TaskCard({
                     Tools:
                   </span>
                   {task.tools_used.map((tool) => {
-                    const { logo, label, color } = getToolLogo(tool);
+                    const { label } = getToolConfig(tool);
                     return (
                       <span
                         key={tool}
@@ -1109,19 +1225,7 @@ function TaskCard({
                           color: "var(--foreground)",
                         }}
                       >
-                        <span
-                          className="w-5 h-5 rounded-full relative shrink-0 flex items-center justify-center"
-                          style={{
-                            background: `radial-gradient(circle at 35% 35%, ${color}dd, ${color}88 40%, rgba(0,0,0,0.3) 100%)`,
-                            boxShadow: `
-                              inset 0 -2px 4px rgba(0,0,0,0.25),
-                              inset 0 2px 4px rgba(255,255,255,0.4),
-                              0 1px 4px rgba(0,0,0,0.15)
-                            `,
-                          }}
-                        >
-                          <img src={logo} alt={label} className="w-3 h-3" style={{ position: "relative", zIndex: 1 }} />
-                        </span>
+                        <ToolOrb tool={tool} size={20} />
                         {label}
                       </span>
                     );
