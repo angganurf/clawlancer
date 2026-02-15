@@ -67,7 +67,7 @@ export default function ScheduledPage() {
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-10" data-tour="page-scheduled">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl sm:text-4xl font-normal tracking-[-0.5px]" style={{ fontFamily: "var(--font-serif)" }}>Scheduled Tasks</h1>

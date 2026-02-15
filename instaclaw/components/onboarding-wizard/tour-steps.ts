@@ -132,39 +132,39 @@ const tourSteps: TourStep[] = [
     keepMoreOpen: true,
   },
   {
-    selector: '[data-tour="nav-files"]',
+    selector: '[data-tour="page-files"]',
     title: "Files",
     description:
-      "Upload documents for your agent to read, or download files it creates, like reports, spreadsheets, or images.",
-    keepMoreOpen: true,
+      "This is your file manager. Upload documents for your agent to read, or download files it creates, like reports, spreadsheets, or images.",
+    navigateTo: "/files",
   },
   {
-    selector: '[data-tour="nav-scheduled"]',
+    selector: '[data-tour="page-scheduled"]',
     title: "Scheduled Tasks",
     description:
-      "Set tasks to repeat daily, weekly, or on any schedule. Your agent handles them automatically and delivers the results.",
-    keepMoreOpen: true,
+      "This is where your recurring tasks live. Set tasks to repeat daily, weekly, or on any schedule. Your agent handles them automatically and delivers the results.",
+    navigateTo: "/scheduled",
   },
   {
-    selector: '[data-tour="nav-api-keys"]',
+    selector: '[data-tour="page-api-keys"]',
     title: "API Keys",
     description:
       "Give your agent access to services like Brave Search or custom APIs. Add keys here and it can use them in tasks.",
-    keepMoreOpen: true,
+    navigateTo: "/env-vars",
   },
   {
-    selector: '[data-tour="nav-settings"]',
+    selector: '[data-tour="page-settings"]',
     title: "Settings",
     description:
       "Make it yours. Customize your agent's personality, choose its AI model, set a system prompt, and pick how results get delivered.",
-    keepMoreOpen: true,
+    navigateTo: "/settings",
   },
   {
-    selector: '[data-tour="nav-billing"]',
+    selector: '[data-tour="page-billing"]',
     title: "Billing",
     description:
       "View your plan, check usage, and manage payments. Everything billing-related is right here.",
-    keepMoreOpen: true,
+    navigateTo: "/billing",
   },
   {
     selector: '[data-tour="input-bar"]',

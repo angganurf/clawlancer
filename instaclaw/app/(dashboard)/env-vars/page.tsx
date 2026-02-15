@@ -190,7 +190,7 @@ export default function EnvVarsPage() {
   );
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-10" data-tour="page-api-keys">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl sm:text-4xl font-normal tracking-[-0.5px]" style={{ fontFamily: "var(--font-serif)" }}>API Keys & Secrets</h1>
