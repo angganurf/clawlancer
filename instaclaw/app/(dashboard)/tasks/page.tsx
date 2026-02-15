@@ -247,8 +247,8 @@ function StatusDot({ status }: { status: TaskStatus }) {
     case "active":
       return (
         <span
-          className={`${base} animate-pulse`}
-          style={{ background: "#16a34a" }}
+          className={base}
+          style={{ background: "#16a34a", boxShadow: "0 0 6px rgba(34,197,94,0.5)" }}
         />
       );
     case "in_progress":
@@ -766,12 +766,28 @@ function TaskCard({
             </div>
           ) : isActive ? (
             <div
-              className="w-6 h-6 rounded-full flex items-center justify-center"
-              style={{ border: "2px solid #16a34a" }}
+              className="w-7 h-7 rounded-full flex items-center justify-center relative"
+              style={{
+                background: "radial-gradient(circle, rgba(34,197,94,0.12) 0%, rgba(34,197,94,0.04) 70%, transparent 100%)",
+                boxShadow: "0 0 12px rgba(34,197,94,0.15), 0 0 4px rgba(34,197,94,0.08)",
+              }}
             >
+              <motion.div
+                className="absolute inset-0 rounded-full"
+                style={{
+                  background: "conic-gradient(from 0deg, transparent 0%, rgba(34,197,94,0.45) 30%, transparent 55%)",
+                  mask: "radial-gradient(circle, transparent 58%, black 62%, black 100%)",
+                  WebkitMask: "radial-gradient(circle, transparent 58%, black 62%, black 100%)",
+                }}
+                animate={{ rotate: 360 }}
+                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+              />
               <span
-                className="w-3 h-3 rounded-full animate-pulse"
-                style={{ background: "#16a34a" }}
+                className="w-2.5 h-2.5 rounded-full relative z-10"
+                style={{
+                  background: "radial-gradient(circle at 35% 30%, #4ade80, #16a34a)",
+                  boxShadow: "0 0 6px rgba(34,197,94,0.35)",
+                }}
               />
             </div>
           ) : isCompleted ? (
