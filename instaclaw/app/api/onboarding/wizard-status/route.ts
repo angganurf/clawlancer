@@ -14,7 +14,7 @@ export async function GET() {
   const { data: user } = await supabase
     .from("instaclaw_users")
     .select(
-      "onboarding_wizard_completed, onboarding_wizard_step, gmail_popup_dismissed"
+      "onboarding_wizard_completed, onboarding_wizard_step, gmail_popup_dismissed, gmail_connected"
     )
     .eq("id", session.user.id)
     .single();
@@ -46,5 +46,6 @@ export async function GET() {
     telegramBotUsername: vm.telegram_bot_username ?? null,
     botConnected: !!vm.telegram_chat_id,
     gmailPopupDismissed: user.gmail_popup_dismissed ?? false,
+    gmailConnected: !!user.gmail_connected,
   });
 }

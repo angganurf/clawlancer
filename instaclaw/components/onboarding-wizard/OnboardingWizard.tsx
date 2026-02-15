@@ -17,10 +17,11 @@ interface WizardState {
   tourStep: number;
   botUsername: string | null;
   botConnected: boolean;
+  gmailConnected: boolean;
 }
 
 type WizardAction =
-  | { type: "LOADED"; shouldShow: boolean; currentStep: number; botUsername: string | null; botConnected: boolean; gmailPopupActive: boolean }
+  | { type: "LOADED"; shouldShow: boolean; currentStep: number; botUsername: string | null; botConnected: boolean; gmailPopupActive: boolean; gmailConnected: boolean }
   | { type: "GO_TO_BOT_VERIFY" }
   | { type: "SKIP_BOT_VERIFY" }
   | { type: "BOT_VERIFIED" }
@@ -43,13 +44,15 @@ function reducer(state: WizardState, action: WizardAction): WizardState {
           tourStep: action.currentStep,
           botUsername: action.botUsername,
           botConnected: action.botConnected,
+          gmailConnected: action.gmailConnected,
         };
       }
       return {
         ...state,
-        phase: action.botConnected ? "welcome" : "welcome",
+        phase: "welcome",
         botUsername: action.botUsername,
         botConnected: action.botConnected,
+        gmailConnected: action.gmailConnected,
       };
 
     case "GO_TO_BOT_VERIFY":
@@ -84,6 +87,7 @@ const initialState: WizardState = {
   tourStep: 0,
   botUsername: null,
   botConnected: false,
+  gmailConnected: false,
 };
 
 /* ─── Component ─────────────────────────────────────────── */
@@ -110,7 +114,7 @@ export default function OnboardingWizard({
       try {
         const res = await fetch("/api/onboarding/wizard-status");
         if (!res.ok) {
-          dispatch({ type: "LOADED", shouldShow: false, currentStep: 0, botUsername: null, botConnected: false, gmailPopupActive: false });
+          dispatch({ type: "LOADED", shouldShow: false, currentStep: 0, botUsername: null, botConnected: false, gmailPopupActive: false, gmailConnected: false });
           return;
         }
         const data = await res.json();
@@ -121,9 +125,10 @@ export default function OnboardingWizard({
           botUsername: data.telegramBotUsername ?? null,
           botConnected: data.botConnected ?? false,
           gmailPopupActive: !data.gmailPopupDismissed,
+          gmailConnected: data.gmailConnected ?? false,
         });
       } catch {
-        dispatch({ type: "LOADED", shouldShow: false, currentStep: 0, botUsername: null, botConnected: false, gmailPopupActive: false });
+        dispatch({ type: "LOADED", shouldShow: false, currentStep: 0, botUsername: null, botConnected: false, gmailPopupActive: false, gmailConnected: false });
       }
     })();
   }, []);
@@ -237,6 +242,7 @@ export default function OnboardingWizard({
       {state.phase === "complete" && (
         <CompletionModal
           key="complete"
+          gmailConnected={state.gmailConnected}
           onDone={() => {
             dispatch({ type: "DONE" });
           }}
