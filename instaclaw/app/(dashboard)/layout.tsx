@@ -113,10 +113,12 @@ export default function DashboardLayout({
             <div className="relative" ref={moreRef}>
               <button
                 onClick={() => setMoreOpen((v) => !v)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm transition-snappy transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-snappy transition-colors"
                 style={{
                   color: isOverflowActive || moreOpen ? "var(--foreground)" : "var(--muted)",
-                  background: isOverflowActive || moreOpen ? "rgba(0,0,0,0.06)" : "transparent",
+                  background: isOverflowActive || moreOpen ? "rgba(0,0,0,0.07)" : "rgba(0,0,0,0.03)",
+                  boxShadow: "0 0 0 1px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
+                  backdropFilter: "blur(8px)",
                 }}
               >
                 <MoreHorizontal className="w-4 h-4" />
