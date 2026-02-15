@@ -232,7 +232,7 @@ export default function OnboardingWizard({
           }}
           onClose={() => {
             dispatch({ type: "TOUR_CLOSE" });
-            saveStep(state.tourStep);
+            completeWizard();
           }}
           setMoreOpen={setMoreOpen}
           navigateTo={handleNavigate}
@@ -244,6 +244,7 @@ export default function OnboardingWizard({
           key="complete"
           gmailConnected={state.gmailConnected}
           onDone={() => {
+            completeWizard();
             dispatch({ type: "DONE" });
           }}
           onSuggestion={handleSuggestion}
