@@ -28,21 +28,22 @@ import ReactMarkdown from "react-markdown";
 
 /* ─── Tool Brand Logos ────────────────────────────────────── */
 
+const ICON_V = "v3"; // cache-bust version
 const TOOL_LOGOS: Record<string, { logo: string; label: string; color: string }> = {
-  web_search:   { logo: "/tool-icons/web-search.svg", label: "Web Search",    color: "#4285F4" },
-  brave_search: { logo: "/tool-icons/brave.svg",      label: "Brave Search",  color: "#FB542B" },
-  search:       { logo: "/tool-icons/web-search.svg", label: "Search",        color: "#4285F4" },
-  telegram:     { logo: "/tool-icons/telegram.svg",   label: "Telegram",      color: "#2AABEE" },
-  discord:      { logo: "/tool-icons/discord.svg",    label: "Discord",       color: "#5865F2" },
-  email:        { logo: "/tool-icons/gmail.svg",      label: "Email",         color: "#EA4335" },
-  gmail:        { logo: "/tool-icons/gmail.svg",      label: "Gmail",         color: "#EA4335" },
-  clawlancer:   { logo: "/tool-icons/instaclaw.svg",  label: "Instaclaw",     color: "#DC6743" },
-  marketplace:  { logo: "/tool-icons/instaclaw.svg",  label: "Marketplace",   color: "#DC6743" },
-  file:         { logo: "/tool-icons/file.svg",       label: "Files",         color: "#34A853" },
-  code:         { logo: "/tool-icons/code.svg",       label: "Code",          color: "#1e1e1e" },
-  database:     { logo: "/tool-icons/database.svg",   label: "Database",      color: "#8b5cf6" },
-  calendar:     { logo: "/tool-icons/calendar.svg",   label: "Calendar",      color: "#4285F4" },
-  image:        { logo: "/tool-icons/image.svg",      label: "Image",         color: "#ec4899" },
+  web_search:   { logo: `/tool-icons/web-search.svg?${ICON_V}`, label: "Web Search",    color: "#4285F4" },
+  brave_search: { logo: `/tool-icons/brave.svg?${ICON_V}`,      label: "Brave Search",  color: "#FB542B" },
+  search:       { logo: `/tool-icons/web-search.svg?${ICON_V}`, label: "Search",        color: "#4285F4" },
+  telegram:     { logo: `/tool-icons/telegram.svg?${ICON_V}`,   label: "Telegram",      color: "#2AABEE" },
+  discord:      { logo: `/tool-icons/discord.svg?${ICON_V}`,    label: "Discord",       color: "#5865F2" },
+  email:        { logo: `/tool-icons/gmail.svg?${ICON_V}`,      label: "Email",         color: "#EA4335" },
+  gmail:        { logo: `/tool-icons/gmail.svg?${ICON_V}`,      label: "Gmail",         color: "#EA4335" },
+  clawlancer:   { logo: `/tool-icons/instaclaw.svg?${ICON_V}`,  label: "Instaclaw",     color: "#DC6743" },
+  marketplace:  { logo: `/tool-icons/instaclaw.svg?${ICON_V}`,  label: "Marketplace",   color: "#DC6743" },
+  file:         { logo: `/tool-icons/file.svg?${ICON_V}`,       label: "Files",         color: "#34A853" },
+  code:         { logo: `/tool-icons/code.svg?${ICON_V}`,       label: "Code",          color: "#1e1e1e" },
+  database:     { logo: `/tool-icons/database.svg?${ICON_V}`,   label: "Database",      color: "#8b5cf6" },
+  calendar:     { logo: `/tool-icons/calendar.svg?${ICON_V}`,   label: "Calendar",      color: "#4285F4" },
+  image:        { logo: `/tool-icons/image.svg?${ICON_V}`,      label: "Image",         color: "#ec4899" },
 };
 
 function getToolLogo(tool: string): { logo: string; label: string; color: string } {
@@ -51,7 +52,7 @@ function getToolLogo(tool: string): { logo: string; label: string; color: string
   for (const [k, v] of Object.entries(TOOL_LOGOS)) {
     if (key.includes(k)) return v;
   }
-  return { logo: "/tool-icons/web-search.svg", label: tool, color: "#71717a" };
+  return { logo: `/tool-icons/web-search.svg?${ICON_V}`, label: tool, color: "#71717a" };
 }
 
 /* ─── Model Options ──────────────────────────────────────── */
