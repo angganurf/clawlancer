@@ -65,8 +65,10 @@ function computeTooltipPosition(
   // For items inside the More dropdown, position tooltip below the entire dropdown
   // so it doesn't cover sibling menu items
   if (keepMoreOpen) {
-    const dropdown = document.querySelector('[data-tour="nav-more"]')?.closest(".relative")?.querySelector("[class*='absolute']");
-    const dropdownBottom = dropdown ? dropdown.getBoundingClientRect().bottom + TOOLTIP_GAP : rect.top + rect.height + TOOLTIP_GAP;
+    const dropdown = document.querySelector('[data-tour-dropdown="more"]');
+    const dropdownBottom = dropdown
+      ? dropdown.getBoundingClientRect().bottom + TOOLTIP_GAP
+      : rect.top + rect.height + TOOLTIP_GAP;
 
     return {
       pos: "bottom",

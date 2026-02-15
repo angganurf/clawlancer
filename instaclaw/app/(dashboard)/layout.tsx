@@ -134,6 +134,7 @@ export default function DashboardLayout({
 
               {moreOpen && (
                 <div
+                  data-tour-dropdown="more"
                   className="absolute right-0 top-full mt-2 w-48 rounded-xl py-1"
                   style={{
                     background: "var(--card)",
