@@ -277,7 +277,7 @@ export default function SpotlightTour({
       {/* Persistent dark overlay — stays visible during page transitions */}
       <div
         className="fixed inset-0 z-[9997]"
-        style={{ background: "rgba(0,0,0,0.5)" }}
+        style={{ background: "rgba(0,0,0,0.32)" }}
         onClick={(e) => e.stopPropagation()}
       />
 
@@ -295,7 +295,7 @@ export default function SpotlightTour({
             }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             style={{
-              boxShadow: "0 0 0 9999px rgba(0,0,0,0.5)",
+              boxShadow: "0 0 0 9999px rgba(0,0,0,0.32)",
             }}
           />
         )}
