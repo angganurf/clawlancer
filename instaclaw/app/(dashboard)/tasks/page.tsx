@@ -23,45 +23,35 @@ import {
   Pause,
   Play,
   Zap,
-  Globe,
-  MessageCircle,
-  Mail,
-  ShoppingBag,
-  FileText,
-  Code,
-  Database,
-  Calendar,
-  Image,
-  Wrench,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
-/* ─── Tool Icon Config ───────────────────────────────────── */
+/* ─── Tool Brand Logos ────────────────────────────────────── */
 
-const TOOL_ICONS: Record<string, { icon: typeof Globe; bg: string; fg: string }> = {
-  web_search:     { icon: Globe,        bg: "#3b82f6", fg: "#ffffff" },
-  brave_search:   { icon: Globe,        bg: "#fb542b", fg: "#ffffff" },
-  search:         { icon: Search,       bg: "#6366f1", fg: "#ffffff" },
-  telegram:       { icon: MessageCircle, bg: "#229ED9", fg: "#ffffff" },
-  discord:        { icon: MessageCircle, bg: "#5865F2", fg: "#ffffff" },
-  email:          { icon: Mail,         bg: "#ea4335", fg: "#ffffff" },
-  gmail:          { icon: Mail,         bg: "#ea4335", fg: "#ffffff" },
-  clawlancer:     { icon: ShoppingBag,  bg: "#DC6743", fg: "#ffffff" },
-  marketplace:    { icon: ShoppingBag,  bg: "#DC6743", fg: "#ffffff" },
-  file:           { icon: FileText,     bg: "#10b981", fg: "#ffffff" },
-  code:           { icon: Code,         bg: "#1e1e1e", fg: "#ffffff" },
-  database:       { icon: Database,     bg: "#8b5cf6", fg: "#ffffff" },
-  calendar:       { icon: Calendar,     bg: "#f43f5e", fg: "#ffffff" },
-  image:          { icon: Image,        bg: "#ec4899", fg: "#ffffff" },
+const TOOL_LOGOS: Record<string, { logo: string; label: string }> = {
+  web_search:   { logo: "/tool-icons/web-search.svg", label: "Web Search" },
+  brave_search: { logo: "/tool-icons/brave.svg",      label: "Brave Search" },
+  search:       { logo: "/tool-icons/web-search.svg", label: "Search" },
+  telegram:     { logo: "/tool-icons/telegram.svg",   label: "Telegram" },
+  discord:      { logo: "/tool-icons/discord.svg",    label: "Discord" },
+  email:        { logo: "/tool-icons/gmail.svg",      label: "Email" },
+  gmail:        { logo: "/tool-icons/gmail.svg",      label: "Gmail" },
+  clawlancer:   { logo: "/tool-icons/instaclaw.svg",  label: "Instaclaw" },
+  marketplace:  { logo: "/tool-icons/instaclaw.svg",  label: "Marketplace" },
+  file:         { logo: "/tool-icons/file.svg",       label: "Files" },
+  code:         { logo: "/tool-icons/code.svg",       label: "Code" },
+  database:     { logo: "/tool-icons/database.svg",   label: "Database" },
+  calendar:     { logo: "/tool-icons/calendar.svg",   label: "Calendar" },
+  image:        { logo: "/tool-icons/image.svg",      label: "Image" },
 };
 
-function getToolConfig(tool: string) {
+function getToolLogo(tool: string): { logo: string; label: string } {
   const key = tool.toLowerCase().replace(/[\s_-]+/g, "_");
-  if (TOOL_ICONS[key]) return TOOL_ICONS[key];
-  for (const [k, v] of Object.entries(TOOL_ICONS)) {
+  if (TOOL_LOGOS[key]) return TOOL_LOGOS[key];
+  for (const [k, v] of Object.entries(TOOL_LOGOS)) {
     if (key.includes(k)) return v;
   }
-  return { icon: Wrench, bg: "#71717a", fg: "#ffffff" };
+  return { logo: "/tool-icons/web-search.svg", label: tool };
 }
 
 /* ─── Model Options ──────────────────────────────────────── */
@@ -925,17 +915,16 @@ function TaskCard({
           {task.tools_used.length > 0 && (
             <div className="flex items-center -space-x-1.5">
               {task.tools_used.slice(0, 4).map((tool) => {
-                const config = getToolConfig(tool);
-                const Icon = config.icon;
+                const { logo, label } = getToolLogo(tool);
                 return (
-                  <div
+                  <img
                     key={tool}
-                    className="w-6 h-6 rounded-full flex items-center justify-center ring-2 ring-white"
-                    style={{ background: config.bg }}
-                    title={tool}
-                  >
-                    <Icon className="w-3 h-3" style={{ color: config.fg }} />
-                  </div>
+                    src={logo}
+                    alt={label}
+                    title={label}
+                    className="w-6 h-6 rounded-full ring-2 ring-white"
+                    style={{ objectFit: "cover" }}
+                  />
                 );
               })}
               {task.tools_used.length > 4 && (
@@ -1088,20 +1077,19 @@ function TaskCard({
                     Tools:
                   </span>
                   {task.tools_used.map((tool) => {
-                    const config = getToolConfig(tool);
-                    const Icon = config.icon;
+                    const { logo, label } = getToolLogo(tool);
                     return (
                       <span
                         key={tool}
                         className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium"
                         style={{
-                          background: `${config.bg}10`,
-                          boxShadow: `0 0 0 1px ${config.bg}20`,
-                          color: config.bg,
+                          background: "rgba(0,0,0,0.04)",
+                          boxShadow: "0 0 0 1px rgba(0,0,0,0.06)",
+                          color: "var(--foreground)",
                         }}
                       >
-                        <Icon className="w-3 h-3" />
-                        {tool}
+                        <img src={logo} alt={label} className="w-4 h-4 rounded-full" />
+                        {label}
                       </span>
                     );
                   })}
