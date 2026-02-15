@@ -21,6 +21,7 @@ import {
   Bookmark,
   Pause,
   Play,
+  Zap,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
@@ -630,18 +631,17 @@ function TaskCard({
   const isActive = task.status === "active";
   const isPaused = task.status === "paused";
 
-  const streakLabel =
+  const streakText =
     task.streak === 0
-      ? "\u{1F525} New"
+      ? "New"
       : task.streak > 1
         ? task.frequency?.includes("week")
-          ? `\u{1F525} ${task.streak} weeks`
-          : `\u{1F525} ${task.streak} days`
-        : `\u{1F525} ${task.streak} day`;
+          ? `${task.streak} weeks`
+          : `${task.streak} days`
+        : `${task.streak} day`;
 
   const timingParts: string[] = [];
   if (task.frequency) timingParts.push(task.frequency);
-  if (task.is_recurring && !isPaused) timingParts.push(streakLabel);
   if (isPaused) {
     timingParts.push("Paused");
   } else if (task.is_recurring && task.next_run_at) {
@@ -830,17 +830,38 @@ function TaskCard({
               ? task.error_message
               : task.description}
           </p>
-          {task.is_recurring && timingParts.length > 0 && (
-            <p
-              className={`text-xs mt-1 pl-4 ${
+          {task.is_recurring && (timingParts.length > 0 || !isPaused) && (
+            <div
+              className={`flex items-center gap-1.5 text-xs mt-1 pl-4 ${
                 !isPaused && task.next_run_at && new Date(task.next_run_at).getTime() < Date.now()
                   ? "animate-pulse"
                   : ""
               }`}
               style={{ color: isPaused ? "#9ca3af" : "var(--muted)" }}
             >
-              {timingParts.join(" \u00B7 ")}
-            </p>
+              {timingParts.map((part, i) => (
+                <span key={i}>
+                  {i > 0 && !isPaused && task.is_recurring && i === 1 ? "" : i > 0 ? " \u00B7 " : ""}
+                  {part}
+                </span>
+              ))}
+              {task.is_recurring && !isPaused && (
+                <>
+                  {timingParts.length > 0 && <span>\u00B7</span>}
+                  <span
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full"
+                    style={{
+                      background: "rgba(34,197,94,0.08)",
+                      boxShadow: "0 0 0 1px rgba(34,197,94,0.12), 0 1px 2px rgba(34,197,94,0.06)",
+                      color: "#16a34a",
+                    }}
+                  >
+                    <Zap className="w-2.5 h-2.5" />
+                    {streakText}
+                  </span>
+                </>
+              )}
+            </div>
           )}
         </div>
 
@@ -1031,7 +1052,7 @@ function TaskCard({
                 {task.is_recurring && task.frequency && (
                   <p>
                     Recurring: {task.frequency}
-                    {task.streak > 0 && ` \u00B7 \u{1F525} ${task.streak} streak`}
+                    {task.streak > 0 && ` \u00B7 ${task.streak} streak`}
                   </p>
                 )}
                 {task.is_recurring && task.last_delivery_status && (
