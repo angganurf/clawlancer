@@ -1149,12 +1149,19 @@ function TaskCard({
               className="px-4 sm:px-5 pb-4 sm:pb-5 pt-0 space-y-3"
               style={{ borderTop: "1px solid var(--border)" }}
             >
-              {/* Original request */}
-              <div className="pt-3">
-                <p className="text-xs font-medium mb-1" style={{ color: "var(--muted)" }}>
-                  You asked:
+              {/* Original request — glass inset card */}
+              <div
+                className="pt-3 px-3.5 pb-3 mt-3 rounded-xl"
+                style={{
+                  background: "rgba(255,255,255,0.35)",
+                  boxShadow: "inset 0 1px 2px rgba(0,0,0,0.04), 0 1px 0 rgba(255,255,255,0.6)",
+                  border: "1px solid rgba(0,0,0,0.05)",
+                }}
+              >
+                <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--muted)", opacity: 0.6 }}>
+                  You asked
                 </p>
-                <p className="text-sm" style={{ color: "var(--muted)" }}>
+                <p className="text-sm italic" style={{ color: "var(--foreground)", opacity: 0.75 }}>
                   &ldquo;{task.description}&rdquo;
                 </p>
               </div>
@@ -1162,9 +1169,9 @@ function TaskCard({
               {/* Result — with edit mode */}
               {task.result && (
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-xs font-medium" style={{ color: "var(--muted)" }}>
-                      Result:
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted)", opacity: 0.6 }}>
+                      Result
                     </p>
                     {!isEditing && (
                       <button
@@ -1172,7 +1179,18 @@ function TaskCard({
                           e.stopPropagation();
                           startEdit();
                         }}
-                        className="p-1 rounded transition-opacity opacity-40 hover:opacity-100 cursor-pointer"
+                        className="p-1.5 rounded-lg transition-all opacity-40 hover:opacity-100 cursor-pointer"
+                        style={{
+                          background: "transparent",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "rgba(255,255,255,0.5)";
+                          e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.6)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.boxShadow = "none";
+                        }}
                         title="Edit result"
                       >
                         <Pencil className="w-3.5 h-3.5" style={{ color: "var(--muted)" }} />
@@ -1186,10 +1204,11 @@ function TaskCard({
                       <textarea
                         value={editDraft}
                         onChange={(e) => setEditDraft(e.target.value)}
-                        className="w-full rounded-lg p-3 text-sm font-mono outline-none resize-y"
+                        className="w-full rounded-xl p-3.5 text-sm font-mono outline-none resize-y"
                         style={{
-                          background: "var(--card)",
-                          border: "1px solid var(--border)",
+                          background: "rgba(255,255,255,0.4)",
+                          border: "1px solid rgba(0,0,0,0.06)",
+                          boxShadow: "inset 0 2px 4px rgba(0,0,0,0.03), 0 1px 0 rgba(255,255,255,0.6)",
                           color: "var(--foreground)",
                           minHeight: "200px",
                         }}
@@ -1202,8 +1221,12 @@ function TaskCard({
                             saveEdit();
                           }}
                           disabled={isSavingEdit}
-                          className="px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors disabled:opacity-50"
-                          style={{ background: "var(--foreground)", color: "var(--background)" }}
+                          className="px-3.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all disabled:opacity-50"
+                          style={{
+                            background: "var(--foreground)",
+                            color: "var(--background)",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08)",
+                          }}
                         >
                           {isSavingEdit ? "Saving..." : "Save"}
                         </button>
@@ -1212,25 +1235,37 @@ function TaskCard({
                             e.stopPropagation();
                             cancelEdit();
                           }}
-                          className="px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors hover:bg-black/5"
-                          style={{ color: "var(--muted)" }}
+                          className="px-3.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all"
+                          style={{
+                            color: "var(--muted)",
+                            background: "rgba(255,255,255,0.35)",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.6)",
+                            border: "1px solid rgba(0,0,0,0.06)",
+                          }}
                         >
                           Cancel
                         </button>
                       </div>
                     </div>
                   ) : (
-                    /* Rendered markdown view */
+                    /* Rendered markdown view — glass card */
                     <div
-                      className="rounded-lg p-3 text-sm relative"
+                      className="rounded-xl p-3.5 text-sm relative"
                       style={{
-                        background: "rgba(0,0,0,0.02)",
-                        border: "1px solid var(--border)",
+                        background: "rgba(255,255,255,0.35)",
+                        border: "1px solid rgba(0,0,0,0.05)",
+                        boxShadow: "inset 0 1px 2px rgba(0,0,0,0.03), 0 1px 0 rgba(255,255,255,0.6)",
                         ...(isRefining ? { opacity: 0.5 } : {}),
                       }}
                     >
                       {isRefining && (
-                        <div className="absolute inset-0 flex items-center justify-center rounded-lg" style={{ background: "rgba(248,247,244,0.6)" }}>
+                        <div
+                          className="absolute inset-0 flex items-center justify-center rounded-xl"
+                          style={{
+                            background: "rgba(255,255,255,0.6)",
+                            backdropFilter: "blur(2px)",
+                          }}
+                        >
                           <p className="text-xs font-medium animate-pulse" style={{ color: "var(--muted)" }}>Refining...</p>
                         </div>
                       )}
@@ -1242,22 +1277,27 @@ function TaskCard({
                 </div>
               )}
 
-              {/* Error message */}
+              {/* Error message — glass error card */}
               {isFailed && task.error_message && (
                 <div
-                  className="rounded-lg p-3 text-sm flex items-start gap-2"
-                  style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#b91c1c" }}
+                  className="rounded-xl p-3.5 text-sm flex items-start gap-2.5"
+                  style={{
+                    background: "rgba(239,68,68,0.04)",
+                    border: "1px solid rgba(239,68,68,0.12)",
+                    boxShadow: "inset 0 1px 2px rgba(239,68,68,0.04), 0 1px 0 rgba(255,255,255,0.4)",
+                    color: "#b91c1c",
+                  }}
                 >
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                   {task.error_message}
                 </div>
               )}
 
-              {/* Tools used */}
+              {/* Tools used — glass pills */}
               {task.tools_used.length > 0 && (
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <span className="text-xs" style={{ color: "var(--muted)" }}>
-                    Tools:
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted)", opacity: 0.6 }}>
+                    Tools
                   </span>
                   {task.tools_used.map((tool) => {
                     const { label } = getToolConfig(tool);
@@ -1266,8 +1306,9 @@ function TaskCard({
                         key={tool}
                         className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-medium"
                         style={{
-                          background: "rgba(0,0,0,0.04)",
-                          boxShadow: "0 0 0 1px rgba(0,0,0,0.06)",
+                          background: "rgba(255,255,255,0.45)",
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.6)",
+                          border: "1px solid rgba(0,0,0,0.06)",
                           color: "var(--foreground)",
                         }}
                       >
@@ -1279,33 +1320,85 @@ function TaskCard({
                 </div>
               )}
 
-              {/* Timestamps + recurring info + delivery status */}
-              <div className="text-xs space-y-0.5" style={{ color: "var(--muted)" }}>
-                <p>Created: {formatDate(task.created_at)}</p>
-                {isCompleted && <p>Completed: {formatDate(task.updated_at)}</p>}
+              {/* Timestamps + recurring info + delivery status — glass info pills */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px]"
+                  style={{
+                    background: "rgba(255,255,255,0.45)",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.6)",
+                    border: "1px solid rgba(0,0,0,0.06)",
+                    color: "var(--muted)",
+                  }}
+                >
+                  Created {formatDate(task.created_at)}
+                </span>
+                {isCompleted && (
+                  <span
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px]"
+                    style={{
+                      background: "rgba(34,197,94,0.06)",
+                      boxShadow: "0 0 0 1px rgba(34,197,94,0.1), 0 1px 2px rgba(34,197,94,0.04)",
+                      border: "1px solid rgba(34,197,94,0.08)",
+                      color: "#16a34a",
+                    }}
+                  >
+                    <Check className="w-2.5 h-2.5" />
+                    Completed {formatDate(task.updated_at)}
+                  </span>
+                )}
                 {task.is_recurring && task.frequency && (
-                  <p>
-                    Recurring: {task.frequency}
+                  <span
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px]"
+                    style={{
+                      background: "rgba(255,255,255,0.45)",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.6)",
+                      border: "1px solid rgba(0,0,0,0.06)",
+                      color: "var(--muted)",
+                    }}
+                  >
+                    <Repeat className="w-2.5 h-2.5" />
+                    {task.frequency}
                     {task.streak > 0 && ` \u00B7 ${task.streak} streak`}
-                  </p>
+                  </span>
                 )}
                 {task.is_recurring && task.last_delivery_status && (
-                  <p>
-                    Telegram:{" "}
-                    {task.last_delivery_status === "delivered" ? (
-                      <span style={{ color: "#16a34a" }}>Delivered</span>
-                    ) : task.last_delivery_status === "delivery_failed" ? (
-                      <span style={{ color: "#ef4444" }}>Delivery failed</span>
-                    ) : (
-                      <span>Not connected</span>
-                    )}
-                  </p>
+                  <span
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px]"
+                    style={{
+                      background: task.last_delivery_status === "delivered"
+                        ? "rgba(34,197,94,0.06)"
+                        : task.last_delivery_status === "delivery_failed"
+                          ? "rgba(239,68,68,0.06)"
+                          : "rgba(255,255,255,0.45)",
+                      boxShadow: task.last_delivery_status === "delivered"
+                        ? "0 0 0 1px rgba(34,197,94,0.1), 0 1px 2px rgba(34,197,94,0.04)"
+                        : task.last_delivery_status === "delivery_failed"
+                          ? "0 0 0 1px rgba(239,68,68,0.1), 0 1px 2px rgba(239,68,68,0.04)"
+                          : "0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.6)",
+                      border: task.last_delivery_status === "delivered"
+                        ? "1px solid rgba(34,197,94,0.08)"
+                        : task.last_delivery_status === "delivery_failed"
+                          ? "1px solid rgba(239,68,68,0.08)"
+                          : "1px solid rgba(0,0,0,0.06)",
+                      color: task.last_delivery_status === "delivered"
+                        ? "#16a34a"
+                        : task.last_delivery_status === "delivery_failed"
+                          ? "#ef4444"
+                          : "var(--muted)",
+                    }}
+                  >
+                    Telegram: {task.last_delivery_status === "delivered" ? "Delivered" : task.last_delivery_status === "delivery_failed" ? "Failed" : "Not connected"}
+                  </span>
                 )}
               </div>
 
-              {/* Action buttons — hidden during edit mode */}
+              {/* Action buttons — glass styled */}
               {!isEditing && (
-                <div className="flex items-center gap-3 pt-1">
+                <div
+                  className="flex items-center gap-2 pt-2 mt-1 flex-wrap"
+                  style={{ borderTop: "1px solid rgba(0,0,0,0.04)" }}
+                >
                   {/* Run now (recurring) or Re-run (non-recurring) */}
                   {task.is_recurring && (isActive || isFailed) ? (
                     <button
@@ -1313,8 +1406,13 @@ function TaskCard({
                         e.stopPropagation();
                         onTrigger();
                       }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors hover:bg-black/5"
-                      style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      style={{
+                        background: "rgba(255,255,255,0.5)",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.7)",
+                        border: "1px solid rgba(0,0,0,0.08)",
+                        color: "var(--foreground)",
+                      }}
                     >
                       <Play className="w-3 h-3" />
                       Run now
@@ -1325,8 +1423,13 @@ function TaskCard({
                         e.stopPropagation();
                         onResume();
                       }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors hover:bg-green-50"
-                      style={{ border: "1px solid var(--border)", color: "#16a34a" }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      style={{
+                        background: "rgba(34,197,94,0.06)",
+                        boxShadow: "0 1px 3px rgba(34,197,94,0.08), inset 0 1px 0 rgba(255,255,255,0.5)",
+                        border: "1px solid rgba(34,197,94,0.12)",
+                        color: "#16a34a",
+                      }}
                     >
                       <Play className="w-3 h-3" />
                       Resume
@@ -1337,8 +1440,13 @@ function TaskCard({
                         e.stopPropagation();
                         onRerun();
                       }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors hover:bg-black/5"
-                      style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      style={{
+                        background: "rgba(255,255,255,0.5)",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.7)",
+                        border: "1px solid rgba(0,0,0,0.08)",
+                        color: "var(--foreground)",
+                      }}
                     >
                       <RotateCw className="w-3 h-3" />
                       Re-run
@@ -1351,8 +1459,13 @@ function TaskCard({
                         e.stopPropagation();
                         onPause();
                       }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors hover:bg-black/5"
-                      style={{ border: "1px solid var(--border)", color: "var(--muted)" }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      style={{
+                        background: "rgba(255,255,255,0.5)",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.7)",
+                        border: "1px solid rgba(0,0,0,0.08)",
+                        color: "var(--muted)",
+                      }}
                     >
                       <Pause className="w-3 h-3" />
                       Pause
@@ -1365,8 +1478,13 @@ function TaskCard({
                         openRefine();
                       }}
                       disabled={isRefining}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors hover:bg-black/5 disabled:opacity-50"
-                      style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
+                      style={{
+                        background: "rgba(255,255,255,0.5)",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.7)",
+                        border: "1px solid rgba(0,0,0,0.08)",
+                        color: "var(--foreground)",
+                      }}
                     >
                       <Sparkles className="w-3 h-3" />
                       Refine
@@ -1378,8 +1496,13 @@ function TaskCard({
                         e.stopPropagation();
                         setConfirmDelete(true);
                       }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors hover:bg-red-50 ml-auto"
-                      style={{ color: "#ef4444" }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] ml-auto"
+                      style={{
+                        background: "rgba(239,68,68,0.04)",
+                        boxShadow: "0 1px 3px rgba(239,68,68,0.06), inset 0 1px 0 rgba(255,255,255,0.4)",
+                        border: "1px solid rgba(239,68,68,0.1)",
+                        color: "#ef4444",
+                      }}
                     >
                       <Trash2 className="w-3 h-3" />
                       Delete
@@ -1390,8 +1513,12 @@ function TaskCard({
                         e.stopPropagation();
                         onDelete();
                       }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer ml-auto"
-                      style={{ background: "#ef4444", color: "#ffffff" }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] ml-auto"
+                      style={{
+                        background: "#ef4444",
+                        color: "#ffffff",
+                        boxShadow: "0 1px 3px rgba(239,68,68,0.3), inset 0 1px 0 rgba(255,255,255,0.15)",
+                      }}
                     >
                       Confirm delete
                     </button>
@@ -1412,8 +1539,12 @@ function TaskCard({
                   >
                     <div className="space-y-2">
                       <div
-                        className="rounded-lg p-2 flex items-center gap-2"
-                        style={{ background: "var(--card)", border: "1px solid var(--border)" }}
+                        className="rounded-xl p-2.5 flex items-center gap-2"
+                        style={{
+                          background: "rgba(255,255,255,0.45)",
+                          border: "1px solid rgba(0,0,0,0.06)",
+                          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.03), 0 1px 0 rgba(255,255,255,0.6)",
+                        }}
                       >
                         <input
                           ref={refineRef}
@@ -1438,8 +1569,11 @@ function TaskCard({
                         <button
                           onClick={submitRefine}
                           disabled={isRefining || !refineInput.trim()}
-                          className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-opacity hover:opacity-80 disabled:opacity-40"
-                          style={{ background: "var(--accent)" }}
+                          className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-all hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
+                          style={{
+                            background: "var(--accent)",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.12)",
+                          }}
                         >
                           <Send className="w-3.5 h-3.5" style={{ color: "#ffffff" }} />
                         </button>
@@ -1448,13 +1582,16 @@ function TaskCard({
                             setShowRefine(false);
                             setRefineInput("");
                           }}
-                          className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-opacity hover:opacity-80"
-                          style={{ color: "var(--muted)" }}
+                          className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-all hover:scale-105"
+                          style={{
+                            color: "var(--muted)",
+                            background: "rgba(0,0,0,0.03)",
+                          }}
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      <p className="text-[11px]" style={{ color: "var(--muted)" }}>
+                      <p className="text-[11px]" style={{ color: "var(--muted)", opacity: 0.7 }}>
                         e.g., &ldquo;Add a Solana section&rdquo; or &ldquo;Make it shorter&rdquo; or &ldquo;Focus more on DeFi&rdquo;
                       </p>
                     </div>
