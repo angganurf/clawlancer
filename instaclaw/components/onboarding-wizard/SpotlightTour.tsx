@@ -274,14 +274,18 @@ export default function SpotlightTour({
 
   return (
     <>
-      {/* Persistent dark overlay — stays visible during page transitions */}
+      {/* Click blocker + transition overlay — dims screen only when cutout isn't visible */}
       <div
-        className="fixed inset-0 z-[9997]"
-        style={{ background: "rgba(0,0,0,0.32)" }}
+        className="fixed inset-0 z-[9997] transition-colors duration-300"
+        style={{
+          background: isTransitioning || !targetRect
+            ? "rgba(0,0,0,0.32)"
+            : "transparent",
+        }}
         onClick={(e) => e.stopPropagation()}
       />
 
-      {/* Spotlight cutout */}
+      {/* Spotlight cutout — provides dimming with a hole around the target */}
       <AnimatePresence>
         {targetRect && !isTransitioning && (
           <motion.div
