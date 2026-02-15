@@ -179,11 +179,39 @@ export default function SpotlightTour({
       if (retryRef.current) clearTimeout(retryRef.current);
 
       retryRef.current = setTimeout(() => {
+        // Smooth-scroll the target element into view before positioning
+        const el = document.querySelector(step.selector);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          const inView = rect.top >= 80 && rect.bottom <= window.innerHeight - 120;
+          if (!inView) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+            // Wait for scroll to finish before positioning spotlight
+            retryRef.current = setTimeout(() => {
+              updatePosition();
+              setIsTransitioning(false);
+              // One more retry to catch any layout shift
+              retryRef.current = setTimeout(() => updatePosition(), 200);
+            }, 500);
+            return;
+          }
+        }
+
         updatePosition();
         setIsTransitioning(false);
 
         // Retry once more if element wasn't found (navigation delay)
         retryRef.current = setTimeout(() => {
+          const retryEl = document.querySelector(step.selector);
+          if (retryEl) {
+            const retryRect = retryEl.getBoundingClientRect();
+            const retryInView = retryRect.top >= 80 && retryRect.bottom <= window.innerHeight - 120;
+            if (!retryInView) {
+              retryEl.scrollIntoView({ behavior: "smooth", block: "center" });
+              retryRef.current = setTimeout(() => updatePosition(), 500);
+              return;
+            }
+          }
           updatePosition();
         }, 300);
       }, delay);
