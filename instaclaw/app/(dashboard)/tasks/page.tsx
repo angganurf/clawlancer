@@ -913,37 +913,29 @@ function TaskCard({
             <Repeat className="w-3.5 h-3.5" style={{ color: "var(--muted)" }} />
           )}
           {task.tools_used.length > 0 && (
-            <div className="flex items-center -space-x-1">
+            <div className="flex items-center -space-x-1.5">
               {task.tools_used.slice(0, 4).map((tool) => {
-                const { logo, label, color } = getToolLogo(tool);
+                const { logo, label } = getToolLogo(tool);
                 return (
                   <div
                     key={tool}
-                    className="w-7 h-7 rounded-full relative shrink-0 flex items-center justify-center"
+                    className="w-7 h-7 rounded-full relative shrink-0 overflow-hidden"
                     title={label}
                     style={{
-                      background: `radial-gradient(circle at 35% 35%, ${color}dd, ${color}88 40%, rgba(0,0,0,0.3) 100%)`,
                       boxShadow: `
-                        inset 0 -2px 4px rgba(0,0,0,0.25),
-                        inset 0 2px 4px rgba(255,255,255,0.4),
-                        inset 0 0 3px rgba(0,0,0,0.15),
-                        0 1px 6px rgba(0,0,0,0.2),
-                        0 1px 2px rgba(0,0,0,0.15)
+                        inset 0 -3px 6px rgba(0,0,0,0.25),
+                        inset 0 3px 6px rgba(255,255,255,0.4),
+                        inset 0 0 4px rgba(0,0,0,0.15),
+                        0 2px 8px rgba(0,0,0,0.2),
+                        0 1px 3px rgba(0,0,0,0.15)
                       `,
-                      border: "2px solid rgba(255,255,255,0.9)",
                     }}
                   >
-                    <img
-                      src={logo}
-                      alt={label}
-                      className="w-4 h-4 rounded-full"
-                      style={{ position: "relative", zIndex: 2 }}
-                    />
+                    <img src={logo} alt={label} className="w-full h-full" />
                     <div
-                      className="absolute top-[2px] left-[4px] w-[12px] h-[6px] rounded-full pointer-events-none"
+                      className="absolute top-[2px] left-[4px] w-[14px] h-[7px] rounded-full pointer-events-none"
                       style={{
-                        background: "linear-gradient(180deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 100%)",
-                        zIndex: 3,
+                        background: "linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 100%)",
                       }}
                     />
                   </div>
@@ -951,11 +943,10 @@ function TaskCard({
               })}
               {task.tools_used.length > 4 && (
                 <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-semibold"
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-semibold overflow-hidden"
                   style={{
-                    background: "radial-gradient(circle at 35% 35%, #e5e5e5, #d4d4d4 40%, rgba(0,0,0,0.15) 100%)",
-                    boxShadow: "inset 0 -2px 4px rgba(0,0,0,0.15), inset 0 2px 4px rgba(255,255,255,0.5), 0 1px 4px rgba(0,0,0,0.15)",
-                    border: "2px solid rgba(255,255,255,0.9)",
+                    background: "#e5e5e5",
+                    boxShadow: "inset 0 -3px 6px rgba(0,0,0,0.15), inset 0 3px 6px rgba(255,255,255,0.5), 0 2px 8px rgba(0,0,0,0.15)",
                     color: "var(--muted)",
                   }}
                 >
@@ -1104,7 +1095,7 @@ function TaskCard({
                     Tools:
                   </span>
                   {task.tools_used.map((tool) => {
-                    const { logo, label, color } = getToolLogo(tool);
+                    const { logo, label } = getToolLogo(tool);
                     return (
                       <span
                         key={tool}
@@ -1116,17 +1107,16 @@ function TaskCard({
                         }}
                       >
                         <span
-                          className="w-5 h-5 rounded-full relative shrink-0 flex items-center justify-center"
+                          className="w-5 h-5 rounded-full relative shrink-0 overflow-hidden"
                           style={{
-                            background: `radial-gradient(circle at 35% 35%, ${color}dd, ${color}88 40%, rgba(0,0,0,0.3) 100%)`,
                             boxShadow: `
-                              inset 0 -1.5px 3px rgba(0,0,0,0.25),
-                              inset 0 1.5px 3px rgba(255,255,255,0.4),
+                              inset 0 -2px 4px rgba(0,0,0,0.25),
+                              inset 0 2px 4px rgba(255,255,255,0.4),
                               0 1px 4px rgba(0,0,0,0.15)
                             `,
                           }}
                         >
-                          <img src={logo} alt={label} className="w-3.5 h-3.5 rounded-full relative z-[2]" />
+                          <img src={logo} alt={label} className="w-full h-full" />
                         </span>
                         {label}
                       </span>
