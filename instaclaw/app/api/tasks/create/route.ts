@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { getSupabase } from "@/lib/supabase";
 import { logger } from "@/lib/logger";
 import { buildSystemPrompt, TASK_EXECUTION_SUFFIX } from "@/lib/system-prompt";
+import { saveToLibrary } from "@/lib/library";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MAX_TOKENS = 4096;
@@ -202,6 +203,17 @@ async function executeTask(
           : {}),
       })
       .eq("id", taskId);
+
+    // Auto-save to library (non-blocking, failure won't affect task)
+    if (parsed.result) {
+      await saveToLibrary(supabase, {
+        userId,
+        title: parsed.title,
+        content: parsed.result,
+        sourceTaskId: taskId,
+        runNumber: 1,
+      });
+    }
   } catch (err) {
     const isTimeout =
       err instanceof Error && err.name === "AbortError";

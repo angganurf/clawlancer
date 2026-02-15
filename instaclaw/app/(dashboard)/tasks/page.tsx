@@ -14,6 +14,11 @@ import {
   Pencil,
   Sparkles,
   X,
+  Search,
+  Pin,
+  Copy,
+  Download,
+  Bookmark,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
@@ -52,71 +57,39 @@ interface ChatMsg {
 }
 
 interface LibraryItem {
-  id: number;
-  icon: string;
+  id: string;
+  user_id: string;
   title: string;
   type: string;
-  date: string;
+  content: string;
   preview: string;
+  source_task_id: string | null;
+  source_chat_message_id: string | null;
+  run_number: number;
+  tags: string[];
+  is_pinned: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
-/* ─── Mock Data (Library — wired up in Phase 3) ────────────── */
+const LIBRARY_TYPE_CONFIG: Record<string, { icon: string; bg: string; label: string }> = {
+  research: { icon: "\u{1F50D}", bg: "#bfdbfe", label: "Research" },
+  draft: { icon: "\u2709\uFE0F", bg: "#bbf7d0", label: "Draft" },
+  report: { icon: "\u{1F4CA}", bg: "#fed7aa", label: "Report" },
+  analysis: { icon: "\u{1F4C8}", bg: "#e9d5ff", label: "Analysis" },
+  code: { icon: "\u{1F4BB}", bg: "#e5e7eb", label: "Code" },
+  post: { icon: "\u{1F4DD}", bg: "#fecdd3", label: "Post" },
+  other: { icon: "\u{1F4C4}", bg: "#f3f4f6", label: "Other" },
+};
 
-const mockLibrary: LibraryItem[] = [
-  {
-    id: 1,
-    icon: "\u{1F4C4}",
-    title: "AI Agent Frameworks 2026",
-    type: "Research Report",
-    date: "Today",
-    preview:
-      "Comprehensive analysis of 12 agent frameworks. LangChain still leads in adoption but CrewAI and AutoGen are gaining\u2026",
-  },
-  {
-    id: 2,
-    icon: "\u2709\uFE0F",
-    title: "Investor Follow-Up Drafts",
-    type: "Email Drafts (3 versions)",
-    date: "Today",
-    preview:
-      "Version 1: Hey [name], wanted to circle back\u2026 Version 2: Quick update \u2014 we hit $744 MRR this week with 17\u2026",
-  },
-  {
-    id: 3,
-    icon: "\u{1F4CA}",
-    title: "Weekly Earnings Summary",
-    type: "Report",
-    date: "Yesterday",
-    preview:
-      "Total earned: $127 USDC across 8 completed bounties. Reputation score increased from 72 to 78\u2026",
-  },
-  {
-    id: 4,
-    icon: "\u{1F4CB}",
-    title: "Competitive Landscape",
-    type: "Analysis",
-    date: "2 days ago",
-    preview:
-      "4 direct competitors identified. InstaClaw\u2019s key differentiator: dedicated VM per agent vs shared infrastructure\u2026",
-  },
-  {
-    id: 5,
-    icon: "\u{1F4DD}",
-    title: "X Post Drafts: Product Update",
-    type: "Social Media",
-    date: "2 days ago",
-    preview:
-      "3 versions: Thread format, single post, and quote-tweet reply. Thread version performs best based on your engagement\u2026",
-  },
-  {
-    id: 6,
-    icon: "\u{1F50D}",
-    title: "MCP Server Comparison Matrix",
-    type: "Research",
-    date: "3 days ago",
-    preview:
-      "12 MCP servers compared on stability, tool coverage, latency, cost. Top 3: Clawlancer MCP, Browserbase\u2026",
-  },
+const libraryTypeFilters = [
+  { key: "all", label: "All" },
+  { key: "research", label: "Research" },
+  { key: "draft", label: "Drafts" },
+  { key: "report", label: "Reports" },
+  { key: "analysis", label: "Analysis" },
+  { key: "code", label: "Code" },
+  { key: "post", label: "Posts" },
 ];
 
 /* ─── Quick Actions (with pre-fill text) ─────────────────── */
@@ -342,12 +315,21 @@ function TypingIndicator() {
 
 /* ─── Chat Bubble ────────────────────────────────────────── */
 
-function ChatBubble({ msg }: { msg: ChatMsg }) {
+function ChatBubble({
+  msg,
+  isSaved,
+  onSave,
+}: {
+  msg: ChatMsg;
+  isSaved?: boolean;
+  onSave?: () => void;
+}) {
   const isUser = msg.role === "user";
+  const showBookmark = !isUser && !msg.isStreaming && msg.content.length > 0 && onSave;
 
   return (
     <div
-      className={`flex gap-3 ${isUser ? "justify-end" : "justify-start"}`}
+      className={`flex gap-3 ${isUser ? "justify-end" : "justify-start"} group/bubble`}
     >
       {!isUser && (
         <div
@@ -358,7 +340,7 @@ function ChatBubble({ msg }: { msg: ChatMsg }) {
         </div>
       )}
 
-      <div className="max-w-[80%] sm:max-w-[70%]">
+      <div className="max-w-[80%] sm:max-w-[70%] relative">
         <div
           className="rounded-2xl px-4 py-3 text-sm leading-relaxed"
           style={
@@ -382,16 +364,36 @@ function ChatBubble({ msg }: { msg: ChatMsg }) {
             <span className="inline-block w-1.5 h-4 ml-0.5 bg-current animate-pulse" />
           )}
         </div>
-        {msg.created_at && (
-          <p
-            className={`text-[11px] mt-1.5 ${
-              isUser ? "text-right" : "text-left"
-            }`}
-            style={{ color: "var(--muted)" }}
-          >
-            {formatTime(msg.created_at)}
-          </p>
-        )}
+        <div className="flex items-center gap-1 mt-1.5">
+          {msg.created_at && (
+            <p
+              className={`text-[11px] ${isUser ? "text-right flex-1" : "text-left"}`}
+              style={{ color: "var(--muted)" }}
+            >
+              {formatTime(msg.created_at)}
+            </p>
+          )}
+          {showBookmark && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onSave();
+              }}
+              className={`p-0.5 rounded transition-opacity cursor-pointer ${
+                isSaved
+                  ? "opacity-70"
+                  : "opacity-0 group-hover/bubble:opacity-60 sm:opacity-0 max-sm:opacity-40"
+              } hover:opacity-100`}
+              title={isSaved ? "Saved to Library" : "Save to Library"}
+            >
+              <Bookmark
+                className="w-3.5 h-3.5"
+                style={{ color: "var(--muted)" }}
+                fill={isSaved ? "currentColor" : "none"}
+              />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -1150,6 +1152,8 @@ export default function CommandCenterPage() {
   const [isSending, setIsSending] = useState(false);
   const [isLoadingChat, setIsLoadingChat] = useState(true);
   const [chatError, setChatError] = useState<string | null>(null);
+  const [savedMessageIds, setSavedMessageIds] = useState<Set<string>>(new Set());
+  const [chatToast, setChatToast] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -1366,7 +1370,19 @@ export default function CommandCenterPage() {
         setIsLoadingChat(false);
       }
     }
+    async function loadSavedMsgIds() {
+      try {
+        const res = await fetch("/api/library/saved-messages");
+        if (res.ok) {
+          const data = await res.json();
+          setSavedMessageIds(new Set(data.ids ?? []));
+        }
+      } catch {
+        // Non-fatal
+      }
+    }
     loadHistory();
+    loadSavedMsgIds();
   }, []);
 
   // Auto-scroll when messages change or tab switches to chat
@@ -1462,6 +1478,38 @@ export default function CommandCenterPage() {
     },
     [isSending]
   );
+
+  // ─── Save chat message to library ──────────────────
+
+  const saveChatToLibrary = useCallback(async (msg: ChatMsg) => {
+    if (!msg.id && !msg.created_at) return;
+    const msgId = msg.id || msg.created_at || "";
+    if (savedMessageIds.has(msgId)) {
+      setChatToast("Already in your Library");
+      setTimeout(() => setChatToast(null), 2000);
+      return;
+    }
+    try {
+      const res = await fetch("/api/library/save", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          content: msg.content,
+          source_chat_message_id: msgId,
+        }),
+      });
+      if (res.status === 409) {
+        setSavedMessageIds((prev) => new Set(prev).add(msgId));
+        setChatToast("Already in your Library");
+      } else if (res.ok) {
+        setSavedMessageIds((prev) => new Set(prev).add(msgId));
+        setChatToast("Saved to Library");
+      }
+    } catch {
+      // Non-fatal
+    }
+    setTimeout(() => setChatToast(null), 2000);
+  }, [savedMessageIds]);
 
   // ─── Handle input submit ─────────────────────────────
 
@@ -1627,7 +1675,12 @@ export default function CommandCenterPage() {
                 ) : (
                   <div className="space-y-4">
                     {chatMessages.map((msg, i) => (
-                      <ChatBubble key={msg.id || `msg-${i}`} msg={msg} />
+                      <ChatBubble
+                        key={msg.id || `msg-${i}`}
+                        msg={msg}
+                        isSaved={savedMessageIds.has(msg.id || msg.created_at || "")}
+                        onSave={msg.role === "assistant" ? () => saveChatToLibrary(msg) : undefined}
+                      />
                     ))}
                     {isSending &&
                       !chatMessages.some((m) => m.isStreaming) && (
@@ -1655,10 +1708,25 @@ export default function CommandCenterPage() {
                     </button>
                   </div>
                 )}
+
+                {/* Chat toast */}
+                <AnimatePresence>
+                  {chatToast && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 8 }}
+                      className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-xs font-medium"
+                      style={{ background: "var(--foreground)", color: "var(--background)" }}
+                    >
+                      {chatToast}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
 
-            {activeTab === "library" && <LibraryContent />}
+            {activeTab === "library" && <LibraryContent onSwitchToTasks={() => setActiveTab("tasks")} />}
           </motion.div>
         </AnimatePresence>
       </div>
@@ -1762,54 +1830,493 @@ export default function CommandCenterPage() {
 
 /* ─── Library Content ────────────────────────────────────── */
 
-function LibraryContent() {
+function LibraryContent({ onSwitchToTasks }: { onSwitchToTasks: () => void }) {
+  const [items, setItems] = useState<LibraryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [sortField, setSortField] = useState("created_at");
+  const [sortOrder, setSortOrder] = useState("desc");
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState<string | null>(null);
+  const [editTitleDraft, setEditTitleDraft] = useState("");
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function showToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2000);
+  }
+
+  // Debounced search
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, [searchQuery]);
+
+  // Fetch items
+  const fetchItems = useCallback(
+    async (append = false, offset = 0) => {
+      try {
+        const params = new URLSearchParams();
+        if (typeFilter !== "all") params.set("type", typeFilter);
+        if (debouncedSearch) params.set("search", debouncedSearch);
+        params.set("sort", sortField);
+        params.set("order", sortOrder);
+        params.set("limit", "20");
+        params.set("offset", String(offset));
+        const res = await fetch(`/api/library/list?${params}`);
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        if (append) {
+          setItems((prev) => [...prev, ...(data.items ?? [])]);
+        } else {
+          setItems(data.items ?? []);
+        }
+        setTotal(data.total ?? 0);
+        setHasMore(data.hasMore ?? false);
+      } catch {
+        // Non-fatal
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [typeFilter, debouncedSearch, sortField, sortOrder]
+  );
+
+  useEffect(() => {
+    setIsLoading(true);
+    fetchItems();
+  }, [fetchItems]);
+
+  // Pin / unpin
+  async function togglePin(item: LibraryItem) {
+    const newPinned = !item.is_pinned;
+    setItems((prev) =>
+      prev.map((i) => (i.id === item.id ? { ...i, is_pinned: newPinned } : i))
+    );
+    try {
+      await fetch(`/api/library/${item.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ is_pinned: newPinned }),
+      });
+      showToast(newPinned ? "Pinned" : "Unpinned");
+      fetchItems(); // Re-fetch to get correct sort order
+    } catch {
+      setItems((prev) =>
+        prev.map((i) => (i.id === item.id ? { ...i, is_pinned: !newPinned } : i))
+      );
+    }
+  }
+
+  // Copy to clipboard
+  async function copyContent(item: LibraryItem) {
+    try {
+      await navigator.clipboard.writeText(item.content);
+      showToast("Copied to clipboard");
+    } catch {
+      showToast("Failed to copy");
+    }
+  }
+
+  // Export as .md
+  function exportItem(item: LibraryItem) {
+    window.open(`/api/library/export/${item.id}`, "_blank");
+    showToast(`Downloaded ${item.title.slice(0, 30)}.md`);
+  }
+
+  // Delete
+  async function deleteItem(itemId: string) {
+    setItems((prev) => prev.filter((i) => i.id !== itemId));
+    setExpandedId(null);
+    showToast("Deleted");
+    try {
+      await fetch(`/api/library/${itemId}`, { method: "DELETE" });
+    } catch {
+      fetchItems();
+    }
+  }
+
+  // Inline title edit
+  async function saveTitle(itemId: string) {
+    if (!editTitleDraft.trim()) {
+      setEditingTitle(null);
+      return;
+    }
+    setItems((prev) =>
+      prev.map((i) => (i.id === itemId ? { ...i, title: editTitleDraft.trim() } : i))
+    );
+    setEditingTitle(null);
+    try {
+      await fetch(`/api/library/${itemId}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: editTitleDraft.trim() }),
+      });
+      showToast("Saved");
+    } catch {
+      fetchItems();
+    }
+  }
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h2
-          className="text-2xl font-normal tracking-[-0.5px]"
-          style={{ fontFamily: "var(--font-serif)" }}
-        >
-          Library
-        </h2>
-        <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
-          Everything your agent has created, researched, and saved.
-        </p>
+    <div className="space-y-4 relative">
+      {/* Toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="fixed top-20 right-4 z-50 px-4 py-2 rounded-lg text-xs font-medium"
+            style={{ background: "var(--foreground)", color: "var(--background)" }}
+          >
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Search bar */}
+      <div
+        className="rounded-xl px-4 py-3 flex items-center gap-3"
+        style={{ background: "var(--card)", border: "1px solid var(--border)" }}
+      >
+        <Search className="w-4 h-4 shrink-0" style={{ color: "var(--muted)" }} />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search your library..."
+          className="flex-1 bg-transparent text-sm outline-none"
+          style={{ color: "var(--foreground)" }}
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            className="p-0.5 cursor-pointer"
+            style={{ color: "var(--muted)" }}
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {mockLibrary.map((item) => (
-          <div
-            key={item.id}
-            className="glass rounded-xl p-5 cursor-pointer group"
-            style={{ border: "1px solid var(--border)" }}
-          >
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">{item.icon}</span>
-              <div className="flex-1 min-w-0">
-                <p
-                  className="font-medium text-base"
-                  style={{ color: "var(--foreground)" }}
-                >
-                  {item.title}
-                </p>
-                <p
-                  className="text-xs mt-0.5"
-                  style={{ color: "var(--muted)" }}
-                >
-                  {item.type} &mdash; {item.date}
-                </p>
-              </div>
-            </div>
-            <p
-              className="text-sm mt-3 line-clamp-2"
-              style={{ color: "var(--muted)" }}
+      {/* Type filters + sort */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex gap-1.5 flex-1 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+          {libraryTypeFilters.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setTypeFilter(f.key)}
+              className="px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer whitespace-nowrap transition-colors"
+              style={{
+                background: typeFilter === f.key ? "#2d2d2d" : "transparent",
+                color: typeFilter === f.key ? "#ffffff" : "var(--muted)",
+                border: `1px solid ${typeFilter === f.key ? "#2d2d2d" : "var(--border)"}`,
+              }}
             >
-              {item.preview}
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <select
+          value={`${sortField}-${sortOrder}`}
+          onChange={(e) => {
+            const [f, o] = e.target.value.split("-");
+            setSortField(f);
+            setSortOrder(o);
+          }}
+          className="text-xs rounded-lg px-2 py-1 outline-none cursor-pointer"
+          style={{
+            background: "var(--card)",
+            border: "1px solid var(--border)",
+            color: "var(--muted)",
+          }}
+        >
+          <option value="created_at-desc">Newest first</option>
+          <option value="created_at-asc">Oldest first</option>
+          <option value="title-asc">A-Z</option>
+          <option value="title-desc">Z-A</option>
+        </select>
+      </div>
+
+      {/* Content */}
+      {isLoading ? (
+        <div className="grid gap-4 sm:grid-cols-2 animate-pulse">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="rounded-xl p-5"
+              style={{ border: "1px solid var(--border)", opacity: 0.5 }}
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full" style={{ background: "var(--border)" }} />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 rounded" style={{ background: "var(--border)", width: "70%" }} />
+                  <div className="h-3 rounded" style={{ background: "var(--border)", width: "40%" }} />
+                </div>
+              </div>
+              <div className="h-3 rounded mt-3" style={{ background: "var(--border)", width: "90%" }} />
+              <div className="h-3 rounded mt-1" style={{ background: "var(--border)", width: "60%" }} />
+            </div>
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        debouncedSearch ? (
+          <div className="text-center py-12">
+            <p className="text-sm" style={{ color: "var(--muted)" }}>
+              No items matching &ldquo;{debouncedSearch}&rdquo;
+            </p>
+            <button
+              onClick={() => setSearchQuery("")}
+              className="mt-2 text-xs font-medium cursor-pointer hover:underline"
+              style={{ color: "var(--foreground)" }}
+            >
+              Clear search
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+            <div
+              className="w-14 h-14 rounded-full flex items-center justify-center text-2xl mb-4"
+              style={{ background: "var(--card)", border: "1px solid var(--border)" }}
+            >
+              {"\u{1F4DA}"}
+            </div>
+            <h3 className="text-lg font-normal mb-1" style={{ fontFamily: "var(--font-serif)" }}>
+              Your library is empty
+            </h3>
+            <p className="text-sm mb-4" style={{ color: "var(--muted)" }}>
+              Completed tasks and saved chat messages will appear here automatically.
+            </p>
+            <button
+              onClick={onSwitchToTasks}
+              className="px-4 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors hover:opacity-90"
+              style={{ background: "var(--foreground)", color: "var(--background)" }}
+            >
+              Go to Tasks &rarr;
+            </button>
+            <p className="text-xs mt-3" style={{ color: "var(--muted)" }}>
+              Or save something from Chat using the bookmark icon
             </p>
           </div>
-        ))}
-      </div>
+        )
+      ) : (
+        <>
+          {total > 0 && (
+            <p className="text-xs" style={{ color: "var(--muted)" }}>
+              {total} item{total !== 1 ? "s" : ""}
+              {debouncedSearch && ` matching \u201C${debouncedSearch}\u201D`}
+            </p>
+          )}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {items.map((item) => {
+              const cfg = LIBRARY_TYPE_CONFIG[item.type] || LIBRARY_TYPE_CONFIG.other;
+              const isExpanded = expandedId === item.id;
+              return (
+                <div key={item.id} className={isExpanded ? "sm:col-span-2" : ""}>
+                  <div
+                    className="glass rounded-xl overflow-hidden cursor-pointer group"
+                    style={{
+                      border: item.is_pinned
+                        ? "1px solid #d4d4d4"
+                        : "1px solid var(--border)",
+                    }}
+                  >
+                    {/* Card header */}
+                    <div
+                      className="p-5"
+                      onClick={() => setExpandedId(isExpanded ? null : item.id)}
+                    >
+                      <div className="flex items-start gap-3">
+                        <span
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0"
+                          style={{ background: cfg.bg }}
+                        >
+                          {cfg.icon}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p
+                            className="font-medium text-base line-clamp-2"
+                            style={{ color: "var(--foreground)" }}
+                          >
+                            {item.title}
+                          </p>
+                          <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
+                            {cfg.label} &middot; {timeAgo(item.created_at)}
+                          </p>
+                        </div>
+                        {item.is_pinned && (
+                          <Pin className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--muted)" }} />
+                        )}
+                      </div>
+                      {!isExpanded && (
+                        <p className="text-sm mt-3 line-clamp-2" style={{ color: "var(--muted)" }}>
+                          {item.preview}
+                        </p>
+                      )}
+                      {!isExpanded && item.source_task_id && (
+                        <p className="text-[11px] mt-2" style={{ color: "var(--muted)" }}>
+                          From task
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Expanded detail */}
+                    <AnimatePresence>
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <div
+                            className="px-5 pb-5 pt-0 space-y-3"
+                            style={{ borderTop: "1px solid var(--border)" }}
+                          >
+                            {/* Editable title */}
+                            <div className="pt-3">
+                              {editingTitle === item.id ? (
+                                <input
+                                  type="text"
+                                  value={editTitleDraft}
+                                  onChange={(e) => setEditTitleDraft(e.target.value)}
+                                  onBlur={() => saveTitle(item.id)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") saveTitle(item.id);
+                                    if (e.key === "Escape") setEditingTitle(null);
+                                  }}
+                                  autoFocus
+                                  className="w-full font-medium text-lg outline-none bg-transparent"
+                                  style={{ color: "var(--foreground)", borderBottom: "1px solid var(--border)" }}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              ) : (
+                                <p
+                                  className="font-medium text-lg cursor-text hover:opacity-70 transition-opacity"
+                                  style={{ color: "var(--foreground)" }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingTitle(item.id);
+                                    setEditTitleDraft(item.title);
+                                  }}
+                                >
+                                  {item.title}
+                                </p>
+                              )}
+                              <div className="flex items-center gap-2 mt-1">
+                                <span
+                                  className="px-2 py-0.5 rounded-full text-[11px] font-medium"
+                                  style={{ background: cfg.bg, color: "#000" }}
+                                >
+                                  {cfg.label}
+                                </span>
+                                <span className="text-xs" style={{ color: "var(--muted)" }}>
+                                  {formatDate(item.created_at)}
+                                </span>
+                              </div>
+                              {item.source_task_id && (
+                                <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
+                                  Generated from a task
+                                </p>
+                              )}
+                              {item.source_chat_message_id && (
+                                <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
+                                  Saved from chat
+                                </p>
+                              )}
+                              {item.run_number > 1 && (
+                                <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
+                                  Run #{item.run_number}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Full content */}
+                            <div
+                              className="rounded-lg p-3 text-sm"
+                              style={{ background: "rgba(0,0,0,0.02)", border: "1px solid var(--border)" }}
+                            >
+                              <div className="prose prose-sm max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0 [&_pre]:my-2 [&_pre]:rounded-lg [&_pre]:bg-black/5 [&_pre]:p-3 [&_code]:text-xs [&_code]:bg-black/5 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_a]:text-blue-600 [&_a]:underline">
+                                <ReactMarkdown>{item.content}</ReactMarkdown>
+                              </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center gap-2 flex-wrap pt-1">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); togglePin(item); }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors hover:bg-black/5"
+                                style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
+                              >
+                                <Pin className="w-3 h-3" />
+                                {item.is_pinned ? "Unpin" : "Pin"}
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); copyContent(item); }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors hover:bg-black/5"
+                                style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
+                              >
+                                <Copy className="w-3 h-3" />
+                                Copy
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); exportItem(item); }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors hover:bg-black/5"
+                                style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
+                              >
+                                <Download className="w-3 h-3" />
+                                Export
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (confirm(`Delete \u201C${item.title}\u201D from your library? This can\u2019t be undone.`)) {
+                                    deleteItem(item.id);
+                                  }
+                                }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors hover:bg-red-50 ml-auto"
+                                style={{ color: "#ef4444" }}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Load more */}
+          {hasMore && (
+            <div className="text-center pt-2">
+              <button
+                onClick={() => fetchItems(true, items.length)}
+                className="px-4 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors hover:bg-black/5"
+                style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
+              >
+                Load more
+              </button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
