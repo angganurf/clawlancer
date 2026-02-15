@@ -191,6 +191,7 @@ export default function OnboardingWizard({
       {state.phase === "welcome" && (
         <WelcomeModal
           key="welcome"
+          botConnected={state.botConnected}
           onActivateBot={() => {
             if (state.botConnected) {
               // Already connected — skip verification

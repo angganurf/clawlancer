@@ -4,11 +4,12 @@ import { motion } from "motion/react";
 import { Sparkles } from "lucide-react";
 
 interface WelcomeModalProps {
+  botConnected: boolean;
   onActivateBot: () => void;
   onSkip: () => void;
 }
 
-export default function WelcomeModal({ onActivateBot, onSkip }: WelcomeModalProps) {
+export default function WelcomeModal({ botConnected, onActivateBot, onSkip }: WelcomeModalProps) {
   return (
     <motion.div
       className="fixed inset-0 z-[9999] flex items-center justify-center px-4"
@@ -46,16 +47,30 @@ export default function WelcomeModal({ onActivateBot, onSkip }: WelcomeModalProp
           Welcome to InstaClaw
         </h2>
 
-        <p className="text-sm mb-3 leading-relaxed" style={{ color: "var(--muted)" }}>
-          Your personal AI agent is deployed and ready to work. There&apos;s
-          just one quick thing left — activating your Telegram bot so your
-          agent can message you directly.
-        </p>
-
-        <p className="text-xs mb-8 leading-relaxed" style={{ color: "var(--muted)", opacity: 0.8 }}>
-          After that, we&apos;ll give you a 30-second tour of the dashboard
-          so you know where everything is.
-        </p>
+        {botConnected ? (
+          <>
+            <p className="text-sm mb-3 leading-relaxed" style={{ color: "var(--muted)" }}>
+              Your personal AI agent is deployed and your Telegram bot is
+              already connected — you&apos;re good to go.
+            </p>
+            <p className="text-xs mb-8 leading-relaxed" style={{ color: "var(--muted)", opacity: 0.8 }}>
+              Let&apos;s take a quick 30-second tour so you know where
+              everything is.
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="text-sm mb-3 leading-relaxed" style={{ color: "var(--muted)" }}>
+              Your personal AI agent is deployed and ready to work. There&apos;s
+              just one quick thing left — activating your Telegram bot so your
+              agent can message you directly.
+            </p>
+            <p className="text-xs mb-8 leading-relaxed" style={{ color: "var(--muted)", opacity: 0.8 }}>
+              After that, we&apos;ll give you a 30-second tour of the dashboard
+              so you know where everything is.
+            </p>
+          </>
+        )}
 
         {/* CTA */}
         <button
@@ -63,7 +78,7 @@ export default function WelcomeModal({ onActivateBot, onSkip }: WelcomeModalProp
           className="w-full py-3.5 rounded-xl text-sm font-medium cursor-pointer transition-all hover:opacity-90 active:scale-[0.98]"
           style={{ background: "var(--foreground)", color: "var(--background)" }}
         >
-          Activate My Bot
+          {botConnected ? "Show Me Around" : "Activate My Bot"}
         </button>
 
         {/* Skip */}
@@ -72,7 +87,7 @@ export default function WelcomeModal({ onActivateBot, onSkip }: WelcomeModalProp
           className="mt-4 text-xs cursor-pointer transition-opacity hover:opacity-70"
           style={{ color: "var(--muted)" }}
         >
-          I&apos;ll do this later
+          {botConnected ? "I\u2019ll explore on my own" : "I\u2019ll do this later"}
         </button>
       </motion.div>
     </motion.div>
