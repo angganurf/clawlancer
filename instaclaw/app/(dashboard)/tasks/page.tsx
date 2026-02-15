@@ -819,16 +819,24 @@ function TaskCard({
         ? `${task.streak} ${task.streak === 1 ? "week" : "weeks"}`
         : `${task.streak} ${task.streak === 1 ? "day" : "days"}`;
 
-  const timingParts: string[] = [];
-  if (task.frequency) timingParts.push(task.frequency);
-  if (isPaused) {
-    timingParts.push("Paused");
-  } else if (task.is_recurring && task.next_run_at) {
-    const nextLabel = formatNextRun(task.next_run_at, false);
-    timingParts.push(`Next: ${nextLabel}`);
-  } else if (task.last_run_at) {
-    timingParts.push(`Last: ${timeAgo(task.last_run_at)} ${isFailed ? "\u274C" : "\u2705"}`);
-  }
+  const frequencyLabel = task.frequency
+    ? `Runs ${task.frequency}`
+    : null;
+
+  const isOverdue =
+    !isPaused &&
+    !!task.next_run_at &&
+    new Date(task.next_run_at).getTime() < Date.now();
+
+  const nextRunLabel: string | null = isPaused
+    ? "Paused"
+    : task.is_recurring && task.next_run_at
+      ? isOverdue
+        ? "Running now"
+        : `Next ${formatNextRun(task.next_run_at, false)}`
+      : task.last_run_at
+        ? `Last run ${timeAgo(task.last_run_at)}`
+        : null;
 
   function showToast(msg: string) {
     setToast(msg);
@@ -1009,17 +1017,57 @@ function TaskCard({
               ? task.error_message
               : task.description}
           </p>
-          {task.is_recurring && (timingParts.length > 0 || !isPaused) && (
-            <div
-              className={`flex items-center gap-1.5 text-xs mt-1 pl-4 ${
-                !isPaused && task.next_run_at && new Date(task.next_run_at).getTime() < Date.now()
-                  ? "animate-pulse"
-                  : ""
-              }`}
-              style={{ color: isPaused ? "#9ca3af" : "var(--muted)" }}
+          {task.is_recurring && (frequencyLabel || nextRunLabel) && (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="flex items-center gap-1.5 flex-wrap text-xs mt-2 pt-2 ml-4"
+              style={{ borderTop: "1px solid var(--border)" }}
             >
-              <span>{timingParts.join(" \u00b7 ")}</span>
-              {task.is_recurring && !isPaused && (
+              {frequencyLabel && (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full"
+                  style={{
+                    background: "rgba(255,255,255,0.45)",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.6)",
+                    border: "1px solid rgba(0,0,0,0.06)",
+                    color: "var(--muted)",
+                  }}
+                >
+                  <Repeat className="w-2.5 h-2.5" />
+                  {frequencyLabel}
+                </span>
+              )}
+              {nextRunLabel && (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full"
+                  style={{
+                    background: isOverdue
+                      ? "rgba(34,197,94,0.08)"
+                      : isPaused
+                        ? "rgba(156,163,175,0.08)"
+                        : "rgba(255,255,255,0.45)",
+                    boxShadow: isOverdue
+                      ? "0 0 0 1px rgba(34,197,94,0.15), 0 1px 2px rgba(34,197,94,0.06)"
+                      : "0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.6)",
+                    border: isOverdue
+                      ? "1px solid rgba(34,197,94,0.12)"
+                      : "1px solid rgba(0,0,0,0.06)",
+                    color: isOverdue ? "#16a34a" : isPaused ? "#9ca3af" : "var(--muted)",
+                  }}
+                >
+                  {isOverdue && (
+                    <span
+                      className="inline-block w-1.5 h-1.5 rounded-full animate-pulse"
+                      style={{ background: "#22c55e" }}
+                    />
+                  )}
+                  {isPaused && <Pause className="w-2.5 h-2.5" />}
+                  {nextRunLabel}
+                </span>
+              )}
+              {!isPaused && (
                 <span
                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full"
                   style={{
@@ -1032,7 +1080,7 @@ function TaskCard({
                   {streakText} streak
                 </span>
               )}
-            </div>
+            </motion.div>
           )}
         </div>
 
