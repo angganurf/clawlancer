@@ -276,7 +276,7 @@ export default function SpotlightTour({
     <>
       {/* Click blocker + transition overlay — dims screen only when cutout isn't visible */}
       <div
-        className="fixed inset-0 z-[9997] transition-colors duration-300"
+        className="fixed inset-0 z-[9997]"
         style={{
           background: isTransitioning || !targetRect
             ? "rgba(0,0,0,0.32)"
