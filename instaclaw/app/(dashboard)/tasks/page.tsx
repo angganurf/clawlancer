@@ -815,11 +815,9 @@ function TaskCard({
   const streakText =
     task.streak === 0
       ? "New"
-      : task.streak > 1
-        ? task.frequency?.includes("week")
-          ? `${task.streak} weeks`
-          : `${task.streak} days`
-        : `${task.streak} day`;
+      : task.frequency?.includes("week")
+        ? `${task.streak} ${task.streak === 1 ? "week" : "weeks"}`
+        : `${task.streak} ${task.streak === 1 ? "day" : "days"}`;
 
   const timingParts: string[] = [];
   if (task.frequency) timingParts.push(task.frequency);

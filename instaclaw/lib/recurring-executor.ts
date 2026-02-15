@@ -76,7 +76,21 @@ export async function executeRecurringTask(
   apiKey: string,
   timeoutMs = 55_000
 ): Promise<ExecutionResult> {
-  const newStreak = task.streak + 1;
+  // Streak = consecutive calendar days (or weeks) with successful runs.
+  // Only increment when we cross into a new day/week since last_run_at.
+  const newStreak = (() => {
+    if (!task.last_run_at) return 1; // first run
+    const last = new Date(task.last_run_at);
+    const now = new Date();
+    const msPerDay = 86_400_000;
+    const daysSinceLast = Math.floor((now.getTime() - last.getTime()) / msPerDay);
+    if (task.frequency?.includes("week")) {
+      // Weekly: only increment if at least 1 day has passed (new week cycle)
+      return daysSinceLast >= 1 ? task.streak + 1 : task.streak;
+    }
+    // Hourly / daily / etc: only increment if a new calendar day
+    return daysSinceLast >= 1 ? task.streak + 1 : task.streak;
+  })();
 
   // Build system prompt WITHOUT TASK_EXECUTION_SUFFIX (recurring tasks don't need meta parsing)
   const systemPrompt =
