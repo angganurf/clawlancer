@@ -839,27 +839,19 @@ function TaskCard({
               }`}
               style={{ color: isPaused ? "#9ca3af" : "var(--muted)" }}
             >
-              {timingParts.map((part, i) => (
-                <span key={i}>
-                  {i > 0 && !isPaused && task.is_recurring && i === 1 ? "" : i > 0 ? " \u00B7 " : ""}
-                  {part}
-                </span>
-              ))}
+              <span>{timingParts.join(" \u00b7 ")}</span>
               {task.is_recurring && !isPaused && (
-                <>
-                  {timingParts.length > 0 && <span>\u00B7</span>}
-                  <span
-                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full"
-                    style={{
-                      background: "rgba(34,197,94,0.08)",
-                      boxShadow: "0 0 0 1px rgba(34,197,94,0.12), 0 1px 2px rgba(34,197,94,0.06)",
-                      color: "#16a34a",
-                    }}
-                  >
-                    <Zap className="w-2.5 h-2.5" />
-                    {streakText}
-                  </span>
-                </>
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full"
+                  style={{
+                    background: "rgba(220,103,67,0.08)",
+                    boxShadow: "0 0 0 1px rgba(220,103,67,0.12), 0 1px 2px rgba(220,103,67,0.06)",
+                    color: "#DC6743",
+                  }}
+                >
+                  <Zap className="w-2.5 h-2.5" style={{ fill: "#DC6743" }} />
+                  {streakText} streak
+                </span>
               )}
             </div>
           )}
