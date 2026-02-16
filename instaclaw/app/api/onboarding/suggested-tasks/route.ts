@@ -75,9 +75,10 @@ Respond in this exact JSON format, nothing else:
     }
 
     const data = await res.json();
-    const text =
+    let text =
       data.content?.[0]?.type === "text" ? data.content[0].text : "";
-    const suggestions = JSON.parse(text.trim());
+    text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
+    const suggestions = JSON.parse(text);
 
     return NextResponse.json({ suggestions });
   } catch {

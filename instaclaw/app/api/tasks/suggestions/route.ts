@@ -12,33 +12,19 @@ export async function GET() {
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return NextResponse.json({ suggestions: null, reason: "no_api_key" });
+    return NextResponse.json({ suggestions: null });
   }
 
   const supabase = getSupabase();
 
-  const { data: user, error: userError } = await supabase
+  const { data: user } = await supabase
     .from("instaclaw_users")
     .select("name, gmail_profile_summary, gmail_insights")
     .eq("id", session.user.id)
     .single();
 
-  if (userError) {
-    return NextResponse.json({
-      suggestions: null,
-      reason: "db_error",
-      detail: userError.message,
-      userId: session.user.id,
-    });
-  }
-
   if (!user?.gmail_profile_summary) {
-    return NextResponse.json({
-      suggestions: null,
-      reason: "no_profile",
-      userId: session.user.id,
-      hasUser: !!user,
-    });
+    return NextResponse.json({ suggestions: null });
   }
 
   try {
@@ -104,28 +90,20 @@ Respond in this exact JSON format, nothing else:
     });
 
     if (!res.ok) {
-      const errBody = await res.text().catch(() => "");
-      return NextResponse.json({
-        suggestions: null,
-        reason: "anthropic_error",
-        status: res.status,
-        detail: errBody.slice(0, 200),
-      });
+      return NextResponse.json({ suggestions: null });
     }
 
     const data = await res.json();
-    const text =
+    let text =
       data.content?.[0]?.type === "text" ? data.content[0].text : "";
-    const suggestions = JSON.parse(text.trim());
+    // Strip markdown code fences if Haiku wraps the response
+    text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
+    const suggestions = JSON.parse(text);
 
     const response = NextResponse.json({ suggestions });
     response.headers.set("Cache-Control", "private, max-age=3600");
     return response;
-  } catch (err) {
-    return NextResponse.json({
-      suggestions: null,
-      reason: "parse_or_fetch_error",
-      detail: err instanceof Error ? err.message : String(err),
-    });
+  } catch {
+    return NextResponse.json({ suggestions: null });
   }
 }
