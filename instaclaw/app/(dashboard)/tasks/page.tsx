@@ -2673,7 +2673,7 @@ export default function CommandCenterPage() {
           style={{
             background: "#f8f7f4",
             boxShadow: "0 -4px 12px rgba(0,0,0,0.04)",
-            paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
+            paddingBottom: "max(1.25rem, calc(env(safe-area-inset-bottom) + 0.5rem))",
           }}
         >
           <div

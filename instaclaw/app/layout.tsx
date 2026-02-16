@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Instrument_Serif } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
@@ -14,6 +14,12 @@ const instrumentSerif = Instrument_Serif({
   variable: "--font-serif",
   display: "optional",
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   title: "InstaClaw.io — Your Own OpenClaw Instance, Live in Minutes",
