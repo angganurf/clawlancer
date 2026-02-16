@@ -425,16 +425,23 @@ html.lenis body {
   animation: spotlight-pulse 2.5s ease-in-out infinite;
 }
 
-/* Agent chat bubble — glass */
+/* Agent chat bubble */
 .agent-bubble {
   position: relative;
   border-radius: 18px;
-  border-bottom-left-radius: 4px;
+  border-bottom-left-radius: 2px;
 }
 
-/* User chat bubble — accent */
+/* User chat bubble */
 .user-bubble {
   position: relative;
   border-radius: 18px;
-  border-bottom-right-radius: 4px;
+  border-bottom-right-radius: 2px;
+}
+
+/* Apple-style spring entrance for chat bubbles */
+@keyframes bubble-in {
+  0% { opacity: 0; transform: translateY(8px) scale(0.96); }
+  60% { opacity: 1; transform: translateY(-2px) scale(1.01); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }

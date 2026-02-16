@@ -563,6 +563,7 @@ function ChatBubble({
   return (
     <div
       className={`flex gap-3 ${isUser ? "justify-end" : "justify-start"} group/bubble`}
+      style={{ animation: "bubble-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}
     >
       {!isUser && (
         <div
@@ -585,15 +586,12 @@ function ChatBubble({
             isUser
               ? {
                   background: "linear-gradient(135deg, #dc6743 0%, #c8583a 50%, #dc6743 100%)",
-                  boxShadow: "0 2px 8px rgba(220,103,67,0.25), 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.20), inset 0 -1px 0 rgba(0,0,0,0.08)",
+                  boxShadow: "0 2px 8px rgba(220,103,67,0.25), 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.20)",
                   color: "#ffffff",
                 }
               : {
-                  background: "linear-gradient(135deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.45) 50%, rgba(255,255,255,0.55) 100%)",
-                  backdropFilter: "blur(16px)",
-                  WebkitBackdropFilter: "blur(16px)",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -1px 0 rgba(0,0,0,0.04)",
-                  border: "1px solid rgba(255,255,255,0.45)",
+                  background: "#f0efec",
+                  boxShadow: "0 1px 6px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
                   color: "var(--foreground)",
                 }
           }
@@ -609,9 +607,13 @@ function ChatBubble({
             <span className="inline-block w-1.5 h-4 ml-0.5 bg-current animate-pulse" />
           )}
           {/* iMessage-style SVG tail */}
-          {isUser && (
-            <svg className="absolute bottom-0 -right-[8px] w-[12px] h-[20px]" viewBox="0 0 12 20" fill="none">
-              <path d="M0 0C0 8 9 15 12 20H0V0Z" fill="#dc6743" />
+          {isUser ? (
+            <svg className="absolute bottom-0 -right-[8px] w-3 h-[18px]" viewBox="0 0 12 18" fill="none">
+              <path d="M0 0C1 8 8 14 12 18H0V0Z" fill="#dc6743" />
+            </svg>
+          ) : (
+            <svg className="absolute bottom-0 -left-[8px] w-3 h-[18px]" viewBox="0 0 12 18" fill="none">
+              <path d="M12 0C11 8 4 14 0 18H12V0Z" fill="#f0efec" />
             </svg>
           )}
         </div>
@@ -2548,7 +2550,7 @@ export default function CommandCenterPage() {
                 ) : chatMessages.length === 0 && !isSending ? (
                   <ChatEmptyState onChipClick={handleChipClick} chips={chips} />
                 ) : (
-                  <div className="space-y-4 pr-3">
+                  <div className="space-y-4 px-3">
                     {chatMessages.map((msg, i) => (
                       <ChatBubble
                         key={msg.id || `msg-${i}`}
