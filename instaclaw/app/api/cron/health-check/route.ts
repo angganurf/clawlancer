@@ -106,7 +106,67 @@ export async function GET(req: NextRequest) {
   }
 
   // ========================================================================
-  // Second pass: Check for past_due subscriptions and suspend after grace period
+  // Second pass: Check for stale Telegram webhooks (we use long-polling)
+  // If any bot has a webhook set, it blocks long-polling and the bot goes silent.
+  // ========================================================================
+  let webhooksFixed = 0;
+
+  const { data: telegramVms } = await supabase
+    .from("instaclaw_vms")
+    .select("id, name, telegram_bot_token, assigned_to")
+    .eq("status", "assigned")
+    .not("telegram_bot_token", "is", null);
+
+  if (telegramVms?.length) {
+    for (const tgVm of telegramVms) {
+      try {
+        const res = await fetch(
+          `https://api.telegram.org/bot${tgVm.telegram_bot_token}/getWebhookInfo`
+        );
+        const info = await res.json();
+
+        if (info.ok && info.result?.url) {
+          // Stale webhook found — delete it so long-polling works
+          logger.warn("Stale Telegram webhook detected, auto-deleting", {
+            route: "cron/health-check",
+            vmId: tgVm.id,
+            vmName: tgVm.name,
+            staleUrl: info.result.url,
+          });
+
+          const delRes = await fetch(
+            `https://api.telegram.org/bot${tgVm.telegram_bot_token}/deleteWebhook`
+          );
+          const delResult = await delRes.json();
+
+          if (delResult.ok) {
+            webhooksFixed++;
+            logger.info("Stale Telegram webhook deleted successfully", {
+              route: "cron/health-check",
+              vmId: tgVm.id,
+              vmName: tgVm.name,
+            });
+          } else {
+            logger.error("Failed to delete stale Telegram webhook", {
+              route: "cron/health-check",
+              vmId: tgVm.id,
+              error: JSON.stringify(delResult),
+            });
+          }
+        }
+      } catch (err) {
+        // Non-fatal — don't let one bot's check break the whole cron
+        logger.error("Telegram webhook check failed", {
+          route: "cron/health-check",
+          vmId: tgVm.id,
+          error: String(err),
+        });
+      }
+    }
+  }
+
+  // ========================================================================
+  // Third pass: Check for past_due subscriptions and suspend after grace period
   // ========================================================================
   let suspended = 0;
 
@@ -188,6 +248,7 @@ export async function GET(req: NextRequest) {
     unhealthy,
     restarted,
     alerted,
+    webhooksFixed,
     suspended,
   });
 }
