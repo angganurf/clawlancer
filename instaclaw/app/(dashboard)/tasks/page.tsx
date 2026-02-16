@@ -1894,9 +1894,10 @@ export default function CommandCenterPage() {
     fetch("/api/tasks/suggestions")
       .then((res) => res.json())
       .then((data) => {
+        console.log("[chips] suggestions response:", JSON.stringify(data));
         if (data.suggestions) setPersonalChips(data.suggestions);
       })
-      .catch(() => {}); // silent fail, keep static fallback
+      .catch((err) => console.error("[chips] fetch error:", err));
   }, []);
 
   const chips = personalChips ?? quickActions;
