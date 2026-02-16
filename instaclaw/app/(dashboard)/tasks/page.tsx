@@ -636,8 +636,10 @@ function ChatBubble({
 
 function ChatEmptyState({
   onChipClick,
+  chips,
 }: {
   onChipClick: (text: string) => void;
+  chips: { label: string; prefill: string }[];
 }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
@@ -657,7 +659,7 @@ function ChatEmptyState({
         Ask me anything &mdash; I&apos;m ready to work.
       </p>
       <div className="flex flex-wrap gap-2 justify-center">
-        {quickActions.map((a) => (
+        {chips.map((a) => (
           <button
             key={a.label}
             onClick={() => onChipClick(a.prefill)}
@@ -1826,6 +1828,9 @@ export default function CommandCenterPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Personalized quick action chips
+  const [personalChips, setPersonalChips] = useState<{ label: string; prefill: string }[] | null>(null);
+
   // Model state
   const [currentModel, setCurrentModel] = useState("claude-sonnet-4-5-20250929");
   const [showModelPicker, setShowModelPicker] = useState(false);
@@ -1883,6 +1888,18 @@ export default function CommandCenterPage() {
     fetchTasks(filterToStatus(filter));
     fetchFailedCount();
   }, [filter, fetchTasks, fetchFailedCount]);
+
+  // Fetch personalized quick action suggestions
+  useEffect(() => {
+    fetch("/api/tasks/suggestions")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.suggestions) setPersonalChips(data.suggestions);
+      })
+      .catch(() => {}); // silent fail, keep static fallback
+  }, []);
+
+  const chips = personalChips ?? quickActions;
 
   // Listen for onboarding wizard prefill events
   useEffect(() => {
@@ -2481,7 +2498,7 @@ export default function CommandCenterPage() {
                 {isLoadingChat ? (
                   <ChatSkeleton />
                 ) : chatMessages.length === 0 && !isSending ? (
-                  <ChatEmptyState onChipClick={handleChipClick} />
+                  <ChatEmptyState onChipClick={handleChipClick} chips={chips} />
                 ) : (
                   <div className="space-y-4">
                     {chatMessages.map((msg, i) => (
@@ -2631,7 +2648,7 @@ export default function CommandCenterPage() {
             className="flex gap-1.5 overflow-x-auto pb-1 mt-2.5 px-1"
             style={{ scrollbarWidth: "none" }}
           >
-            {quickActions.map((action) => (
+            {chips.map((action) => (
               <button
                 key={action.label}
                 onClick={() => handleChipClick(action.prefill)}
