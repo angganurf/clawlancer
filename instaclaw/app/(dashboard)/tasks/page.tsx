@@ -2009,19 +2009,14 @@ export default function CommandCenterPage() {
     { key: "library", label: "Library", tourKey: "tab-library" },
   ];
 
-  // Scroll to bottom of chat — single smooth scroll after content is ready
-  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const scrollToBottom = useCallback((delay = 0) => {
-    // Clear any pending scroll to avoid double-fires
-    if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
-    scrollTimerRef.current = setTimeout(() => {
-      if (scrollRef.current) {
-        scrollRef.current.scrollTo({
-          top: scrollRef.current.scrollHeight,
-          behavior: "smooth",
-        });
-      }
-    }, delay);
+  // Scroll to bottom of chat
+  const scrollToBottom = useCallback(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
   }, []);
 
   // ─── Fetch tasks ───────────────────────────────────────
@@ -2380,19 +2375,23 @@ export default function CommandCenterPage() {
     loadSavedMsgIds();
   }, []);
 
-  // Auto-scroll when messages change or tab switches to chat
+  // Auto-scroll: tab switch → delayed (wait for AnimatePresence) + safety retry
   useEffect(() => {
     if (activeTab === "chat") {
-      // Wait for AnimatePresence transition on tab switch, immediate for message updates
-      scrollToBottom(350);
+      const t1 = setTimeout(scrollToBottom, 450);
+      const t2 = setTimeout(scrollToBottom, 1000);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
     }
   }, [activeTab, scrollToBottom]);
 
+  // Auto-scroll: new messages → immediate (only when count actually grows)
+  const prevMsgCount = useRef(chatMessages.length);
   useEffect(() => {
-    if (activeTab === "chat" && chatMessages.length > 0) {
-      scrollToBottom(0);
+    if (activeTab === "chat" && chatMessages.length > prevMsgCount.current) {
+      requestAnimationFrame(scrollToBottom);
     }
-  }, [chatMessages, activeTab, scrollToBottom]);
+    prevMsgCount.current = chatMessages.length;
+  }, [chatMessages.length, activeTab, scrollToBottom]);
 
   // ─── Send chat message ────────────────────────────────
 
