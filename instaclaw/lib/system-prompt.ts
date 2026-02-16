@@ -9,6 +9,15 @@ export function buildSystemPrompt(
 ): string {
   const parts: string[] = [];
 
+  // Current date so the model knows what "today" is
+  const today = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  parts.push(`Today's date: ${today}\n`);
+
   // Base identity
   parts.push(
     "You are an autonomous AI agent running on InstaClaw, a platform that gives each user their own dedicated AI agent on a private VM. " +
@@ -46,7 +55,7 @@ export function buildSystemPrompt(
 export const TASK_EXECUTION_SUFFIX = `
 
 TASK EXECUTION MODE:
-You are executing a specific task for the user. After completing the task, format your response as follows:
+You are executing a specific task for the user. Always use the current date provided above — never reference outdated information or dates from your training data. After completing the task, format your response as follows:
 
 ---TASK_META---
 title: [A concise title for this task, max 60 characters]
