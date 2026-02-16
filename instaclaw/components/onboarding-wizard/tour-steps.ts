@@ -69,6 +69,13 @@ const tourSteps: TourStep[] = [
     navigateTo: "/dashboard",
   },
   {
+    selector: '[data-tour="dash-reset"]',
+    title: "Fresh Start",
+    description:
+      "If your agent ever feels off, or you just want a clean slate, tap here to reset everything: memory, conversation history, and identity. Your agent starts over as if it was just deployed. This also restarts background processes if anything seems stuck. Totally optional, but good to know it's here.",
+    navigateTo: "/dashboard",
+  },
+  {
     selector: '[data-tour="dash-pro-tip"]',
     title: "Pro Tip: Talk to Your Bot",
     description:

@@ -714,6 +714,7 @@ export default function DashboardPage() {
 
             {/* Reset Agent Memory — destructive action */}
             <button
+              data-tour="dash-reset"
               onClick={() => setShowResetConfirm(true)}
               disabled={resetting}
               className="mt-4 w-full rounded-xl p-4 flex items-center gap-3 transition-all cursor-pointer disabled:opacity-50 text-left"
