@@ -1042,7 +1042,7 @@ function TaskCard({
             </p>
           </div>
           <p
-            className="text-sm mt-0.5 truncate pl-4"
+            className="text-sm mt-0.5 truncate"
             style={{ color: isFailed ? "#b91c1c" : "var(--muted)" }}
           >
             {isFailed && task.error_message
@@ -1054,7 +1054,7 @@ function TaskCard({
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.25, ease: "easeOut" }}
-              className="flex items-center gap-1.5 flex-wrap text-xs mt-2 pt-2 ml-4"
+              className="flex items-center gap-1.5 flex-wrap text-xs mt-2 pt-2"
               style={{ borderTop: "1px solid var(--border)" }}
             >
               {frequencyLabel && (
