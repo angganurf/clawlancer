@@ -12,6 +12,7 @@ export async function GET() {
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
+    console.error("[suggestions] No ANTHROPIC_API_KEY set");
     return NextResponse.json({ suggestions: null });
   }
 
@@ -24,6 +25,7 @@ export async function GET() {
     .single();
 
   if (!user?.gmail_profile_summary) {
+    console.error("[suggestions] No gmail_profile_summary for user", session.user.id);
     return NextResponse.json({ suggestions: null });
   }
 
@@ -90,6 +92,8 @@ Respond in this exact JSON format, nothing else:
     });
 
     if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      console.error("[suggestions] Anthropic API error", res.status, errBody);
       return NextResponse.json({ suggestions: null });
     }
 
@@ -101,7 +105,8 @@ Respond in this exact JSON format, nothing else:
     const response = NextResponse.json({ suggestions });
     response.headers.set("Cache-Control", "private, max-age=3600");
     return response;
-  } catch {
+  } catch (err) {
+    console.error("[suggestions] Unexpected error", err);
     return NextResponse.json({ suggestions: null });
   }
 }
