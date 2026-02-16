@@ -2375,7 +2375,7 @@ export default function CommandCenterPage() {
   );
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-9.5rem)] sm:h-[calc(100dvh-11.5rem)]">
+    <div className="flex flex-col h-[calc(100dvh-6.5rem)] sm:h-[calc(100dvh-7.5rem)] -mb-12 sm:-mb-16">
       {/* ── Static header (never scrolls) ───────────────────── */}
       <div className="shrink-0">
         <h1
@@ -2561,13 +2561,34 @@ export default function CommandCenterPage() {
       {/* ── Sticky input (pinned below scroll area) ─────────── */}
       {activeTab === "tasks" && (
         <div
-          className="shrink-0 -mx-4 px-4 pt-4"
+          className="shrink-0 -mx-4 px-4 pt-2"
           data-tour="input-bar"
           style={{
             background: "linear-gradient(to top, #f8f7f4 80%, transparent)",
-            paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
+            paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))",
           }}
         >
+          <div
+            data-tour="quick-chips"
+            className="flex gap-1.5 overflow-x-auto pb-2 px-1"
+            style={{ scrollbarWidth: "none" }}
+          >
+            {chips.map((action) => (
+              <button
+                key={action.label}
+                onClick={() => handleChipClick(action.prefill)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs whitespace-nowrap cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+                style={{
+                  background: "rgba(255,255,255,0.45)",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.6)",
+                  border: "1px solid rgba(0,0,0,0.06)",
+                  color: "var(--muted)",
+                }}
+              >
+                {action.label}
+              </button>
+            ))}
+          </div>
           <div
             className="rounded-2xl px-5 py-3.5 flex items-center gap-3"
             style={{
@@ -2642,27 +2663,6 @@ export default function CommandCenterPage() {
                 <ArrowUp className="w-4 h-4" style={{ color: "#ffffff" }} strokeWidth={2.5} />
               </button>
             </div>
-          </div>
-          <div
-            data-tour="quick-chips"
-            className="flex gap-1.5 overflow-x-auto pb-1 mt-2.5 px-1"
-            style={{ scrollbarWidth: "none" }}
-          >
-            {chips.map((action) => (
-              <button
-                key={action.label}
-                onClick={() => handleChipClick(action.prefill)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs whitespace-nowrap cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
-                style={{
-                  background: "rgba(255,255,255,0.45)",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.6)",
-                  border: "1px solid rgba(0,0,0,0.06)",
-                  color: "var(--muted)",
-                }}
-              >
-                {action.label}
-              </button>
-            ))}
           </div>
         </div>
       )}
