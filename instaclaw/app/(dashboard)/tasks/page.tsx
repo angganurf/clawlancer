@@ -2379,17 +2379,17 @@ export default function CommandCenterPage() {
       {/* ── Static header (never scrolls) ───────────────────── */}
       <div className="shrink-0">
         <h1
-          className="text-3xl sm:text-4xl font-normal tracking-[-0.5px]"
+          className="hidden sm:block text-3xl sm:text-4xl font-normal tracking-[-0.5px]"
           style={{ fontFamily: "var(--font-serif)" }}
         >
           Command Center
         </h1>
-        <p className="text-base mt-2" style={{ color: "var(--muted)" }}>
+        <p className="hidden sm:block text-base mt-2" style={{ color: "var(--muted)" }}>
           Your agent works around the clock. Here&apos;s everything
           it&apos;s handling.
         </p>
 
-        <div className="mt-4">
+        <div className="mt-1 sm:mt-4">
           <FilterPills
             active={filter}
             onChange={setFilter}
@@ -2565,7 +2565,7 @@ export default function CommandCenterPage() {
           data-tour="input-bar"
           style={{
             background: "linear-gradient(to top, #f8f7f4 80%, transparent)",
-            paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))",
+            paddingBottom: "max(1.25rem, calc(env(safe-area-inset-bottom) + 0.5rem))",
           }}
         >
           <div
