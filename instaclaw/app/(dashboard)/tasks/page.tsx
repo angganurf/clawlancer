@@ -26,6 +26,7 @@ import {
   Zap,
   Plus,
   MessageSquare,
+  PanelLeft,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
@@ -2028,7 +2029,7 @@ export default function CommandCenterPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [isLoadingConversations, setIsLoadingConversations] = useState(true);
-  const [showConversationList, setShowConversationList] = useState(true);
+  const [showConversationList, setShowConversationList] = useState(false);
   const [renamingConvId, setRenamingConvId] = useState<string | null>(null);
   const [renameTitleDraft, setRenameTitleDraft] = useState("");
   const loadingConvRef = useRef<string | null>(null);
@@ -2427,6 +2428,11 @@ export default function CommandCenterPage() {
     }
   }, []);
 
+  // Open sidebar by default on desktop
+  useEffect(() => {
+    if (window.innerWidth >= 640) setShowConversationList(true);
+  }, []);
+
   useEffect(() => {
     loadConversations();
     // Load saved message IDs for library bookmarks
@@ -2823,180 +2829,214 @@ export default function CommandCenterPage() {
             )}
 
             {activeTab === "chat" && (
-              <div className="flex gap-0 -mx-4 sm:mx-0" style={{ height: "calc(100% + 1rem)", marginTop: "-0.5rem" }}>
-                {/* ── Left panel: Conversation list ─────────── */}
-                <div
-                  className={`${
-                    showConversationList ? "flex" : "hidden"
-                  } sm:flex flex-col w-full sm:w-[240px] shrink-0 border-r`}
-                  style={{ borderColor: "var(--border)" }}
-                >
-                  {/* Header */}
-                  <div className="flex items-center justify-between px-3 py-2.5 shrink-0">
-                    <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
-                      Chats
+              <div className="relative -mx-4 sm:mx-0 overflow-hidden" style={{ height: "calc(100% + 1rem)", marginTop: "-0.5rem" }}>
+                {/* ── Overlay sidebar: Conversation list ─────────── */}
+                <AnimatePresence>
+                  {showConversationList && (
+                    <>
+                      {/* Backdrop */}
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute inset-0 z-30"
+                        style={{ background: "rgba(0,0,0,0.15)" }}
+                        onClick={() => setShowConversationList(false)}
+                      />
+                      {/* Sidebar panel */}
+                      <motion.div
+                        initial={{ x: "-100%" }}
+                        animate={{ x: 0 }}
+                        exit={{ x: "-100%" }}
+                        transition={{ type: "spring", damping: 28, stiffness: 320 }}
+                        className="absolute top-0 left-0 bottom-0 z-40 flex flex-col w-[280px] max-w-[85vw]"
+                        style={{
+                          background: "var(--card)",
+                          borderRight: "1px solid var(--border)",
+                          boxShadow: "4px 0 24px rgba(0,0,0,0.08)",
+                        }}
+                      >
+                        {/* Sidebar header */}
+                        <div className="flex items-center justify-between px-3 py-2.5 shrink-0">
+                          <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
+                            Chats
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={createNewConversation}
+                              className="w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95"
+                              style={{ background: "var(--accent)" }}
+                              title="New Chat"
+                            >
+                              <Plus className="w-4 h-4" style={{ color: "#fff" }} strokeWidth={2.5} />
+                            </button>
+                            <button
+                              onClick={() => setShowConversationList(false)}
+                              className="w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer transition-colors hover:bg-black/5"
+                              title="Close sidebar"
+                            >
+                              <PanelLeft className="w-4 h-4" style={{ color: "var(--muted)" }} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Conversation list */}
+                        <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
+                          {isLoadingConversations ? (
+                            <ConversationListSkeleton />
+                          ) : conversations.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                              <MessageSquare className="w-8 h-8 mb-3" style={{ color: "var(--border)" }} />
+                              <p className="text-sm" style={{ color: "var(--muted)" }}>
+                                No conversations yet
+                              </p>
+                              <button
+                                onClick={createNewConversation}
+                                className="mt-3 text-xs font-medium cursor-pointer transition-colors hover:opacity-80"
+                                style={{ color: "var(--accent)" }}
+                              >
+                                Start a new chat
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="space-y-0.5 px-1.5 pb-2">
+                              {conversations.map((conv) => (
+                                <div
+                                  key={conv.id}
+                                  onClick={() => {
+                                    setActiveConversationId(conv.id);
+                                    // Close sidebar on mobile, keep open on desktop
+                                    if (window.innerWidth < 640) setShowConversationList(false);
+                                  }}
+                                  className={`group/conv relative rounded-xl px-3 py-2.5 cursor-pointer transition-all ${
+                                    activeConversationId === conv.id
+                                      ? ""
+                                      : "hover:bg-black/[0.03]"
+                                  }`}
+                                  style={
+                                    activeConversationId === conv.id
+                                      ? {
+                                          background: "rgba(220,103,67,0.08)",
+                                          boxShadow: "inset 0 0 0 1px rgba(220,103,67,0.15)",
+                                        }
+                                      : undefined
+                                  }
+                                >
+                                  {renamingConvId === conv.id ? (
+                                    <input
+                                      autoFocus
+                                      value={renameTitleDraft}
+                                      onChange={(e) => setRenameTitleDraft(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                          renameConversation(conv.id, renameTitleDraft);
+                                        } else if (e.key === "Escape") {
+                                          setRenamingConvId(null);
+                                        }
+                                      }}
+                                      onBlur={() => {
+                                        if (renameTitleDraft.trim()) {
+                                          renameConversation(conv.id, renameTitleDraft);
+                                        } else {
+                                          setRenamingConvId(null);
+                                        }
+                                      }}
+                                      className="w-full text-sm bg-transparent outline-none rounded px-1 -mx-1"
+                                      style={{
+                                        color: "var(--foreground)",
+                                        boxShadow: "0 0 0 1.5px var(--accent)",
+                                      }}
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
+                                  ) : (
+                                    <>
+                                      <div className="flex items-center justify-between gap-1">
+                                        <p
+                                          className="text-sm font-medium truncate flex-1"
+                                          style={{
+                                            color:
+                                              activeConversationId === conv.id
+                                                ? "var(--accent)"
+                                                : "var(--foreground)",
+                                          }}
+                                        >
+                                          {conv.title}
+                                        </p>
+                                        <div className="flex items-center gap-0.5 opacity-0 group-hover/conv:opacity-100 transition-opacity shrink-0">
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setRenamingConvId(conv.id);
+                                              setRenameTitleDraft(conv.title);
+                                            }}
+                                            className="p-1 rounded-md cursor-pointer hover:bg-black/5 transition-colors"
+                                            title="Rename"
+                                          >
+                                            <Pencil className="w-3 h-3" style={{ color: "var(--muted)" }} />
+                                          </button>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              archiveConversation(conv.id);
+                                            }}
+                                            className="p-1 rounded-md cursor-pointer hover:bg-red-50 transition-colors"
+                                            title="Delete"
+                                          >
+                                            <Trash2 className="w-3 h-3" style={{ color: "#b91c1c" }} />
+                                          </button>
+                                        </div>
+                                      </div>
+                                      {conv.last_message_preview && (
+                                        <p
+                                          className="text-xs truncate mt-0.5"
+                                          style={{ color: "var(--muted)" }}
+                                        >
+                                          {conv.last_message_preview}
+                                        </p>
+                                      )}
+                                      <p
+                                        className="text-[10px] mt-1"
+                                        style={{ color: "var(--muted)", opacity: 0.7 }}
+                                      >
+                                        {timeAgo(conv.updated_at)}
+                                      </p>
+                                    </>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+
+                {/* ── Main chat area (always full width) ──────────── */}
+                <div className="flex flex-col h-full">
+                  {/* Chat header with sidebar toggle */}
+                  <div className="flex items-center gap-2 px-3 py-2 shrink-0 border-b" style={{ borderColor: "var(--border)" }}>
+                    <button
+                      onClick={() => setShowConversationList(true)}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer transition-colors hover:bg-black/5"
+                      title="Open conversations"
+                    >
+                      <PanelLeft className="w-4 h-4" style={{ color: "var(--muted)" }} />
+                    </button>
+                    <span className="text-sm font-medium truncate flex-1" style={{ color: "var(--foreground)" }}>
+                      {activeConversationId
+                        ? conversations.find((c) => c.id === activeConversationId)?.title ?? "Chat"
+                        : "New Chat"}
                     </span>
                     <button
                       onClick={createNewConversation}
                       className="w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95"
-                      style={{
-                        background: "var(--accent)",
-                      }}
+                      style={{ background: "var(--accent)" }}
                       title="New Chat"
                     >
                       <Plus className="w-4 h-4" style={{ color: "#fff" }} strokeWidth={2.5} />
                     </button>
-                  </div>
-
-                  {/* Conversation list */}
-                  <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
-                    {isLoadingConversations ? (
-                      <ConversationListSkeleton />
-                    ) : conversations.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                        <MessageSquare className="w-8 h-8 mb-3" style={{ color: "var(--border)" }} />
-                        <p className="text-sm" style={{ color: "var(--muted)" }}>
-                          No conversations yet
-                        </p>
-                        <button
-                          onClick={createNewConversation}
-                          className="mt-3 text-xs font-medium cursor-pointer transition-colors hover:opacity-80"
-                          style={{ color: "var(--accent)" }}
-                        >
-                          Start a new chat
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="space-y-0.5 px-1.5 pb-2">
-                        {conversations.map((conv) => (
-                          <div
-                            key={conv.id}
-                            onClick={() => {
-                              setActiveConversationId(conv.id);
-                              setShowConversationList(false);
-                            }}
-                            className={`group/conv relative rounded-xl px-3 py-2.5 cursor-pointer transition-all ${
-                              activeConversationId === conv.id
-                                ? ""
-                                : "hover:bg-black/[0.03]"
-                            }`}
-                            style={
-                              activeConversationId === conv.id
-                                ? {
-                                    background: "rgba(220,103,67,0.08)",
-                                    boxShadow: "inset 0 0 0 1px rgba(220,103,67,0.15)",
-                                  }
-                                : undefined
-                            }
-                          >
-                            {renamingConvId === conv.id ? (
-                              <input
-                                autoFocus
-                                value={renameTitleDraft}
-                                onChange={(e) => setRenameTitleDraft(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    renameConversation(conv.id, renameTitleDraft);
-                                  } else if (e.key === "Escape") {
-                                    setRenamingConvId(null);
-                                  }
-                                }}
-                                onBlur={() => {
-                                  if (renameTitleDraft.trim()) {
-                                    renameConversation(conv.id, renameTitleDraft);
-                                  } else {
-                                    setRenamingConvId(null);
-                                  }
-                                }}
-                                className="w-full text-sm bg-transparent outline-none rounded px-1 -mx-1"
-                                style={{
-                                  color: "var(--foreground)",
-                                  boxShadow: "0 0 0 1.5px var(--accent)",
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                              />
-                            ) : (
-                              <>
-                                <div className="flex items-center justify-between gap-1">
-                                  <p
-                                    className="text-sm font-medium truncate flex-1"
-                                    style={{
-                                      color:
-                                        activeConversationId === conv.id
-                                          ? "var(--accent)"
-                                          : "var(--foreground)",
-                                    }}
-                                  >
-                                    {conv.title}
-                                  </p>
-                                  <div className="flex items-center gap-0.5 opacity-0 group-hover/conv:opacity-100 transition-opacity shrink-0">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setRenamingConvId(conv.id);
-                                        setRenameTitleDraft(conv.title);
-                                      }}
-                                      className="p-1 rounded-md cursor-pointer hover:bg-black/5 transition-colors"
-                                      title="Rename"
-                                    >
-                                      <Pencil className="w-3 h-3" style={{ color: "var(--muted)" }} />
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        archiveConversation(conv.id);
-                                      }}
-                                      className="p-1 rounded-md cursor-pointer hover:bg-red-50 transition-colors"
-                                      title="Delete"
-                                    >
-                                      <Trash2 className="w-3 h-3" style={{ color: "#b91c1c" }} />
-                                    </button>
-                                  </div>
-                                </div>
-                                {conv.last_message_preview && (
-                                  <p
-                                    className="text-xs truncate mt-0.5"
-                                    style={{ color: "var(--muted)" }}
-                                  >
-                                    {conv.last_message_preview}
-                                  </p>
-                                )}
-                                <p
-                                  className="text-[10px] mt-1"
-                                  style={{ color: "var(--muted)", opacity: 0.7 }}
-                                >
-                                  {timeAgo(conv.updated_at)}
-                                </p>
-                              </>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* ── Right panel: Chat messages ──────────── */}
-                <div
-                  className={`${
-                    showConversationList ? "hidden" : "flex"
-                  } sm:flex flex-col flex-1 min-w-0`}
-                >
-                  {/* Mobile back button */}
-                  <div className="sm:hidden flex items-center gap-2 px-3 py-2 shrink-0 border-b" style={{ borderColor: "var(--border)" }}>
-                    <button
-                      onClick={() => setShowConversationList(true)}
-                      className="flex items-center gap-1 text-sm cursor-pointer transition-colors hover:opacity-70"
-                      style={{ color: "var(--accent)" }}
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                      Chats
-                    </button>
-                    {activeConversationId && (
-                      <span className="text-sm font-medium truncate flex-1 text-right" style={{ color: "var(--foreground)" }}>
-                        {conversations.find((c) => c.id === activeConversationId)?.title ?? ""}
-                      </span>
-                    )}
                   </div>
 
                   {/* Messages area */}
@@ -3045,7 +3085,7 @@ export default function CommandCenterPage() {
                     )}
                   </div>
 
-                  {/* Chat input (inside the right panel) */}
+                  {/* Chat input */}
                   <div
                     className="shrink-0 px-3 pt-2 pb-3"
                     style={{
