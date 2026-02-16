@@ -2699,16 +2699,19 @@ export default function CommandCenterPage() {
 
       {activeTab === "chat" && (
         <div
-          className="shrink-0 -mx-4 px-4 pt-3"
+          className="shrink-0 -mx-4 px-4 pt-2"
           style={{
-            background: "#f8f7f4",
-            boxShadow: "0 -4px 12px rgba(0,0,0,0.04)",
+            background: "linear-gradient(to top, #f8f7f4 80%, transparent)",
             paddingBottom: "max(1.25rem, calc(env(safe-area-inset-bottom) + 0.5rem))",
           }}
         >
           <div
-            className="rounded-2xl p-3 flex items-center gap-3"
-            style={{ background: "var(--card)", border: "1px solid var(--border)" }}
+            className="rounded-2xl px-5 py-3.5 flex items-center gap-3"
+            style={{
+              background: "rgba(255,255,255,0.8)",
+              backdropFilter: "blur(12px)",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)",
+            }}
           >
             <input
               ref={activeTab === "chat" ? inputRef : undefined}
