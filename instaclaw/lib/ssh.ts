@@ -422,6 +422,12 @@ export async function configureOpenClaw(
       '',
       '# Set heartbeat interval to 1 hour (default 30m burns too many credits)',
       'openclaw config set agents.defaults.heartbeat.every 1h || true',
+      '',
+      '# Set compaction buffer to prevent context overflow on smaller models (e.g. Haiku)',
+      'openclaw config set agents.defaults.compaction.reserveTokensFloor 8000 || true',
+      '',
+      '# Enable /restart command so users can self-service reset their conversation',
+      'openclaw config set commands.restart true || true',
       ''
     );
 

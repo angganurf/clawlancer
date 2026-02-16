@@ -574,7 +574,7 @@ function ChatBubble({
         >
           <div className="absolute top-[2px] left-[4px] w-[14px] h-[7px] rounded-full pointer-events-none z-10"
             style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0) 100%)" }} />
-          <img src="/logo.png" alt="" className="w-5 h-5 relative z-[1]" style={{ imageRendering: "pixelated" }} />
+          <img src="/logo.png" alt="" className="w-5 h-5 relative z-[1]" />
         </div>
       )}
 
@@ -583,11 +583,20 @@ function ChatBubble({
           className={`${isUser ? "user-bubble" : "agent-bubble"} px-4 py-3 text-sm leading-relaxed`}
           style={
             isUser
-              ? { background: "var(--accent)", color: "#ffffff" }
+              ? {
+                  background: "linear-gradient(135deg, rgba(220,103,67,0.85) 0%, rgba(200,88,55,0.75) 50%, rgba(220,103,67,0.80) 100%)",
+                  backdropFilter: "blur(16px)",
+                  WebkitBackdropFilter: "blur(16px)",
+                  boxShadow: "0 2px 8px rgba(220,103,67,0.25), 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.30), inset 0 -1px 0 rgba(0,0,0,0.08)",
+                  border: "1px solid rgba(255,255,255,0.18)",
+                  color: "#ffffff",
+                }
               : {
-                  background: "rgba(255,255,255,0.55)",
-                  backdropFilter: "blur(12px)",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.6)",
+                  background: "linear-gradient(135deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.45) 50%, rgba(255,255,255,0.55) 100%)",
+                  backdropFilter: "blur(16px)",
+                  WebkitBackdropFilter: "blur(16px)",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -1px 0 rgba(0,0,0,0.04)",
+                  border: "1px solid rgba(255,255,255,0.45)",
                   color: "var(--foreground)",
                 }
           }

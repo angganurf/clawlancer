@@ -455,7 +455,7 @@ html.lenis body {
   border-bottom-right-radius: 10px;
 }
 
-/* User chat bubble — accent with right tail */
+/* User chat bubble — orange glass with right tail */
 .user-bubble {
   position: relative;
   border-radius: 18px;
@@ -470,7 +470,7 @@ html.lenis body {
   right: -8px;
   width: 18px;
   height: 18px;
-  background: var(--accent);
+  background: rgba(220,103,67,0.80);
   border-bottom-left-radius: 14px;
 }
 
