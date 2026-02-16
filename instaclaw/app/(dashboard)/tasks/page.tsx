@@ -515,32 +515,93 @@ function FilterPills({
 
 /* ─── Typing Indicator ───────────────────────────────────── */
 
+const THINKING_PHRASES = [
+  "Noodling on that...",
+  "Wrangling a response...",
+  "Scratching the ol' claw...",
+  "Cooking up an answer...",
+  "Canoodling with context...",
+  "Rounding up some thoughts...",
+];
+
 function TypingIndicator() {
+  const [phraseIndex, setPhraseIndex] = useState(0);
+  const [displayed, setDisplayed] = useState("");
+  const [phase, setPhase] = useState<"typing" | "visible" | "exit">("typing");
+
+  const phrase = THINKING_PHRASES[phraseIndex];
+
+  // Typewriter effect
+  useEffect(() => {
+    if (phase !== "typing") return;
+    if (displayed.length < phrase.length) {
+      const timer = setTimeout(() => {
+        setDisplayed(phrase.slice(0, displayed.length + 1));
+      }, 30 + Math.random() * 30);
+      return () => clearTimeout(timer);
+    } else {
+      setPhase("visible");
+      const timer = setTimeout(() => setPhase("exit"), 2200);
+      return () => clearTimeout(timer);
+    }
+  }, [displayed, phrase, phase]);
+
+  // Cycle to next phrase after exit
+  useEffect(() => {
+    if (phase !== "exit") return;
+    const timer = setTimeout(() => {
+      setPhraseIndex((i) => (i + 1) % THINKING_PHRASES.length);
+      setDisplayed("");
+      setPhase("typing");
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [phase]);
+
   return (
-    <div className="flex gap-3 justify-start">
+    <div
+      className="flex gap-3 justify-start"
+      style={{ animation: "bubble-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}
+    >
+      {/* Glass orb avatar */}
       <div
-        className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm"
-        style={{ background: "var(--card)", border: "1px solid var(--border)" }}
+        className="w-8 h-8 rounded-full shrink-0 relative flex items-center justify-center"
+        style={{
+          background: "radial-gradient(circle at 35% 35%, rgba(248,247,244,0.95), rgba(220,215,205,0.8) 50%, rgba(180,175,165,0.6) 100%)",
+          boxShadow: "inset 0 -2px 4px rgba(0,0,0,0.2), inset 0 2px 4px rgba(255,255,255,0.5), inset 0 0 3px rgba(0,0,0,0.1), 0 1px 4px rgba(0,0,0,0.15)",
+        }}
       >
-        {"\u{1F99E}"}
+        <div className="absolute top-[2px] left-[4px] w-[14px] h-[7px] rounded-full pointer-events-none z-10"
+          style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0) 100%)" }} />
+        <img src="/logo.png" alt="" className="w-5 h-5 relative z-[1]" />
       </div>
-      <div
-        className="rounded-2xl px-4 py-3 flex items-center gap-1"
-        style={{ background: "var(--card)", border: "1px solid var(--border)" }}
-      >
-        {[0, 1, 2].map((i) => (
-          <motion.span
-            key={i}
-            className="w-2 h-2 rounded-full"
-            style={{ background: "var(--muted)" }}
-            animate={{ y: [0, -4, 0] }}
-            transition={{
-              duration: 0.6,
-              repeat: Infinity,
-              delay: i * 0.15,
+
+      {/* Bubble with rotating shimmer phrases */}
+      <div className="relative">
+        <div
+          className="agent-bubble px-4 py-3 text-sm leading-relaxed"
+          style={{ background: "#f0efec", boxShadow: "0 1px 6px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" }}
+        >
+          <span
+            style={{
+              opacity: phase === "exit" ? 0 : 1,
+              transform: phase === "exit" ? "translateY(-4px)" : "translateY(0)",
+              transition: "all 0.35s ease",
+              display: "inline-block",
             }}
-          />
-        ))}
+          >
+            <span className="shimmer-text-gray">{displayed}</span>
+            {phase === "typing" && (
+              <span
+                className="inline-block w-[2px] h-[14px] ml-0.5 animate-pulse align-middle"
+                style={{ background: "#999" }}
+              />
+            )}
+          </span>
+          {/* SVG tail */}
+          <svg className="absolute bottom-0 -left-[8px] w-3 h-[18px]" viewBox="0 0 12 18" fill="none">
+            <path d="M12 0C11 8 4 14 0 18H12V0Z" fill="#f0efec" />
+          </svg>
+        </div>
       </div>
     </div>
   );
