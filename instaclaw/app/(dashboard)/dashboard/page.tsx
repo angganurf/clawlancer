@@ -13,7 +13,9 @@ import {
   CreditCard,
   AlertTriangle,
   Zap,
+  Eraser,
 } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { WorldIDBanner } from "@/components/dashboard/world-id-banner";
 import { GmailConnectPopup } from "@/components/dashboard/gmail-connect-popup";
 
@@ -79,6 +81,9 @@ export default function DashboardPage() {
   const [creditsPurchased, setCreditsPurchased] = useState(false);
   const [welcomeDismissed, setWelcomeDismissed] = useState(true);
   const [togglingAgdp, setTogglingAgdp] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetToast, setResetToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const creditPackRef = useRef<HTMLDivElement>(null);
 
   async function fetchStatus() {
@@ -206,6 +211,26 @@ export default function DashboardPage() {
       }
     } finally {
       setTogglingAgdp(false);
+    }
+  }
+
+  async function handleResetAgent() {
+    setShowResetConfirm(false);
+    setResetting(true);
+    try {
+      const res = await fetch("/api/vm/reset-agent", { method: "POST" });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setResetToast({ message: `Memory reset — ${data.filesDeleted} files cleared`, type: "success" });
+        setTimeout(fetchStatus, 3000);
+      } else {
+        setResetToast({ message: data.error || data.message || "Reset failed", type: "error" });
+      }
+    } catch {
+      setResetToast({ message: "Network error — could not reach server", type: "error" });
+    } finally {
+      setResetting(false);
+      setTimeout(() => setResetToast(null), 4000);
     }
   }
 
@@ -686,6 +711,30 @@ export default function DashboardPage() {
                 </div>
               </button>
             </div>
+
+            {/* Reset Agent Memory — destructive action */}
+            <button
+              onClick={() => setShowResetConfirm(true)}
+              disabled={resetting}
+              className="mt-4 w-full rounded-xl p-4 flex items-center gap-3 transition-all cursor-pointer disabled:opacity-50 text-left"
+              style={{
+                background: "rgba(220,38,38,0.04)",
+                border: "1px solid rgba(220,38,38,0.2)",
+              }}
+            >
+              <Eraser
+                className={`w-5 h-5 shrink-0 ${resetting ? "animate-pulse" : ""}`}
+                style={{ color: "#ef4444" }}
+              />
+              <div>
+                <p className="text-sm font-semibold" style={{ color: "#ef4444" }}>
+                  {resetting ? "Resetting..." : "Reset Agent Memory"}
+                </p>
+                <p className="text-xs" style={{ color: "rgba(239,68,68,0.6)" }}>
+                  Wipe memory, identity &amp; conversation history
+                </p>
+              </div>
+            </button>
           </div>
 
           {/* Model Selector (all-inclusive only) */}
@@ -831,6 +880,78 @@ export default function DashboardPage() {
           onConnected={() => fetchStatus()}
         />
       )}
+
+      {/* Reset confirmation modal */}
+      <AnimatePresence>
+        {showResetConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
+            onClick={() => setShowResetConfirm(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="rounded-2xl p-6 w-full max-w-sm"
+              style={{ background: "var(--card)", border: "1px solid var(--border)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-center mb-4">
+                <div
+                  className="w-12 h-12 rounded-full flex items-center justify-center"
+                  style={{ background: "rgba(239,68,68,0.1)" }}
+                >
+                  <AlertTriangle className="w-6 h-6" style={{ color: "#ef4444" }} />
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold text-center mb-2">Reset Agent Memory?</h3>
+              <p className="text-sm text-center mb-6" style={{ color: "var(--muted)" }}>
+                This will permanently delete your agent&apos;s memory, identity, and conversation
+                history. Your agent will start fresh as if it was just deployed. This cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowResetConfirm(false)}
+                  className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium cursor-pointer"
+                  style={{ background: "rgba(0,0,0,0.06)", color: "var(--foreground)" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleResetAgent}
+                  className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium cursor-pointer"
+                  style={{ background: "#ef4444", color: "#fff" }}
+                >
+                  Yes, Reset Everything
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Reset toast */}
+      <AnimatePresence>
+        {resetToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="fixed top-6 right-6 z-50 px-4 py-2.5 rounded-lg text-sm font-medium shadow-lg"
+            style={{
+              background: resetToast.type === "success" ? "#16a34a" : "#ef4444",
+              color: "#fff",
+            }}
+          >
+            {resetToast.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
