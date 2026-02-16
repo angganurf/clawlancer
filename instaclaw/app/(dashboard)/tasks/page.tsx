@@ -607,6 +607,59 @@ function TypingIndicator() {
   );
 }
 
+/* ─── Thinking Phrases (streaming empty state) ──────────── */
+
+function ThinkingPhrases() {
+  const [phraseIndex, setPhraseIndex] = useState(0);
+  const [displayed, setDisplayed] = useState("");
+  const [phase, setPhase] = useState<"typing" | "visible" | "exit">("typing");
+
+  const phrase = THINKING_PHRASES[phraseIndex];
+
+  useEffect(() => {
+    if (phase !== "typing") return;
+    if (displayed.length < phrase.length) {
+      const timer = setTimeout(() => {
+        setDisplayed(phrase.slice(0, displayed.length + 1));
+      }, 30 + Math.random() * 30);
+      return () => clearTimeout(timer);
+    } else {
+      setPhase("visible");
+      const timer = setTimeout(() => setPhase("exit"), 2200);
+      return () => clearTimeout(timer);
+    }
+  }, [displayed, phrase, phase]);
+
+  useEffect(() => {
+    if (phase !== "exit") return;
+    const timer = setTimeout(() => {
+      setPhraseIndex((i) => (i + 1) % THINKING_PHRASES.length);
+      setDisplayed("");
+      setPhase("typing");
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [phase]);
+
+  return (
+    <span
+      style={{
+        opacity: phase === "exit" ? 0 : 1,
+        transform: phase === "exit" ? "translateY(-4px)" : "translateY(0)",
+        transition: "all 0.35s ease",
+        display: "inline-block",
+      }}
+    >
+      <span className="thinking-text">{displayed}</span>
+      {phase === "typing" && (
+        <span
+          className="inline-block w-[2px] h-[14px] ml-0.5 align-middle"
+          style={{ background: "#888", animation: "cursor-blink 0.8s step-end infinite" }}
+        />
+      )}
+    </span>
+  );
+}
+
 /* ─── Chat Bubble ────────────────────────────────────────── */
 
 function ChatBubble({
@@ -657,14 +710,16 @@ function ChatBubble({
                 }
           }
         >
-          {isUser ? (
+          {msg.isStreaming && !msg.content ? (
+            <ThinkingPhrases />
+          ) : isUser ? (
             msg.content
           ) : (
             <div className="prose prose-sm max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0 [&_pre]:my-2 [&_pre]:rounded-lg [&_pre]:bg-black/5 [&_pre]:p-3 [&_code]:text-xs [&_code]:bg-black/5 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_pre_code]:bg-transparent [&_pre_code]:p-0">
               <ReactMarkdown>{msg.content}</ReactMarkdown>
             </div>
           )}
-          {msg.isStreaming && (
+          {msg.isStreaming && msg.content && (
             <span className="inline-block w-1.5 h-4 ml-0.5 bg-current animate-pulse" />
           )}
           {/* iMessage-style SVG tail */}
