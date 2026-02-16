@@ -661,10 +661,11 @@ function ChatEmptyState({
           <button
             key={a.label}
             onClick={() => onChipClick(a.prefill)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all hover:scale-[1.02]"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
             style={{
-              background: "var(--card)",
-              border: "1px solid var(--border)",
+              background: "rgba(255,255,255,0.45)",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.6)",
+              border: "1px solid rgba(0,0,0,0.06)",
               color: "var(--foreground)",
             }}
           >
@@ -2635,9 +2636,11 @@ export default function CommandCenterPage() {
               <button
                 key={action.label}
                 onClick={() => handleChipClick(action.prefill)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs whitespace-nowrap cursor-pointer transition-all hover:opacity-70"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs whitespace-nowrap cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
                 style={{
-                  background: "rgba(0,0,0,0.04)",
+                  background: "rgba(255,255,255,0.45)",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.6)",
+                  border: "1px solid rgba(0,0,0,0.06)",
                   color: "var(--muted)",
                 }}
               >
