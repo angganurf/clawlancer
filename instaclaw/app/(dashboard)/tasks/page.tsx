@@ -24,6 +24,8 @@ import {
   Pause,
   Play,
   Zap,
+  Plus,
+  MessageSquare,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
@@ -243,6 +245,16 @@ interface ChatMsg {
   content: string;
   created_at?: string;
   isStreaming?: boolean;
+}
+
+interface Conversation {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  is_archived: boolean;
+  last_message_preview: string;
+  message_count: number;
 }
 
 interface LibraryItem {
@@ -839,6 +851,23 @@ function ChatSkeleton() {
               opacity: 0.5,
             }}
           />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ConversationListSkeleton() {
+  return (
+    <div className="space-y-1 p-2 animate-pulse">
+      {[1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className="rounded-xl p-3"
+          style={{ opacity: 0.5 }}
+        >
+          <div className="h-3.5 rounded-full mb-2" style={{ background: "var(--border)", width: "70%" }} />
+          <div className="h-2.5 rounded-full" style={{ background: "var(--border)", width: "90%" }} />
         </div>
       ))}
     </div>
@@ -1992,7 +2021,17 @@ export default function CommandCenterPage() {
   const [savedMessageIds, setSavedMessageIds] = useState<Set<string>>(new Set());
   const [chatToast, setChatToast] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Multi-chat conversation state
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(true);
+  const [showConversationList, setShowConversationList] = useState(true);
+  const [renamingConvId, setRenamingConvId] = useState<string | null>(null);
+  const [renameTitleDraft, setRenameTitleDraft] = useState("");
+  const loadingConvRef = useRef<string | null>(null);
 
   // Personalized quick action chips
   const [personalChips, setPersonalChips] = useState<{ label: string; prefill: string }[] | null>(null);
@@ -2011,9 +2050,10 @@ export default function CommandCenterPage() {
 
   // Scroll to bottom of chat
   const scrollToBottom = useCallback(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
+    const el = chatScrollRef.current || scrollRef.current;
+    if (el) {
+      el.scrollTo({
+        top: el.scrollHeight,
         behavior: "smooth",
       });
     }
@@ -2344,23 +2384,53 @@ export default function CommandCenterPage() {
     }
   }, []);
 
-  // ─── Fetch chat history on mount ──────────────────────
+  // ─── Load conversations on mount ──────────────────────
 
-  useEffect(() => {
-    async function loadHistory() {
-      try {
-        const res = await fetch("/api/chat/history");
-        if (res.ok) {
-          const data = await res.json();
-          setChatMessages(data.messages ?? []);
+  const loadConversations = useCallback(async () => {
+    try {
+      const res = await fetch("/api/chat/conversations");
+      if (res.ok) {
+        const data = await res.json();
+        const convs: Conversation[] = data.conversations ?? [];
+        setConversations(convs);
+        // Auto-select most recent if nothing active
+        if (convs.length > 0) {
+          setActiveConversationId((prev) => {
+            if (prev && convs.some((c) => c.id === prev)) return prev;
+            return convs[0].id;
+          });
         }
-      } catch {
-        // Non-fatal — start with empty chat
-      } finally {
+      }
+    } catch {
+      // Non-fatal
+    } finally {
+      setIsLoadingConversations(false);
+    }
+  }, []);
+
+  const loadConversationMessages = useCallback(async (convId: string) => {
+    loadingConvRef.current = convId;
+    setIsLoadingChat(true);
+    setChatMessages([]);
+    try {
+      const res = await fetch(`/api/chat/conversations/${convId}/messages`);
+      if (res.ok && loadingConvRef.current === convId) {
+        const data = await res.json();
+        setChatMessages(data.messages ?? []);
+      }
+    } catch {
+      // Non-fatal
+    } finally {
+      if (loadingConvRef.current === convId) {
         setIsLoadingChat(false);
       }
     }
-    async function loadSavedMsgIds() {
+  }, []);
+
+  useEffect(() => {
+    loadConversations();
+    // Load saved message IDs for library bookmarks
+    (async () => {
       try {
         const res = await fetch("/api/library/saved-messages");
         if (res.ok) {
@@ -2370,10 +2440,18 @@ export default function CommandCenterPage() {
       } catch {
         // Non-fatal
       }
+    })();
+  }, [loadConversations]);
+
+  // Load messages when active conversation changes
+  useEffect(() => {
+    if (activeConversationId) {
+      loadConversationMessages(activeConversationId);
+    } else {
+      setChatMessages([]);
+      setIsLoadingChat(false);
     }
-    loadHistory();
-    loadSavedMsgIds();
-  }, []);
+  }, [activeConversationId, loadConversationMessages]);
 
   // Auto-scroll: tab switch → delayed (wait for AnimatePresence) + safety retry
   useEffect(() => {
@@ -2393,11 +2471,79 @@ export default function CommandCenterPage() {
     prevMsgCount.current = chatMessages.length;
   }, [chatMessages.length, activeTab, scrollToBottom]);
 
+  // ─── Conversation actions ─────────────────────────────
+
+  const createNewConversation = useCallback(() => {
+    setActiveConversationId(null);
+    setChatMessages([]);
+    setChatError(null);
+    setShowConversationList(false);
+    requestAnimationFrame(() => inputRef.current?.focus());
+  }, []);
+
+  const renameConversation = useCallback(async (convId: string, title: string) => {
+    const trimmed = title.trim();
+    if (!trimmed) return;
+    // Optimistic update
+    setConversations((prev) =>
+      prev.map((c) => (c.id === convId ? { ...c, title: trimmed } : c))
+    );
+    setRenamingConvId(null);
+    try {
+      await fetch(`/api/chat/conversations/${convId}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: trimmed }),
+      });
+    } catch {
+      // Revert on error — reload
+      loadConversations();
+    }
+  }, [loadConversations]);
+
+  const archiveConversation = useCallback(async (convId: string) => {
+    // Optimistic removal
+    setConversations((prev) => prev.filter((c) => c.id !== convId));
+    if (activeConversationId === convId) {
+      setActiveConversationId(null);
+      setChatMessages([]);
+      setShowConversationList(true);
+    }
+    try {
+      await fetch(`/api/chat/conversations/${convId}`, {
+        method: "DELETE",
+      });
+    } catch {
+      loadConversations();
+    }
+  }, [activeConversationId, loadConversations]);
+
   // ─── Send chat message ────────────────────────────────
 
   const sendMessage = useCallback(
     async (text: string) => {
       if (!text.trim() || isSending) return;
+
+      let convId = activeConversationId;
+
+      // If no active conversation, create one first
+      if (!convId) {
+        try {
+          const res = await fetch("/api/chat/conversations", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({}),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            convId = data.conversation.id;
+            setActiveConversationId(convId);
+          }
+        } catch {
+          // Fall through — send endpoint will create one
+        }
+      }
+
       const userMsg: ChatMsg = {
         role: "user",
         content: text.trim(),
@@ -2419,7 +2565,10 @@ export default function CommandCenterPage() {
         const res = await fetch("/api/chat/send", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ message: text.trim() }),
+          body: JSON.stringify({
+            message: text.trim(),
+            conversation_id: convId,
+          }),
         });
 
         if (!res.ok) {
@@ -2456,6 +2605,8 @@ export default function CommandCenterPage() {
                   : m
               )
             );
+            // Refresh conversation list to pick up auto-title & preview
+            loadConversations();
           },
           (err) => {
             setChatError(err);
@@ -2477,7 +2628,7 @@ export default function CommandCenterPage() {
         setIsSending(false);
       }
     },
-    [isSending]
+    [isSending, activeConversationId, loadConversations]
   );
 
   // ─── Save chat message to library ──────────────────
@@ -2672,47 +2823,313 @@ export default function CommandCenterPage() {
             )}
 
             {activeTab === "chat" && (
-              <div>
-                {isLoadingChat ? (
-                  <ChatSkeleton />
-                ) : chatMessages.length === 0 && !isSending ? (
-                  <ChatEmptyState onChipClick={handleChipClick} chips={chips} />
-                ) : (
-                  <div className="space-y-4 px-3">
-                    {chatMessages.map((msg, i) => (
-                      <ChatBubble
-                        key={msg.id || `msg-${i}`}
-                        msg={msg}
-                        isSaved={savedMessageIds.has(msg.id || msg.created_at || "")}
-                        onSave={msg.role === "assistant" ? () => saveChatToLibrary(msg) : undefined}
-                      />
-                    ))}
-                    {isSending &&
-                      !chatMessages.some((m) => m.isStreaming) && (
-                        <TypingIndicator />
-                      )}
-                  </div>
-                )}
-
-                {/* Error banner */}
-                {chatError && (
-                  <div
-                    className="mt-4 rounded-xl px-4 py-3 text-sm flex items-center justify-between"
-                    style={{
-                      background: "#fef2f2",
-                      border: "1px solid #fecaca",
-                      color: "#b91c1c",
-                    }}
-                  >
-                    <span>{chatError}</span>
+              <div className="flex gap-0 -mx-4 sm:mx-0" style={{ height: "calc(100% + 1rem)", marginTop: "-0.5rem" }}>
+                {/* ── Left panel: Conversation list ─────────── */}
+                <div
+                  className={`${
+                    showConversationList ? "flex" : "hidden"
+                  } sm:flex flex-col w-full sm:w-[240px] shrink-0 border-r`}
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-3 py-2.5 shrink-0">
+                    <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
+                      Chats
+                    </span>
                     <button
-                      onClick={() => setChatError(null)}
-                      className="ml-3 text-xs font-medium cursor-pointer hover:underline"
+                      onClick={createNewConversation}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95"
+                      style={{
+                        background: "var(--accent)",
+                      }}
+                      title="New Chat"
                     >
-                      Dismiss
+                      <Plus className="w-4 h-4" style={{ color: "#fff" }} strokeWidth={2.5} />
                     </button>
                   </div>
-                )}
+
+                  {/* Conversation list */}
+                  <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
+                    {isLoadingConversations ? (
+                      <ConversationListSkeleton />
+                    ) : conversations.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                        <MessageSquare className="w-8 h-8 mb-3" style={{ color: "var(--border)" }} />
+                        <p className="text-sm" style={{ color: "var(--muted)" }}>
+                          No conversations yet
+                        </p>
+                        <button
+                          onClick={createNewConversation}
+                          className="mt-3 text-xs font-medium cursor-pointer transition-colors hover:opacity-80"
+                          style={{ color: "var(--accent)" }}
+                        >
+                          Start a new chat
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-0.5 px-1.5 pb-2">
+                        {conversations.map((conv) => (
+                          <div
+                            key={conv.id}
+                            onClick={() => {
+                              setActiveConversationId(conv.id);
+                              setShowConversationList(false);
+                            }}
+                            className={`group/conv relative rounded-xl px-3 py-2.5 cursor-pointer transition-all ${
+                              activeConversationId === conv.id
+                                ? ""
+                                : "hover:bg-black/[0.03]"
+                            }`}
+                            style={
+                              activeConversationId === conv.id
+                                ? {
+                                    background: "rgba(220,103,67,0.08)",
+                                    boxShadow: "inset 0 0 0 1px rgba(220,103,67,0.15)",
+                                  }
+                                : undefined
+                            }
+                          >
+                            {renamingConvId === conv.id ? (
+                              <input
+                                autoFocus
+                                value={renameTitleDraft}
+                                onChange={(e) => setRenameTitleDraft(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    renameConversation(conv.id, renameTitleDraft);
+                                  } else if (e.key === "Escape") {
+                                    setRenamingConvId(null);
+                                  }
+                                }}
+                                onBlur={() => {
+                                  if (renameTitleDraft.trim()) {
+                                    renameConversation(conv.id, renameTitleDraft);
+                                  } else {
+                                    setRenamingConvId(null);
+                                  }
+                                }}
+                                className="w-full text-sm bg-transparent outline-none rounded px-1 -mx-1"
+                                style={{
+                                  color: "var(--foreground)",
+                                  boxShadow: "0 0 0 1.5px var(--accent)",
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            ) : (
+                              <>
+                                <div className="flex items-center justify-between gap-1">
+                                  <p
+                                    className="text-sm font-medium truncate flex-1"
+                                    style={{
+                                      color:
+                                        activeConversationId === conv.id
+                                          ? "var(--accent)"
+                                          : "var(--foreground)",
+                                    }}
+                                  >
+                                    {conv.title}
+                                  </p>
+                                  <div className="flex items-center gap-0.5 opacity-0 group-hover/conv:opacity-100 transition-opacity shrink-0">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setRenamingConvId(conv.id);
+                                        setRenameTitleDraft(conv.title);
+                                      }}
+                                      className="p-1 rounded-md cursor-pointer hover:bg-black/5 transition-colors"
+                                      title="Rename"
+                                    >
+                                      <Pencil className="w-3 h-3" style={{ color: "var(--muted)" }} />
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        archiveConversation(conv.id);
+                                      }}
+                                      className="p-1 rounded-md cursor-pointer hover:bg-red-50 transition-colors"
+                                      title="Delete"
+                                    >
+                                      <Trash2 className="w-3 h-3" style={{ color: "#b91c1c" }} />
+                                    </button>
+                                  </div>
+                                </div>
+                                {conv.last_message_preview && (
+                                  <p
+                                    className="text-xs truncate mt-0.5"
+                                    style={{ color: "var(--muted)" }}
+                                  >
+                                    {conv.last_message_preview}
+                                  </p>
+                                )}
+                                <p
+                                  className="text-[10px] mt-1"
+                                  style={{ color: "var(--muted)", opacity: 0.7 }}
+                                >
+                                  {timeAgo(conv.updated_at)}
+                                </p>
+                              </>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* ── Right panel: Chat messages ──────────── */}
+                <div
+                  className={`${
+                    showConversationList ? "hidden" : "flex"
+                  } sm:flex flex-col flex-1 min-w-0`}
+                >
+                  {/* Mobile back button */}
+                  <div className="sm:hidden flex items-center gap-2 px-3 py-2 shrink-0 border-b" style={{ borderColor: "var(--border)" }}>
+                    <button
+                      onClick={() => setShowConversationList(true)}
+                      className="flex items-center gap-1 text-sm cursor-pointer transition-colors hover:opacity-70"
+                      style={{ color: "var(--accent)" }}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      Chats
+                    </button>
+                    {activeConversationId && (
+                      <span className="text-sm font-medium truncate flex-1 text-right" style={{ color: "var(--foreground)" }}>
+                        {conversations.find((c) => c.id === activeConversationId)?.title ?? ""}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Messages area */}
+                  <div ref={chatScrollRef} className="flex-1 overflow-y-auto px-3 pt-4 pb-2" style={{ scrollbarWidth: "thin" }}>
+                    {!activeConversationId && !isSending ? (
+                      <ChatEmptyState onChipClick={handleChipClick} chips={chips} />
+                    ) : isLoadingChat ? (
+                      <ChatSkeleton />
+                    ) : chatMessages.length === 0 && !isSending ? (
+                      <ChatEmptyState onChipClick={handleChipClick} chips={chips} />
+                    ) : (
+                      <div className="space-y-4">
+                        {chatMessages.map((msg, i) => (
+                          <ChatBubble
+                            key={msg.id || `msg-${i}`}
+                            msg={msg}
+                            isSaved={savedMessageIds.has(msg.id || msg.created_at || "")}
+                            onSave={msg.role === "assistant" ? () => saveChatToLibrary(msg) : undefined}
+                          />
+                        ))}
+                        {isSending &&
+                          !chatMessages.some((m) => m.isStreaming) && (
+                            <TypingIndicator />
+                          )}
+                      </div>
+                    )}
+
+                    {/* Error banner */}
+                    {chatError && (
+                      <div
+                        className="mt-4 rounded-xl px-4 py-3 text-sm flex items-center justify-between"
+                        style={{
+                          background: "#fef2f2",
+                          border: "1px solid #fecaca",
+                          color: "#b91c1c",
+                        }}
+                      >
+                        <span>{chatError}</span>
+                        <button
+                          onClick={() => setChatError(null)}
+                          className="ml-3 text-xs font-medium cursor-pointer hover:underline"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Chat input (inside the right panel) */}
+                  <div
+                    className="shrink-0 px-3 pt-2 pb-3"
+                    style={{
+                      background: "linear-gradient(to top, #f8f7f4 80%, transparent)",
+                    }}
+                  >
+                    <div
+                      className="rounded-2xl px-4 py-3 flex items-center gap-3"
+                      style={{
+                        background: "rgba(255,255,255,0.8)",
+                        backdropFilter: "blur(12px)",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)",
+                      }}
+                    >
+                      <input
+                        ref={inputRef}
+                        type="text"
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSubmit();
+                          }
+                        }}
+                        placeholder="Message your agent..."
+                        className="flex-1 bg-transparent text-sm outline-none"
+                        style={{ color: "var(--foreground)" }}
+                        disabled={isSending}
+                      />
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <div className="relative" ref={modelPickerRef}>
+                          <button
+                            onClick={() => setShowModelPicker(!showModelPicker)}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs cursor-pointer transition-colors hover:opacity-70"
+                            style={{ color: "var(--muted)" }}
+                          >
+                            <span>{MODEL_OPTIONS.find((m) => m.id === currentModel)?.label ?? "Sonnet 4.5"}</span>
+                            <ChevronDown className="w-3 h-3" />
+                          </button>
+                          {showModelPicker && (
+                            <div
+                              className="absolute bottom-full right-0 mb-1.5 rounded-xl py-1.5 min-w-[160px] z-50"
+                              style={{
+                                background: "var(--card)",
+                                border: "1px solid var(--border)",
+                                boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+                              }}
+                            >
+                              {MODEL_OPTIONS.map((m) => (
+                                <button
+                                  key={m.id}
+                                  onClick={() => handleModelChange(m.id)}
+                                  className="w-full text-left px-3.5 py-2 text-xs cursor-pointer transition-colors flex items-center justify-between"
+                                  style={{
+                                    color: m.id === currentModel ? "var(--accent)" : "var(--foreground)",
+                                    background: m.id === currentModel ? "rgba(220,103,67,0.08)" : "transparent",
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    if (m.id !== currentModel) e.currentTarget.style.background = "rgba(0,0,0,0.04)";
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = m.id === currentModel ? "rgba(220,103,67,0.08)" : "transparent";
+                                  }}
+                                >
+                                  {m.label}
+                                  {m.id === currentModel && <Check className="w-3.5 h-3.5" />}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={handleSubmit}
+                          disabled={isSending || !chatInput.trim()}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 cursor-pointer transition-all hover:opacity-80 disabled:opacity-30 disabled:scale-95"
+                          style={{ background: "var(--accent)" }}
+                        >
+                          <ArrowUp className="w-4 h-4" style={{ color: "#ffffff" }} strokeWidth={2.5} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
                 {/* Chat toast */}
                 <AnimatePresence>
@@ -2845,92 +3262,7 @@ export default function CommandCenterPage() {
         </div>
       )}
 
-      {activeTab === "chat" && (
-        <div
-          className="shrink-0 -mx-4 px-4 pt-2"
-          style={{
-            background: "linear-gradient(to top, #f8f7f4 80%, transparent)",
-            paddingBottom: "max(1.25rem, calc(env(safe-area-inset-bottom) + 0.5rem))",
-          }}
-        >
-          <div
-            className="rounded-2xl px-5 py-3.5 flex items-center gap-3"
-            style={{
-              background: "rgba(255,255,255,0.8)",
-              backdropFilter: "blur(12px)",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)",
-            }}
-          >
-            <input
-              ref={activeTab === "chat" ? inputRef : undefined}
-              type="text"
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmit();
-                }
-              }}
-              placeholder="Message your agent..."
-              className="flex-1 bg-transparent text-sm outline-none"
-              style={{ color: "var(--foreground)" }}
-              disabled={isSending}
-            />
-            <div className="flex items-center gap-1.5 shrink-0">
-              <div className="relative" ref={activeTab === "chat" ? modelPickerRef : undefined}>
-                <button
-                  onClick={() => setShowModelPicker(!showModelPicker)}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs cursor-pointer transition-colors hover:opacity-70"
-                  style={{ color: "var(--muted)" }}
-                >
-                  <span>{MODEL_OPTIONS.find((m) => m.id === currentModel)?.label ?? "Sonnet 4.5"}</span>
-                  <ChevronDown className="w-3 h-3" />
-                </button>
-                {showModelPicker && (
-                  <div
-                    className="absolute bottom-full right-0 mb-1.5 rounded-xl py-1.5 min-w-[160px] z-50"
-                    style={{
-                      background: "var(--card)",
-                      border: "1px solid var(--border)",
-                      boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
-                    }}
-                  >
-                    {MODEL_OPTIONS.map((m) => (
-                      <button
-                        key={m.id}
-                        onClick={() => handleModelChange(m.id)}
-                        className="w-full text-left px-3.5 py-2 text-xs cursor-pointer transition-colors flex items-center justify-between"
-                        style={{
-                          color: m.id === currentModel ? "var(--accent)" : "var(--foreground)",
-                          background: m.id === currentModel ? "rgba(220,103,67,0.08)" : "transparent",
-                        }}
-                        onMouseEnter={(e) => {
-                          if (m.id !== currentModel) e.currentTarget.style.background = "rgba(0,0,0,0.04)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = m.id === currentModel ? "rgba(220,103,67,0.08)" : "transparent";
-                        }}
-                      >
-                        {m.label}
-                        {m.id === currentModel && <Check className="w-3.5 h-3.5" />}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={handleSubmit}
-                disabled={isSending || !chatInput.trim()}
-                className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 cursor-pointer transition-all hover:opacity-80 disabled:opacity-30 disabled:scale-95"
-                style={{ background: "var(--accent)" }}
-              >
-                <ArrowUp className="w-4 h-4" style={{ color: "#ffffff" }} strokeWidth={2.5} />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Chat input is now inside the two-panel layout */}
     </div>
   );
 }

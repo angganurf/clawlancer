@@ -13,7 +13,7 @@ const MAX_TOKENS = 2048;
  *
  * Sends a message to the user's agent and streams the response.
  * The system prompt comes from the VM's config + user profile data.
- * Chat history is stored in Supabase.
+ * Chat history is stored in Supabase, scoped by conversation_id.
  */
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -31,9 +31,11 @@ export async function POST(req: NextRequest) {
   }
 
   let message: string;
+  let conversationId: string | undefined;
   try {
     const body = await req.json();
     message = body.message;
+    conversationId = body.conversation_id;
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
@@ -44,6 +46,33 @@ export async function POST(req: NextRequest) {
   message = message.trim();
 
   const supabase = getSupabase();
+
+  // Resolve conversation_id: use provided, find most recent, or create one
+  if (!conversationId) {
+    const { data: recent } = await supabase
+      .from("instaclaw_conversations")
+      .select("id")
+      .eq("user_id", session.user.id)
+      .eq("is_archived", false)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (recent) {
+      conversationId = recent.id;
+    } else {
+      const { data: newConv } = await supabase
+        .from("instaclaw_conversations")
+        .insert({ user_id: session.user.id, title: "New Chat" })
+        .select("id")
+        .single();
+      conversationId = newConv?.id;
+    }
+  }
+
+  if (!conversationId) {
+    return NextResponse.json({ error: "Failed to resolve conversation" }, { status: 500 });
+  }
 
   // Get VM info (for model + system_prompt)
   const { data: vm } = await supabase
@@ -74,11 +103,11 @@ export async function POST(req: NextRequest) {
     user?.gmail_insights
   );
 
-  // Get recent chat history
+  // Get recent chat history scoped to this conversation
   const { data: history } = await supabase
     .from("instaclaw_chat_messages")
     .select("role, content")
-    .eq("user_id", session.user.id)
+    .eq("conversation_id", conversationId)
     .order("created_at", { ascending: false })
     .limit(MAX_HISTORY);
 
@@ -90,9 +119,19 @@ export async function POST(req: NextRequest) {
   // Save the user message immediately
   await supabase.from("instaclaw_chat_messages").insert({
     user_id: session.user.id,
+    conversation_id: conversationId,
     role: "user",
     content: message,
   });
+
+  // Get current conversation metadata for auto-title check
+  const { data: convMeta } = await supabase
+    .from("instaclaw_conversations")
+    .select("message_count")
+    .eq("id", conversationId)
+    .single();
+
+  const wasEmpty = (convMeta?.message_count ?? 0) === 0;
 
   // Call Anthropic with streaming
   const model = vm.default_model || "claude-haiku-4-5-20251001";
@@ -131,6 +170,7 @@ export async function POST(req: NextRequest) {
     // Pipe the SSE stream through and accumulate the full response
     // so we can save it to the database when done
     const userId = session.user.id;
+    const convId = conversationId;
     const reader = anthropicRes.body?.getReader();
     if (!reader) {
       return NextResponse.json({ error: "No response stream" }, { status: 502 });
@@ -169,12 +209,15 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          // Save the complete assistant response
+          // Save the complete assistant response + update conversation metadata
           if (fullText.length > 0) {
-            getSupabase()
-              .from("instaclaw_chat_messages")
+            const db = getSupabase();
+
+            // Save assistant message
+            db.from("instaclaw_chat_messages")
               .insert({
                 user_id: userId,
+                conversation_id: convId,
                 role: "assistant",
                 content: fullText,
               })
@@ -186,6 +229,39 @@ export async function POST(req: NextRequest) {
                     userId,
                   });
                 }
+              });
+
+            // Update conversation metadata
+            const preview = fullText.slice(0, 100);
+            const updateFields: Record<string, unknown> = {
+              last_message_preview: preview,
+              updated_at: new Date().toISOString(),
+            };
+
+            // Auto-title from first user message if conversation was empty
+            if (wasEmpty) {
+              const words = message.split(/\s+/);
+              let title = "";
+              for (const word of words) {
+                if ((title + " " + word).trim().length > 50) break;
+                title = (title + " " + word).trim();
+              }
+              updateFields.title = title || message.slice(0, 50);
+            }
+
+            // Update metadata + increment message_count
+            db.from("instaclaw_conversations")
+              .select("message_count")
+              .eq("id", convId)
+              .single()
+              .then(({ data: conv }) => {
+                db.from("instaclaw_conversations")
+                  .update({
+                    ...updateFields,
+                    message_count: ((conv?.message_count ?? 0) + 2),
+                  })
+                  .eq("id", convId)
+                  .then(() => {});
               });
           }
         } catch (err) {
@@ -220,4 +296,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-

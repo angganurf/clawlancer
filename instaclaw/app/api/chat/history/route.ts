@@ -8,7 +8,8 @@ const DEFAULT_LIMIT = 50;
  * GET /api/chat/history
  *
  * Returns the user's chat history, ordered by created_at ascending.
- * Supports ?limit=N parameter (default 50, max 200).
+ * Supports ?limit=N and optional ?conversation_id= for multi-chat.
+ * If no conversation_id, returns the most recent conversation's messages.
  */
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -22,14 +23,36 @@ export async function GET(req: NextRequest) {
     200
   );
 
+  const conversationId = req.nextUrl.searchParams.get("conversation_id");
   const supabase = getSupabase();
 
-  const { data: messages, error } = await supabase
+  let query = supabase
     .from("instaclaw_chat_messages")
     .select("id, role, content, created_at")
-    .eq("user_id", session.user.id)
     .order("created_at", { ascending: false })
     .limit(limit);
+
+  if (conversationId) {
+    query = query.eq("conversation_id", conversationId);
+  } else {
+    // Backward compat: find most recent conversation for this user
+    const { data: recent } = await supabase
+      .from("instaclaw_conversations")
+      .select("id")
+      .eq("user_id", session.user.id)
+      .eq("is_archived", false)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (recent) {
+      query = query.eq("conversation_id", recent.id);
+    } else {
+      query = query.eq("user_id", session.user.id);
+    }
+  }
+
+  const { data: messages, error } = await query;
 
   if (error) {
     return NextResponse.json(
