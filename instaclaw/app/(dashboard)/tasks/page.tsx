@@ -427,14 +427,8 @@ function StatusDot({ status }: { status: TaskStatus }) {
   const base = "w-2 h-2 rounded-full shrink-0";
   switch (status) {
     case "completed":
-      return null;
     case "active":
-      return (
-        <span
-          className={base}
-          style={{ background: "#16a34a", boxShadow: "0 0 6px rgba(34,197,94,0.5)" }}
-        />
-      );
+      return null;
     case "in_progress":
       return (
         <span
