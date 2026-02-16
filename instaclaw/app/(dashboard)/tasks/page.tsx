@@ -1314,9 +1314,20 @@ function TaskCard({
                             : "var(--muted)",
                       }}
                     >
-                      <Send className="w-3.5 h-3.5" />
+                      <span
+                        className="w-4 h-4 rounded-full flex items-center justify-center shrink-0"
+                        style={{
+                          background: task.last_delivery_status === "delivered"
+                            ? "#16a34a"
+                            : task.last_delivery_status === "delivery_failed"
+                              ? "#ef4444"
+                              : "#9ca3af",
+                        }}
+                      >
+                        <TelegramMark size={11} />
+                      </span>
                       {task.last_delivery_status === "delivered" ? (
-                        <>Auto-sent to Telegram <TelegramMark size={14} /></>
+                        "Auto-sent to Telegram"
                       ) : task.last_delivery_status === "delivery_failed" ? (
                         "Delivery failed"
                       ) : (
