@@ -2758,7 +2758,7 @@ export default function CommandCenterPage() {
       </div>
 
       {/* ── Scrollable content area ─────────────────────────── */}
-      <div ref={scrollRef} className={`flex-1 min-h-0 ${activeTab === "chat" ? "flex flex-col overflow-hidden pt-2" : "overflow-y-auto pt-6 pb-2"}`}>
+      <div ref={scrollRef} className={`flex-1 min-h-0 ${activeTab === "chat" ? "flex flex-col overflow-hidden pt-2 -mx-4 sm:mx-0" : "overflow-y-auto pt-6 pb-2"}`}>
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -2825,7 +2825,7 @@ export default function CommandCenterPage() {
             )}
 
             {activeTab === "chat" && (
-              <div className="relative -mx-4 sm:mx-0 overflow-hidden flex-1 min-h-0 flex flex-col">
+              <div className="relative overflow-hidden flex-1 min-h-0 flex flex-col">
                 {/* ── Overlay sidebar: Conversation list ─────────── */}
                 <AnimatePresence>
                   {showConversationList && (
