@@ -906,28 +906,68 @@ function TasksSkeleton() {
 
 /* ─── Tasks Empty State ──────────────────────────────────── */
 
-function TasksEmptyState() {
+const emptyStates: Record<FilterOption, { icon: typeof Zap; title: string; description: string; hint?: string }> = {
+  all: {
+    icon: Zap,
+    title: "No tasks yet",
+    description: "Tell your agent what to do — just type below.",
+    hint: "Try: \"Research the top AI agent frameworks\" or \"Draft a weekly investor update\"",
+  },
+  recurring: {
+    icon: Repeat,
+    title: "No recurring tasks",
+    description: "Set up tasks that run on autopilot — daily, weekly, or on any schedule.",
+    hint: "Try: \"Send me a weekly SaaS newsletter digest\" or \"Monitor my competitors daily\"",
+  },
+  scheduled: {
+    icon: Sparkles,
+    title: "Nothing scheduled",
+    description: "Schedule tasks to run at a specific time in the future.",
+    hint: "Try: \"Tomorrow at 9am, draft my weekly standup notes\"",
+  },
+  completed: {
+    icon: Check,
+    title: "No completed tasks",
+    description: "Tasks your agent has finished will show up here.",
+  },
+};
+
+function TasksEmptyState({ filter }: { filter: FilterOption }) {
+  const state = emptyStates[filter];
+  const Icon = state.icon;
   return (
-    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+    <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
       <div
-        className="w-14 h-14 rounded-full flex items-center justify-center text-2xl mb-4"
-        style={{ background: "var(--card)", border: "1px solid var(--border)" }}
+        className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5"
+        style={{
+          background: "rgba(255,255,255,0.6)",
+          backdropFilter: "blur(12px)",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.6)",
+        }}
       >
-        {"\u{1F4CB}"}
+        <Icon className="w-6 h-6" style={{ color: "var(--muted)" }} strokeWidth={1.5} />
       </div>
       <h3
-        className="text-lg font-normal mb-1"
-        style={{ fontFamily: "var(--font-serif)" }}
+        className="text-lg font-normal mb-1.5"
+        style={{ fontFamily: "var(--font-serif)", color: "var(--foreground)" }}
       >
-        No tasks yet
+        {state.title}
       </h3>
-      <p className="text-sm mb-2" style={{ color: "var(--muted)" }}>
-        Tell your agent what to do &mdash; just type below.
+      <p className="text-[13px] max-w-xs" style={{ color: "var(--muted)" }}>
+        {state.description}
       </p>
-      <p className="text-xs" style={{ color: "var(--muted)" }}>
-        Try something like: &ldquo;Research the top AI agent frameworks&rdquo;
-        or &ldquo;Draft a weekly investor update&rdquo;
-      </p>
+      {state.hint && (
+        <p
+          className="text-[11px] max-w-sm mt-4 px-4 py-2.5 rounded-xl"
+          style={{
+            color: "var(--muted)",
+            background: "rgba(255,255,255,0.4)",
+            border: "1px solid rgba(0,0,0,0.04)",
+          }}
+        >
+          {state.hint}
+        </p>
+      )}
     </div>
   );
 }
@@ -2849,7 +2889,7 @@ export default function CommandCenterPage() {
                 {isLoadingTasks ? (
                   <TasksSkeleton />
                 ) : tasks.length === 0 ? (
-                  <TasksEmptyState />
+                  <TasksEmptyState filter={filter} />
                 ) : (
                   <div className="space-y-4">
                     {tasks.map((task) => (
