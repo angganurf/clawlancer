@@ -217,7 +217,7 @@ type Tab = "tasks" | "chat" | "library";
 
 type TaskStatus = "completed" | "in_progress" | "queued" | "failed" | "active" | "paused";
 
-type FilterOption = "all" | "active" | "scheduled" | "completed";
+type FilterOption = "all" | "recurring" | "scheduled" | "completed";
 
 interface TaskItem {
   id: string;
@@ -307,7 +307,7 @@ const quickActions = [
 
 const filterOptions: { key: FilterOption; label: string }[] = [
   { key: "all", label: "All" },
-  { key: "active", label: "Active" },
+  { key: "recurring", label: "Recurring" },
   { key: "scheduled", label: "Scheduled" },
   { key: "completed", label: "Completed" },
 ];
@@ -386,8 +386,8 @@ function formatNextRun(iso: string | null | undefined, isPaused: boolean): strin
 /** Map filter option to status query param */
 function filterToStatus(filter: FilterOption): string | undefined {
   switch (filter) {
-    case "active":
-      return "in_progress,active,paused";
+    case "recurring":
+      return undefined; // recurring uses a separate query param, not status
     case "scheduled":
       return "queued";
     case "completed":
@@ -2065,10 +2065,11 @@ export default function CommandCenterPage() {
 
   // ─── Fetch tasks ───────────────────────────────────────
 
-  const fetchTasks = useCallback(async (statusFilter?: string) => {
+  const fetchTasks = useCallback(async (statusFilter?: string, opts?: { recurring?: boolean }) => {
     try {
       const params = new URLSearchParams();
       if (statusFilter) params.set("status", statusFilter);
+      if (opts?.recurring) params.set("recurring", "true");
       params.set("limit", "100");
       const res = await fetch(`/api/tasks/list?${params}`);
       if (!res.ok) throw new Error("Failed to fetch");
@@ -2096,7 +2097,7 @@ export default function CommandCenterPage() {
 
   // Initial load
   useEffect(() => {
-    fetchTasks(filterToStatus(filter));
+    fetchTasks(filterToStatus(filter), filter === "recurring" ? { recurring: true } : undefined);
     fetchFailedCount();
   }, [filter, fetchTasks, fetchFailedCount]);
 
@@ -2333,7 +2334,7 @@ export default function CommandCenterPage() {
       await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
     } catch {
       // Already removed from UI — re-fetch to sync
-      fetchTasks(filterToStatus(filter));
+      fetchTasks(filterToStatus(filter), filter === "recurring" ? { recurring: true } : undefined);
     }
   }, [fetchTasks, filter]);
 
@@ -2356,7 +2357,7 @@ export default function CommandCenterPage() {
       }
     } catch {
       // Re-fetch to get true state
-      fetchTasks(filterToStatus(filter));
+      fetchTasks(filterToStatus(filter), filter === "recurring" ? { recurring: true } : undefined);
     }
   }, [fetchTasks, filter]);
 
@@ -2375,7 +2376,7 @@ export default function CommandCenterPage() {
     try {
       await fetch(`/api/tasks/${taskId}/trigger`, { method: "POST" });
     } catch {
-      fetchTasks(filterToStatus(filter));
+      fetchTasks(filterToStatus(filter), filter === "recurring" ? { recurring: true } : undefined);
     }
   }, [fetchTasks, filter]);
 

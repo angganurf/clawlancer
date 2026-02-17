@@ -45,6 +45,12 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Filter recurring tasks
+  const recurring = params.get("recurring");
+  if (recurring === "true") {
+    query = query.eq("is_recurring", true);
+  }
+
   const { data: tasks, error, count } = await query;
 
   if (error) {
