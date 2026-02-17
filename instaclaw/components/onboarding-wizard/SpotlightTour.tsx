@@ -180,7 +180,7 @@ export default function SpotlightTour({
 
       // Poll for element until it appears (handles async data-fetching pages)
       let attempts = 0;
-      const maxAttempts = 10;
+      const maxAttempts = 15;
 
       const tryPosition = () => {
         attempts++;
@@ -189,6 +189,20 @@ export default function SpotlightTour({
         if (!el && attempts < maxAttempts) {
           // Element not in DOM yet, retry in 200ms
           retryRef.current = setTimeout(tryPosition, 200);
+          return;
+        }
+
+        // Element not found after all retries — auto-skip to next step
+        if (!el) {
+          setIsTransitioning(false);
+          const next = currentStep + 1;
+          if (next < tourSteps.length) {
+            setCurrentStep(next);
+            onStepChange(next);
+          } else {
+            setMoreOpen(false);
+            onComplete();
+          }
           return;
         }
 
@@ -220,7 +234,7 @@ export default function SpotlightTour({
     return () => {
       if (retryRef.current) clearTimeout(retryRef.current);
     };
-  }, [currentStep, step, navigateTo, setMoreOpen, updatePosition]);
+  }, [currentStep, step, navigateTo, setMoreOpen, updatePosition, onStepChange, onComplete]);
 
   // Recalc on window resize
   useEffect(() => {

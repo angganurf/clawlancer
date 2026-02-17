@@ -103,18 +103,21 @@ const tourSteps: TourStep[] = [
     title: "Chat Tab",
     description:
       "Think of this as texting your agent. Ask questions, brainstorm ideas, or get quick answers, just like you would with a coworker.",
+    navigateTo: "/tasks",
   },
   {
     selector: '[data-tour="tab-library"]',
     title: "Library Tab",
     description:
       "Everything your agent creates ends up here. Pin the good stuff, search past work, or export anything as a file.",
+    navigateTo: "/tasks",
   },
   {
     selector: '[data-tour="input-bar"]',
     title: "Type Here to Get Started",
     description:
       "This is where you give instructions. Just type what you need. Your agent has full internet access and works on a private server dedicated to you.",
+    navigateTo: "/tasks",
     position: "top",
   },
   {
@@ -122,6 +125,7 @@ const tourSteps: TourStep[] = [
     title: "Quick Actions",
     description:
       "Not sure what to try? Tap any of these for instant ideas. They're one-click shortcuts for popular tasks.",
+    navigateTo: "/tasks",
     position: "top",
   },
   {
