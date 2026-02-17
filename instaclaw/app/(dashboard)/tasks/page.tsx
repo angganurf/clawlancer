@@ -3116,7 +3116,7 @@ export default function CommandCenterPage() {
                     )}
                   </div>
 
-                  {/* Chat input */}
+                  {/* Suggestion chips + Chat input */}
                   <div
                     className="shrink-0 px-3 pt-2"
                     style={{
@@ -3124,6 +3124,28 @@ export default function CommandCenterPage() {
                       paddingBottom: "max(0.75rem, calc(env(safe-area-inset-bottom) + 0.25rem))",
                     }}
                   >
+                    {/* Quick action chips — show when not typing and not sending */}
+                    {!isSending && !chatInput.trim() && (
+                      <div className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: "none" }}>
+                        {chips.slice(0, 4).map((a) => (
+                          <button
+                            key={a.label}
+                            onClick={() => handleChipClick(a.prefill)}
+                            className="shrink-0 px-3 py-1.5 rounded-full text-[12px] font-medium cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.97]"
+                            style={{
+                              background: "rgba(255,255,255,0.6)",
+                              backdropFilter: "blur(8px)",
+                              boxShadow: "0 1px 2px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.5)",
+                              border: "1px solid rgba(0,0,0,0.06)",
+                              color: "var(--foreground)",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {a.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     <div
                       className="rounded-2xl px-4 py-3 flex items-center gap-3"
                       style={{
