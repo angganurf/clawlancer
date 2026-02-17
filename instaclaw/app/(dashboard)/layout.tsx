@@ -14,7 +14,7 @@ import {
   FolderOpen,
   Key,
   MoreHorizontal,
-  ClipboardList,
+  MessageSquare,
   Sparkles,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
@@ -23,7 +23,7 @@ import OnboardingWizard from "@/components/onboarding-wizard/OnboardingWizard";
 // Primary items always visible on mobile
 const primaryNav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, tourKey: "nav-dashboard" },
-  { href: "/tasks", label: "Command Center", icon: ClipboardList, tourKey: "nav-command-center" },
+  { href: "/tasks", label: "Command Center", icon: MessageSquare, tourKey: "nav-command-center" },
   { href: "/history", label: "History", icon: History, tourKey: "nav-history" },
 ];
 
