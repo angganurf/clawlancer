@@ -74,6 +74,7 @@ Rules:
 - No emojis
 - No em dashes
 - Suggestions should be diverse (research, writing, monitoring, scheduling, etc.)
+- IMPORTANT: Generate completely DIFFERENT suggestions each time. Be creative and varied. Random seed: ${Date.now()}
 
 Respond in this exact JSON format, nothing else:
 [
@@ -100,9 +101,9 @@ Respond in this exact JSON format, nothing else:
     text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
     const suggestions = JSON.parse(text);
 
-    const response = NextResponse.json({ suggestions });
-    response.headers.set("Cache-Control", "private, max-age=3600");
-    return response;
+    return NextResponse.json({ suggestions }, {
+      headers: { "Cache-Control": "no-store" },
+    });
   } catch {
     return NextResponse.json({ suggestions: null });
   }

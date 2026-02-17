@@ -2148,8 +2148,12 @@ export default function CommandCenterPage() {
     setIsRefreshingChips(true);
     setChipsJustRefreshed(false);
     try {
-      const res = await fetch("/api/tasks/suggestions");
-      const data = await res.json();
+      // Cache-bust with timestamp + minimum 1.2s so the glow animation plays out
+      const [res] = await Promise.all([
+        fetch(`/api/tasks/suggestions?t=${Date.now()}`),
+        new Promise((r) => setTimeout(r, 1200)),
+      ]);
+      const data = await (res as Response).json();
       if (data.suggestions) setPersonalChips(data.suggestions);
     } catch {
       // Non-fatal
