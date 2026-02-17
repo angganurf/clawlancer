@@ -324,22 +324,29 @@ export default function SpotlightTour({
         {tooltipInfo && !isTransitioning && (
           <motion.div
             key={currentStep}
-            className={`z-[9999] ${step.large ? "max-w-sm" : "w-80"} ${
-              isMobile ? "p-6 pb-8" : "p-5 rounded-xl"
+            className={`${
+              isMobile
+                ? "fixed bottom-0 left-0 right-0 z-[9999] p-6"
+                : `z-[9999] ${step.large ? "max-w-sm" : "w-80"} p-5 rounded-xl`
             }`}
             style={{
-              ...tooltipInfo.style,
+              ...(isMobile ? {} : tooltipInfo.style),
+              pointerEvents: "auto",
               background: isMobile
-                ? "rgba(255, 255, 255, 0.92)"
+                ? "rgba(255, 255, 255, 0.95)"
                 : "rgba(255, 255, 255, 0.82)",
               backdropFilter: "blur(24px)",
               WebkitBackdropFilter: "blur(24px)",
+              borderRadius: isMobile ? "16px 16px 0 0" : undefined,
               border: isMobile
                 ? "none"
                 : "1px solid rgba(255, 255, 255, 0.5)",
               boxShadow: isMobile
                 ? "0 -8px 32px rgba(0,0,0,0.12), 0 0 0 1px rgba(255,255,255,0.3) inset"
                 : "0 12px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(255,255,255,0.3) inset, 0 -2px 6px rgba(255,255,255,0.4) inset",
+              paddingBottom: isMobile
+                ? "max(2rem, calc(env(safe-area-inset-bottom) + 1.5rem))"
+                : undefined,
             }}
             initial={{ opacity: 0, y: tooltipInfo.pos === "top" ? 8 : -8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -403,7 +410,9 @@ export default function SpotlightTour({
                   )}
                   <button
                     onClick={goNext}
-                    className="flex items-center gap-1 px-3.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all hover:opacity-90 active:scale-[0.96]"
+                    className={`flex items-center gap-1 rounded-lg font-medium cursor-pointer transition-all hover:opacity-90 active:scale-[0.96] ${
+                      isMobile ? "px-5 py-2.5 text-sm" : "px-3.5 py-1.5 text-xs"
+                    }`}
                     style={{
                       background: "var(--foreground)",
                       color: "var(--background)",
