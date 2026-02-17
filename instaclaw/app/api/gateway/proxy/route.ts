@@ -291,21 +291,39 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Already notified — return 429 so OpenClaw backs off silently
+      // Already notified — return a valid but empty assistant response with
+      // stop_reason "end_turn". OpenClaw treats this as "nothing to say" and
+      // won't forward anything to Telegram. A 429 doesn't work because
+      // OpenClaw extracts the error message text and sends it as a chat msg.
+      if (isStreaming) {
+        const encoder = new TextEncoder();
+        const stream = new ReadableStream({
+          start(controller) {
+            // Minimal SSE stream: message_start → content_block_start → content_block_stop → message_delta(end_turn) → message_stop
+            const msgId = `msg_limit_${Date.now()}`;
+            controller.enqueue(encoder.encode(`event: message_start\ndata: ${JSON.stringify({ type: "message_start", message: { id: msgId, type: "message", role: "assistant", content: [], model: requestedModel, stop_reason: null, stop_sequence: null, usage: { input_tokens: 0, output_tokens: 0 } } })}\n\n`));
+            controller.enqueue(encoder.encode(`event: message_delta\ndata: ${JSON.stringify({ type: "message_delta", delta: { stop_reason: "end_turn", stop_sequence: null }, usage: { output_tokens: 0 } })}\n\n`));
+            controller.enqueue(encoder.encode(`event: message_stop\ndata: ${JSON.stringify({ type: "message_stop" })}\n\n`));
+            controller.close();
+          },
+        });
+        return new Response(stream, {
+          status: 200,
+          headers: { "content-type": "text/event-stream", "cache-control": "no-cache" },
+        });
+      }
       return NextResponse.json(
         {
-          type: "error",
-          error: {
-            type: "rate_limit_error",
-            message: `Daily limit reached (${displayLimit}/${displayLimit} units). Resets at midnight UTC.`,
-          },
+          id: `msg_limit_${Date.now()}`,
+          type: "message",
+          role: "assistant",
+          content: [],
+          model: requestedModel,
+          stop_reason: "end_turn",
+          stop_sequence: null,
+          usage: { input_tokens: 0, output_tokens: 0 },
         },
-        {
-          status: 429,
-          headers: {
-            "retry-after": "3600",
-          },
-        }
+        { status: 200 }
       );
     }
 
