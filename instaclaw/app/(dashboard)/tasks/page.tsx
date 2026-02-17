@@ -3186,21 +3186,23 @@ export default function CommandCenterPage() {
                         {chips.slice(0, 4).map((a, i) => (
                           <button
                             key={a.label}
-                            onClick={() => handleChipClick(a.prefill)}
+                            onClick={() => !isRefreshingChips && handleChipClick(a.prefill)}
                             className="shrink-0 px-3 py-1.5 rounded-full text-[12px] font-medium cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.97]"
                             style={{
                               background: isRefreshingChips
-                                ? "linear-gradient(to top, rgba(220,103,67,0.1), rgba(255,180,120,0.05), rgba(255,255,255,0.6)) no-repeat"
+                                ? "linear-gradient(90deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.5) 40%, rgba(255,255,255,0.8) 50%, rgba(255,255,255,0.5) 60%, rgba(255,255,255,0.5) 100%)"
                                 : "rgba(255,255,255,0.6)",
-                              backgroundSize: isRefreshingChips ? "100% 200%" : undefined,
+                              backgroundSize: isRefreshingChips ? "200% 100%" : undefined,
                               backdropFilter: "blur(8px)",
-                              border: isRefreshingChips ? "1px solid rgba(220,103,67,0.15)" : "1px solid rgba(0,0,0,0.06)",
-                              color: "var(--foreground)",
+                              boxShadow: "0 1px 2px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.5)",
+                              border: "1px solid rgba(0,0,0,0.06)",
+                              color: isRefreshingChips ? "var(--muted)" : "var(--foreground)",
                               whiteSpace: "nowrap",
+                              opacity: isRefreshingChips ? 0.7 : 1,
                               animation: isRefreshingChips
-                                ? `chip-fill 0.8s ease-out ${i * 0.1}s forwards, chip-glow 0.8s ease-out ${i * 0.1}s forwards`
+                                ? `chip-shimmer 1.5s ease-in-out infinite ${i * 0.15}s`
                                 : chipsJustRefreshed
-                                  ? `chip-fade-in 0.4s ease-out ${i * 0.08}s both`
+                                  ? `chip-fade-in 0.35s ease-out ${i * 0.06}s both`
                                   : undefined,
                             }}
                           >
@@ -3214,8 +3216,8 @@ export default function CommandCenterPage() {
                           style={{
                             background: "rgba(255,255,255,0.5)",
                             backdropFilter: "blur(8px)",
-                            border: isRefreshingChips ? "1px solid rgba(220,103,67,0.2)" : "1px solid rgba(0,0,0,0.06)",
-                            animation: isRefreshingChips ? "refresh-glow 1s ease-in-out infinite" : undefined,
+                            boxShadow: "0 1px 2px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.5)",
+                            border: "1px solid rgba(0,0,0,0.06)",
                           }}
                           title="Refresh suggestions"
                         >
@@ -3352,15 +3354,16 @@ export default function CommandCenterPage() {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs whitespace-nowrap cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
                 style={{
                   background: isRefreshingChips
-                    ? "linear-gradient(to top, rgba(220,103,67,0.1), rgba(255,180,120,0.05), rgba(255,255,255,0.45)) no-repeat"
+                    ? "linear-gradient(90deg, rgba(255,255,255,0.45) 0%, rgba(0,0,0,0.03) 50%, rgba(255,255,255,0.45) 100%)"
                     : "rgba(255,255,255,0.45)",
-                  backgroundSize: isRefreshingChips ? "100% 200%" : undefined,
-                  border: isRefreshingChips ? "1px solid rgba(220,103,67,0.15)" : "1px solid rgba(0,0,0,0.06)",
-                  color: "var(--muted)",
+                  backgroundSize: isRefreshingChips ? "200% 100%" : undefined,
+                  border: "1px solid rgba(0,0,0,0.06)",
+                  color: isRefreshingChips ? "var(--muted)" : "var(--muted)",
+                  opacity: isRefreshingChips ? 0.7 : 1,
                   animation: isRefreshingChips
-                    ? `chip-fill 0.8s ease-out ${i * 0.1}s forwards, chip-glow 0.8s ease-out ${i * 0.1}s forwards`
+                    ? `chip-shimmer 1.5s ease-in-out infinite ${i * 0.15}s`
                     : chipsJustRefreshed
-                      ? `chip-fade-in 0.4s ease-out ${i * 0.08}s both`
+                      ? `chip-fade-in 0.35s ease-out ${i * 0.06}s both`
                       : undefined,
                 }}
               >
@@ -3374,8 +3377,8 @@ export default function CommandCenterPage() {
               style={{
                 background: "rgba(255,255,255,0.5)",
                 backdropFilter: "blur(8px)",
-                border: isRefreshingChips ? "1px solid rgba(220,103,67,0.2)" : "1px solid rgba(0,0,0,0.06)",
-                animation: isRefreshingChips ? "refresh-glow 1s ease-in-out infinite" : undefined,
+                boxShadow: "0 1px 2px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.5)",
+                border: "1px solid rgba(0,0,0,0.06)",
               }}
               title="Refresh suggestions"
             >
