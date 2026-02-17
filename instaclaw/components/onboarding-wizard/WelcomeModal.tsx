@@ -95,6 +95,9 @@ export default function WelcomeModal({ botConnected, onActivateBot, onSkip }: We
         >
           {botConnected ? "I\u2019ll explore on my own" : "I\u2019ll do this later"}
         </button>
+        <p className="mt-3 text-[11px] leading-relaxed" style={{ color: "var(--muted)", opacity: 0.6 }}>
+          You can always tap the sparkle icon in the top right to retake the tour.
+        </p>
       </motion.div>
     </motion.div>
   );
