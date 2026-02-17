@@ -673,6 +673,14 @@ function ThinkingPhrases() {
   );
 }
 
+/* Strip XML-like tool tags the model may hallucinate (e.g. <web_search>, <query>) */
+function stripToolTags(text: string): string {
+  return text
+    .replace(/<\/?(?:web_search|query|search|tool_use|result|function_call|invoke)[^>]*>/gi, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 /* ─── Chat Bubble ────────────────────────────────────────── */
 
 function ChatBubble({
@@ -729,7 +737,7 @@ function ChatBubble({
             msg.content
           ) : (
             <div className="prose prose-sm max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0 [&_pre]:my-2 [&_pre]:rounded-lg [&_pre]:bg-black/5 [&_pre]:p-3 [&_code]:text-xs [&_code]:bg-black/5 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_pre_code]:bg-transparent [&_pre_code]:p-0">
-              <ReactMarkdown>{msg.content}</ReactMarkdown>
+              <ReactMarkdown>{stripToolTags(msg.content)}</ReactMarkdown>
             </div>
           )}
           {msg.isStreaming && msg.content && (
