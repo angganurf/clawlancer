@@ -3067,27 +3067,29 @@ export default function CommandCenterPage() {
                 {/* ── Main chat area (always full width) ──────────── */}
                 <div className="flex flex-col flex-1 min-h-0">
                   {/* Chat header with sidebar toggle */}
-                  <div className="flex items-center gap-2 px-3 py-2 shrink-0 border-b" style={{ borderColor: "var(--border)" }}>
+                  <div className="flex items-center h-11 px-2 sm:px-3 shrink-0 border-b" style={{ borderColor: "var(--border)" }}>
                     <button
-                      onClick={() => setShowConversationList(true)}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer transition-colors hover:bg-black/5"
-                      title="Open conversations"
+                      onClick={() => setShowConversationList((v) => !v)}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer transition-colors hover:bg-black/[0.05] active:scale-95 shrink-0"
+                      title={showConversationList ? "Close sidebar" : "Open conversations"}
                     >
-                      <PanelLeft className="w-4 h-4" style={{ color: "var(--muted)" }} />
+                      <PanelLeft className="w-[18px] h-[18px]" style={{ color: "var(--muted)" }} />
                     </button>
-                    <span className="text-sm font-medium truncate flex-1" style={{ color: "var(--foreground)" }}>
+                    <span className="text-[13px] font-medium truncate flex-1 ml-1.5" style={{ color: "var(--foreground)" }}>
                       {activeConversationId
                         ? conversations.find((c) => c.id === activeConversationId)?.title ?? "Chat"
                         : "New Chat"}
                     </span>
-                    <button
-                      onClick={createNewConversation}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95"
-                      style={{ background: "var(--accent)" }}
-                      title="New Chat"
-                    >
-                      <Plus className="w-4 h-4" style={{ color: "#fff" }} strokeWidth={2.5} />
-                    </button>
+                    {showConversationList && (
+                      <button
+                        onClick={createNewConversation}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 shrink-0 ml-2"
+                        style={{ background: "var(--accent)" }}
+                        title="New Chat"
+                      >
+                        <Plus className="w-3.5 h-3.5" style={{ color: "#fff" }} strokeWidth={2.5} />
+                      </button>
+                    )}
                   </div>
 
                   {/* Messages area */}
