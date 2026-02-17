@@ -296,7 +296,6 @@ export default function SpotlightTour({
             ? "rgba(0,0,0,0.32)"
             : "transparent",
         }}
-        onClick={(e) => e.stopPropagation()}
       />
 
       {/* Spotlight cutout — provides dimming with a hole around the target */}
@@ -355,7 +354,7 @@ export default function SpotlightTour({
           >
             {/* Close button */}
             <button
-              onClick={handleClose}
+              onPointerDown={handleClose}
               className="absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer transition-colors hover:bg-black/5"
               style={{ color: "var(--muted)" }}
             >
@@ -401,7 +400,7 @@ export default function SpotlightTour({
                 <div className="flex items-center gap-2">
                   {currentStep > 0 && (
                     <button
-                      onClick={goPrev}
+                      onPointerDown={goPrev}
                       className="w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer transition-colors hover:bg-black/5"
                       style={{ color: "var(--muted)" }}
                     >
@@ -409,7 +408,7 @@ export default function SpotlightTour({
                     </button>
                   )}
                   <button
-                    onClick={goNext}
+                    onPointerDown={goNext}
                     className={`flex items-center gap-1 rounded-lg font-medium cursor-pointer transition-all hover:opacity-90 active:scale-[0.96] ${
                       isMobile ? "px-5 py-2.5 text-sm" : "px-3.5 py-1.5 text-xs"
                     }`}
